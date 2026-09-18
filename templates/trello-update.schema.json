@@ -1,48 +1,14 @@
 {
   "type": "object",
-  "required": [
-    "card_id",
-    "requested_action",
-    "tldr",
-    "evidence"
-  ],
+  "required": ["card_id", "requested_action", "tldr", "evidence"],
   "properties": {
-    "card_id": {
-      "type": "string",
-      "pattern": "^QD-\\d+$"
-    },
-    "requested_action": {
-      "enum": [
-        "comment",
-        "move_to_review",
-        "mark_blocked",
-        "request_done_approval"
-      ]
-    },
-    "tldr": {
-      "type": "string",
-      "maxLength": 500
-    },
-    "acceptance_criteria": {
-      "type": "object"
-    },
-    "evidence": {
-      "type": "object"
-    },
-    "adr_refs": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "risks_or_blockers": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "completion_note": {
-      "type": "string"
-    }
+    "card_id": { "type": "string", "pattern": "^QD-\\d+$" },
+    "requested_action": { "enum": ["comment", "move_to_review", "mark_blocked", "request_done_approval"] },
+    "tldr": { "type": "string", "maxLength": 500 },
+    "acceptance_criteria": { "type": "object" },
+    "evidence": { "type": "object" },
+    "adr_refs": { "type": "array", "items": { "type": "string" } },
+    "risks_or_blockers": { "type": "array", "items": { "type": "string" } },
+    "completion_note": { "type": "string" }
   }
 }

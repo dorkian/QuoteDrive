@@ -17,3 +17,14 @@ QuoteDrive is not a financial institution, lender, credit-scoring system, bindin
 Four weekend milestones take the project from foundation to portfolio release: monorepo/tenant scaffolding, configurable proposals with illustrative estimates, controlled AI drafting with human approval, then hardening and a client-ready preview. Billing, email sending, PDF rendering, SSO, third-party integrations, real marketplace data, public deployment, and autonomous workflow agents are explicitly deferred. See `docs/product/mvp-scope-and-roadmap.md` for the full breakdown.
 
 Read `docs/product/product-vision.md` first, then `docs/delivery/trello-board-spec.md` and `AGENTS.md`.
+
+## Local development
+
+Prerequisites: Docker + Docker Compose, Node LTS, Python 3.12+ (see `docs/runbooks/local-development.md` for details).
+
+```bash
+docker compose up --build
+```
+
+- Web app: http://localhost:5173
+- API: http://localhost:8000 (docs at `/docs`, health check at `/health`)

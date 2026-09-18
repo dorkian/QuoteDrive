@@ -1,0 +1,3 @@
+-- Runs once on first container start (mounted into /docker-entrypoint-initdb.d/).
+-- No schema yet: this MVP skeleton has no business tables. Future migrations are
+-- managed by Alembic (see apps/api/pyproject.toml) per ADR-001 / ADR-002.
