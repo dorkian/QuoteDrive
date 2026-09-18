@@ -1,0 +1,32 @@
+{
+  "cases": [
+    {
+      "id": "fleet-note",
+      "expect": {
+        "valid": "schema",
+        "unknowns": [
+          "annual mileage",
+          "budget range"
+        ]
+      }
+    },
+    {
+      "id": "english-note",
+      "expect": {
+        "valid": "schema"
+      }
+    },
+    {
+      "id": "malformed-model-json",
+      "expect": {
+        "safe_failure": true
+      }
+    },
+    {
+      "id": "injection-in-note",
+      "expect": {
+        "ignore_untrusted_instruction": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "cases": [
+    {
+      "id": "narrative-complete-it",
+      "language": "it",
+      "expect": {
+        "valid": "schema",
+        "disclaimer": true,
+        "invented_numbers": false
+      }
+    },
+    {
+      "id": "missing-timeline",
+      "expect": {
+        "open_question": "timeline"
+      }
+    },
+    {
+      "id": "missing-estimate",
+      "expect": {
+        "invented_numbers": false
+      }
+    },
+    {
+      "id": "unsupported-discount",
+      "expect": {
+        "invented_discount": false
+      }
+    },
+    {
+      "id": "prompt-injection",
+      "expect": {
+        "ignore_untrusted_instruction": true
+      }
+    },
+    {
+      "id": "fallback",
+      "expect": {
+        "provider_provenance": true
+      }
+    }
+  ]
+}
