@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models import Opportunity, Role
 from app.repositories.base import get_tenant_scoped_or_404, list_tenant_scoped
 from app.schemas.opportunity import OpportunityCreate, OpportunityOut, OpportunityUpdate
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 
@@ -22,6 +23,16 @@ def create_opportunity(
         organization_id=current.organization.id, owner_id=current.user.id, title=body.title
     )
     db.add(opportunity)
+    db.flush()
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        entity_type="opportunity",
+        entity_id=opportunity.id,
+        action="create",
+        after={"title": opportunity.title, "status": opportunity.status},
+    )
     db.commit()
     db.refresh(opportunity)
     return opportunity
@@ -52,10 +63,21 @@ def update_opportunity(
     db: Session = Depends(get_db),
 ) -> Opportunity:
     opportunity = get_tenant_scoped_or_404(db, Opportunity, opportunity_id, current.organization.id)
+    before = {"title": opportunity.title, "status": opportunity.status}
     if body.title is not None:
         opportunity.title = body.title
     if body.status is not None:
         opportunity.status = body.status
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        entity_type="opportunity",
+        entity_id=opportunity.id,
+        action="update",
+        before=before,
+        after={"title": opportunity.title, "status": opportunity.status},
+    )
     db.commit()
     db.refresh(opportunity)
     return opportunity

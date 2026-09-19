@@ -40,6 +40,7 @@ describe("AuthProvider", () => {
 
     await waitFor(() => expect(result.current.status).toBe("authenticated"));
     expect(result.current.me).toEqual(mockMe);
+    expect(result.current.token).toBe("stored-token");
   });
 
   it("clears an invalid stored token instead of leaving the dashboard broken", async () => {
@@ -64,6 +65,7 @@ describe("AuthProvider", () => {
     });
 
     expect(result.current.status).toBe("authenticated");
+    expect(result.current.token).toBe("new-token");
     expect(localStorage.getItem("quotedrive.token")).toBe("new-token");
   });
 

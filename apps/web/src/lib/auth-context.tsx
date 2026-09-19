@@ -15,6 +15,7 @@ type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 interface AuthContextValue {
   status: AuthStatus;
   me: Me | null;
+  token: string | null;
   error: string | null;
   login: (email: string) => Promise<void>;
   logout: () => void;
@@ -27,16 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.getItem(TOKEN_STORAGE_KEY) ? "loading" : "unauthenticated",
   );
   const [me, setMe] = useState<Me | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (!token) {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!storedToken) {
       return;
     }
-    fetchMe(token)
+    fetchMe(storedToken)
       .then((fetchedMe) => {
         setMe(fetchedMe);
+        setToken(storedToken);
         setStatus("authenticated");
       })
       .catch(() => {
@@ -48,10 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string): Promise<void> {
     setError(null);
     try {
-      const token = await demoLogin(email);
-      const fetchedMe = await fetchMe(token);
-      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+      const newToken = await demoLogin(email);
+      const fetchedMe = await fetchMe(newToken);
+      localStorage.setItem(TOKEN_STORAGE_KEY, newToken);
       setMe(fetchedMe);
+      setToken(newToken);
       setStatus("authenticated");
     } catch {
       setError("That demo login didn't work. Please try again.");
@@ -61,11 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout(): void {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setMe(null);
+    setToken(null);
     setStatus("unauthenticated");
   }
 
   return (
-    <AuthContext.Provider value={{ status, me, error, login, logout }}>
+    <AuthContext.Provider value={{ status, me, token, error, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

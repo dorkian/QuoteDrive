@@ -1,0 +1,106 @@
+from collections.abc import Callable
+
+from fastapi.testclient import TestClient
+
+from tests.conftest import TwoOrgs
+
+
+def _auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_summary_is_empty_for_an_org_with_no_opportunities(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.admin_a)
+
+    response = client.get("/dashboard/summary", headers=_auth(token))
+
+    assert response.status_code == 200
+    assert response.json() == {"opportunities_by_status": {}}
+
+
+def test_summary_counts_are_scoped_to_the_caller_org(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    manager_a_token = login(two_orgs.manager_a)
+    admin_b_token = login(two_orgs.admin_b)
+    client.post("/opportunities", json={"title": "Org A deal 1"}, headers=_auth(manager_a_token))
+    client.post("/opportunities", json={"title": "Org A deal 2"}, headers=_auth(manager_a_token))
+    client.post("/opportunities", json={"title": "Org B deal"}, headers=_auth(admin_b_token))
+
+    response = client.get("/dashboard/summary", headers=_auth(manager_a_token))
+
+    assert response.status_code == 200
+    assert response.json() == {"opportunities_by_status": {"open": 2}}
+
+
+def test_audit_events_appear_after_create_and_update_most_recent_first(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.manager_a)
+    created = client.post(
+        "/opportunities", json={"title": "Org A deal"}, headers=_auth(token)
+    ).json()
+    client.patch(
+        f"/opportunities/{created['id']}",
+        json={"status": "configured"},
+        headers=_auth(token),
+    )
+
+    response = client.get("/audit-events", headers=_auth(token))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    assert body[0]["action"] == "update"
+    assert body[0]["after_json"] == {"title": "Org A deal", "status": "configured"}
+    assert body[1]["action"] == "create"
+
+
+def test_audit_events_are_scoped_to_the_caller_org(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    manager_a_token = login(two_orgs.manager_a)
+    admin_b_token = login(two_orgs.admin_b)
+    client.post("/opportunities", json={"title": "Org A deal"}, headers=_auth(manager_a_token))
+
+    response = client.get("/audit-events", headers=_auth(admin_b_token))
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_audit_events_filters_by_entity_type_and_entity_id(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.manager_a)
+    first = client.post("/opportunities", json={"title": "First deal"}, headers=_auth(token)).json()
+    second = client.post(
+        "/opportunities", json={"title": "Second deal"}, headers=_auth(token)
+    ).json()
+
+    response = client.get(
+        f"/audit-events?entity_type=opportunity&entity_id={second['id']}",
+        headers=_auth(token),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["entity_id"] == second["id"]
+    assert body[0]["after_json"] == {"title": "Second deal", "status": "open"}
+    assert first["id"] != second["id"]
+
+
+def test_audit_events_respects_limit(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.manager_a)
+    for i in range(3):
+        client.post("/opportunities", json={"title": f"Deal {i}"}, headers=_auth(token))
+
+    response = client.get("/audit-events?limit=2", headers=_auth(token))
+
+    assert response.status_code == 200
+    assert len(response.json()) == 2
