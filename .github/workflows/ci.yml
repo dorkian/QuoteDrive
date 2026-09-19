@@ -20,7 +20,8 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff format --check .
       - run: ruff check .
-      - run: mypy app tests
+      - run: mypy app tests scripts migrations
+      - run: alembic upgrade head --sql > /dev/null
       - run: pytest -q
 
   frontend:
