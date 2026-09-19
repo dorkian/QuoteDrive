@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import jwt
@@ -48,3 +49,24 @@ def get_current_membership(
         raise unauthorized
 
     return CurrentMembership(user=user, organization=organization, role=membership.role)
+
+
+def require_role(*allowed: Role) -> Callable[[CurrentMembership], CurrentMembership]:
+    """Dependency factory: 403s unless the actor's role is one of `allowed`.
+
+    Runs ahead of any tenant-scoped fetch, so a role failure is always 403 —
+    never leaking whether the target row exists in another org (that's a 404,
+    from app.repositories.base.get_tenant_scoped_or_404).
+    """
+
+    def checker(
+        current: CurrentMembership = Depends(get_current_membership),
+    ) -> CurrentMembership:
+        if current.role not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient role for this action",
+            )
+        return current
+
+    return checker
