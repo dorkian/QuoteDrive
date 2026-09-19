@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   backend:
@@ -19,7 +20,7 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff format --check .
       - run: ruff check .
-      - run: mypy app
+      - run: mypy app tests
       - run: pytest -q
 
   frontend:

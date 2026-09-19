@@ -28,3 +28,12 @@ docker compose up --build
 
 - Web app: http://localhost:5173
 - API: http://localhost:8000 (docs at `/docs`, health check at `/health`)
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request targeting `main`, with two independent jobs that must both pass before a PR can merge:
+
+- **backend** (`apps/api`): `ruff format --check`, `ruff check`, `mypy`, `pytest`.
+- **frontend** (`apps/web`): `npm ci`, `prettier --check`, `oxlint`, `tsc -b`, `vitest run`, `vite build`.
+
+Each job runs its checks as sequential steps, so the first failing check stops that job immediately rather than masking later failures. Run the same commands locally before pushing to catch issues early.
