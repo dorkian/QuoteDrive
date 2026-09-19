@@ -3,7 +3,7 @@
 QuoteDrive is an open-source educational case study for an AI-assisted, multi-tenant B2B proposal workspace. It is designed to demonstrate product thinking, SaaS architecture, controlled generative AI, tenant isolation, approval workflows, and delivery discipline.
 
 ## Product boundary
-QuoteDrive is not a financial institution, lender, credit-scoring system, binding quote engine, legal tool, or compliance product. All companies, customers, commercial values, vehicles, and documents are fictional or synthetic. AI creates drafts only; people own commercial decisions and approvals.
+QuoteDrive is not a financial institution, lender, credit-scoring system, binding quote engine, legal tool, or compliance product. All companies, customers, commercial values, vehicles, and documents are fictional or synthetic. AI creates drafts only; people own commercial decisions and approvals. See `docs/product/synthetic-data-policy.md` for the full policy and `docs/product/demo-scenario.md` for the reference demo narrative.
 
 ## Delivery model
 - Trello is the delivery cockpit.
