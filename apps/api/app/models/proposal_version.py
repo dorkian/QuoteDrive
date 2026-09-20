@@ -1,6 +1,6 @@
+import enum
 from datetime import UTC, datetime
 from decimal import Decimal
-import enum
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, Numeric
@@ -49,4 +49,3 @@ class ProposalVersion(TenantOwnedMixin, Base):
     )
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-

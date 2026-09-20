@@ -18,6 +18,7 @@ class EstimateLineResult(BaseModel):
     name: str
     category: str
     quantity: int
+    add_on_item_ids: list[int]
     unit_estimate: Decimal
     line_total: Decimal
 

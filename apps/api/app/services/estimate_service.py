@@ -47,6 +47,7 @@ def resolve_line_estimate(
         name=package.name,
         category=package.category,
         quantity=quantity,
+        add_on_item_ids=add_on_item_ids,
         unit_estimate=unit_estimate,
         line_total=line_total,
     )

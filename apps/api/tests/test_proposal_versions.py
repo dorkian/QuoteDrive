@@ -151,6 +151,40 @@ def test_patch_draft_version_updates_content_and_status(
     assert len(data["content_json"]["lines"]) == 1
 
 
+def test_patch_persists_assumptions_per_line(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+) -> None:
+    token = login(two_orgs.manager_a)
+    v1 = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(token),
+    ).json()
+
+    patch_payload = {
+        "lines": [
+            {
+                "catalogue_item_id": seeded_env["pkg_id"],
+                "quantity": 4,
+                "add_on_item_ids": [],
+                "assumptions": "12-month term, standard mileage",
+            }
+        ]
+    }
+    patched = client.patch(
+        f"/proposal-versions/{v1['id']}",
+        json=patch_payload,
+        headers=_auth(token),
+    )
+
+    assert patched.status_code == 200
+    line = patched.json()["content_json"]["lines"][0]
+    assert line["assumptions"] == "12-month term, standard mileage"
+
+
 def test_finalize_version_transitions_to_proposal_drafted(
     client: TestClient,
     two_orgs: TwoOrgs,
@@ -398,3 +432,81 @@ def test_approver_and_viewer_cannot_create_patch_finalize_but_can_get(
     # But CAN view
     res_get = client.get(f"/proposal-versions/{created['id']}", headers=_auth(token))
     assert res_get.status_code == 200
+
+
+def test_list_versions_for_opportunity_ordered_most_recent_first(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+) -> None:
+    token = login(two_orgs.manager_a)
+    v1 = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(token),
+    ).json()
+    v2 = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(token),
+    ).json()
+
+    response = client.get(f"/opportunities/{seeded_env['opp_a_id']}/versions", headers=_auth(token))
+
+    assert response.status_code == 200
+    versions = response.json()
+    assert [v["id"] for v in versions] == [v2["id"], v1["id"]]
+
+
+def test_list_versions_is_scoped_to_own_org(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+) -> None:
+    token_a = login(two_orgs.manager_a)
+    client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(token_a),
+    )
+
+    token_b = login(two_orgs.admin_b)
+    response = client.get(
+        f"/opportunities/{seeded_env['opp_b_id']}/versions", headers=_auth(token_b)
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_versions_cross_tenant_opportunity_returns_404(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+) -> None:
+    token = login(two_orgs.manager_a)
+    response = client.get(f"/opportunities/{seeded_env['opp_b_id']}/versions", headers=_auth(token))
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("role_attr", ["admin_a", "manager_a", "approver_a", "viewer_a"])
+def test_every_role_can_list_versions(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+    role_attr: str,
+) -> None:
+    admin_token = login(two_orgs.admin_a)
+    client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(admin_token),
+    )
+
+    token = login(getattr(two_orgs, role_attr))
+    response = client.get(f"/opportunities/{seeded_env['opp_a_id']}/versions", headers=_auth(token))
+    assert response.status_code == 200

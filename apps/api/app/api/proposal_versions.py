@@ -89,6 +89,24 @@ def create_proposal_version(
     return version
 
 
+@router.get("/opportunities/{opportunity_id}/versions", response_model=list[ProposalVersionOut])
+def list_proposal_versions(
+    opportunity_id: int,
+    current: CurrentMembership = Depends(get_current_membership),
+    db: Session = Depends(get_db),
+) -> list[ProposalVersion]:
+    opportunity = get_tenant_scoped_or_404(db, Opportunity, opportunity_id, current.organization.id)
+    stmt = (
+        select(ProposalVersion)
+        .where(
+            ProposalVersion.opportunity_id == opportunity.id,
+            ProposalVersion.organization_id == current.organization.id,
+        )
+        .order_by(ProposalVersion.version_number.desc())
+    )
+    return list(db.execute(stmt).scalars().all())
+
+
 @router.get("/proposal-versions/{version_id}", response_model=ProposalVersionOut)
 def get_proposal_version(
     version_id: int,
@@ -127,7 +145,12 @@ def update_proposal_version(
     }
 
     version.total_estimate = calculate_proposal_total(r.line_total for r in line_results)
-    version.content_json = {"lines": [r.model_dump(mode="json") for r in line_results]}
+    version.content_json = {
+        "lines": [
+            {**r.model_dump(mode="json"), "assumptions": line.assumptions}
+            for line, r in zip(body.lines, line_results, strict=True)
+        ]
+    }
 
     if version.status == ProposalVersionStatus.DRAFT:
         version.status = ProposalVersionStatus.CONFIGURED

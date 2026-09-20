@@ -10,6 +10,7 @@ class ProposalVersionLineInput(BaseModel):
     catalogue_item_id: int
     quantity: int = Field(ge=0)
     add_on_item_ids: list[int] = Field(default_factory=list)
+    assumptions: str | None = None
 
 
 class ProposalVersionCreate(BaseModel):
@@ -29,4 +30,3 @@ class ProposalVersionOut(BaseModel):
     content_json: dict[str, Any]
     total_estimate: Decimal
     created_by: int
-
