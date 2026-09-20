@@ -14,13 +14,24 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+# --- Opportunities ---
+
+
 def test_list_opportunities_is_scoped_to_own_org(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
 ) -> None:
     admin_a_token = login(two_orgs.admin_a)
     admin_b_token = login(two_orgs.admin_b)
-    client.post("/opportunities", json={"title": "Org A deal"}, headers=_auth(admin_a_token))
-    client.post("/opportunities", json={"title": "Org B deal"}, headers=_auth(admin_b_token))
+    client.post(
+        "/opportunities",
+        json={"title": "Org A deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(admin_a_token),
+    )
+    client.post(
+        "/opportunities",
+        json={"title": "Org B deal", "customer_id": two_orgs.customer_b_id},
+        headers=_auth(admin_b_token),
+    )
 
     response = client.get("/opportunities", headers=_auth(admin_a_token))
 
@@ -35,7 +46,9 @@ def test_get_cross_tenant_opportunity_returns_404(
     admin_a_token = login(two_orgs.admin_a)
     admin_b_token = login(two_orgs.admin_b)
     created = client.post(
-        "/opportunities", json={"title": "Org A deal"}, headers=_auth(admin_a_token)
+        "/opportunities",
+        json={"title": "Org A deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(admin_a_token),
     ).json()
 
     response = client.get(f"/opportunities/{created['id']}", headers=_auth(admin_b_token))
@@ -46,18 +59,12 @@ def test_get_cross_tenant_opportunity_returns_404(
 def test_write_cross_tenant_opportunity_returns_404_not_403(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
 ) -> None:
-    # Not 403: a role-valid actor (Admin) in the wrong org must not be able to tell
-    # the row exists at all. QD-102's design, reviewed and approved — see the
-    # QD-105 Trello card for why this deliberately differs from the card's own
-    # AC wording ("cross-tenant write returns 403").
-    #
-    # "Write" here only covers PATCH — there's no DELETE endpoint on any
-    # tenant-owned resource yet. Add a matching cross-tenant DELETE 404 test
-    # (get_tenant_scoped_or_404 should already cover it) when one ships.
     admin_a_token = login(two_orgs.admin_a)
     admin_b_token = login(two_orgs.admin_b)
     created = client.post(
-        "/opportunities", json={"title": "Org A deal"}, headers=_auth(admin_a_token)
+        "/opportunities",
+        json={"title": "Org A deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(admin_a_token),
     ).json()
 
     response = client.patch(
@@ -69,17 +76,106 @@ def test_write_cross_tenant_opportunity_returns_404_not_403(
     assert response.status_code == 404
 
 
-def test_create_always_uses_the_actors_own_org(
+def test_delete_cross_tenant_opportunity_returns_404(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
 ) -> None:
-    # OpportunityCreate has no organization_id field at all, so a spoofed one in
-    # the body is silently ignored (Pydantic drops unknown fields by default) —
-    # the created row always lands in the actor's real org.
+    admin_a_token = login(two_orgs.admin_a)
+    admin_b_token = login(two_orgs.admin_b)
+    created = client.post(
+        "/opportunities",
+        json={"title": "Org A deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(admin_a_token),
+    ).json()
+
+    response = client.delete(
+        f"/opportunities/{created['id']}",
+        headers=_auth(admin_b_token),
+    )
+
+    assert response.status_code == 404
+
+
+def test_create_opportunity_always_uses_the_actors_own_org(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
     admin_a_token = login(two_orgs.admin_a)
 
     response = client.post(
         "/opportunities",
-        json={"title": "Spoof attempt", "organization_id": two_orgs.org_b_id},
+        json={
+            "title": "Spoof attempt",
+            "customer_id": two_orgs.customer_a_id,
+            "organization_id": two_orgs.org_b_id,
+        },
+        headers=_auth(admin_a_token),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["organization_id"] == two_orgs.org_a_id
+
+
+# --- Customers ---
+
+
+def test_list_customers_is_scoped_to_own_org(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    admin_a_token = login(two_orgs.admin_a)
+    admin_b_token = login(two_orgs.admin_b)
+
+    res_a = client.get("/customers", headers=_auth(admin_a_token))
+    assert res_a.status_code == 200
+    names_a = [c["name"] for c in res_a.json()]
+    assert names_a == ["Customer A"]
+
+    res_b = client.get("/customers", headers=_auth(admin_b_token))
+    assert res_b.status_code == 200
+    names_b = [c["name"] for c in res_b.json()]
+    assert names_b == ["Customer B"]
+
+
+def test_get_cross_tenant_customer_returns_404(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    admin_b_token = login(two_orgs.admin_b)
+    response = client.get(f"/customers/{two_orgs.customer_a_id}", headers=_auth(admin_b_token))
+
+    assert response.status_code == 404
+
+
+def test_write_cross_tenant_customer_returns_404_not_403(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    admin_b_token = login(two_orgs.admin_b)
+    response = client.patch(
+        f"/customers/{two_orgs.customer_a_id}",
+        json={"name": "Hijacked"},
+        headers=_auth(admin_b_token),
+    )
+
+    assert response.status_code == 404
+
+
+def test_delete_cross_tenant_customer_returns_404(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    admin_b_token = login(two_orgs.admin_b)
+    response = client.delete(
+        f"/customers/{two_orgs.customer_a_id}",
+        headers=_auth(admin_b_token),
+    )
+
+    assert response.status_code == 404
+
+
+def test_create_customer_always_uses_the_actors_own_org(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    admin_a_token = login(two_orgs.admin_a)
+
+    response = client.post(
+        "/customers",
+        json={"name": "Spoofed Customer", "organization_id": two_orgs.org_b_id},
         headers=_auth(admin_a_token),
     )
 

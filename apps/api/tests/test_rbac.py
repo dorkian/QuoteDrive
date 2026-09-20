@@ -1,6 +1,6 @@
 """Role-based access control: for each of the four roles, assert what create/
-list/get/patch on a tenant-owned resource (Opportunity) should do, per
-security-and-tenancy.md's roles matrix (Create/edit: Admin + Proposal Manager
+list/get/patch/delete on tenant-owned resources (Opportunity and Customer) should do,
+per security-and-tenancy.md's roles matrix (Create/edit/delete: Admin + Proposal Manager
 only; view: all four roles).
 
 Three AC items from the QD-105 card can't be tested yet — they describe
@@ -22,18 +22,24 @@ def _auth(token: str) -> dict[str, str]:
 
 
 def test_unauthenticated_request_returns_401(client: TestClient) -> None:
-    response = client.get("/opportunities")
+    assert client.get("/opportunities").status_code == 401
+    assert client.get("/customers").status_code == 401
 
-    assert response.status_code == 401
+
+# --- Opportunities RBAC ---
 
 
 @pytest.mark.parametrize("role_attr", ["admin_a", "manager_a"])
-def test_admin_and_manager_can_create_and_edit(
+def test_admin_and_manager_can_manage_opportunities(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str], role_attr: str
 ) -> None:
     token = login(getattr(two_orgs, role_attr))
 
-    created = client.post("/opportunities", json={"title": "Fleet deal"}, headers=_auth(token))
+    created = client.post(
+        "/opportunities",
+        json={"title": "Fleet deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(token),
+    )
     assert created.status_code == 201
 
     patched = client.patch(
@@ -44,20 +50,27 @@ def test_admin_and_manager_can_create_and_edit(
     assert patched.status_code == 200
     assert patched.json()["title"] == "Renamed"
 
+    deleted = client.delete(f"/opportunities/{created.json()['id']}", headers=_auth(token))
+    assert deleted.status_code == 204
+
 
 @pytest.mark.parametrize("role_attr", ["approver_a", "viewer_a"])
-def test_approver_and_viewer_cannot_create_or_edit(
+def test_approver_and_viewer_cannot_manage_opportunities(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str], role_attr: str
 ) -> None:
     admin_token = login(two_orgs.admin_a)
     existing = client.post(
-        "/opportunities", json={"title": "Fleet deal"}, headers=_auth(admin_token)
+        "/opportunities",
+        json={"title": "Fleet deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(admin_token),
     ).json()
 
     token = login(getattr(two_orgs, role_attr))
 
     create_response = client.post(
-        "/opportunities", json={"title": "Another deal"}, headers=_auth(token)
+        "/opportunities",
+        json={"title": "Another deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(token),
     )
     assert create_response.status_code == 403
 
@@ -66,14 +79,19 @@ def test_approver_and_viewer_cannot_create_or_edit(
     )
     assert patch_response.status_code == 403
 
+    delete_response = client.delete(f"/opportunities/{existing['id']}", headers=_auth(token))
+    assert delete_response.status_code == 403
+
 
 @pytest.mark.parametrize("role_attr", ["admin_a", "manager_a", "approver_a", "viewer_a"])
-def test_every_role_can_view(
+def test_every_role_can_view_opportunities(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str], role_attr: str
 ) -> None:
     admin_token = login(two_orgs.admin_a)
     existing = client.post(
-        "/opportunities", json={"title": "Fleet deal"}, headers=_auth(admin_token)
+        "/opportunities",
+        json={"title": "Fleet deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(admin_token),
     ).json()
 
     token = login(getattr(two_orgs, role_attr))
@@ -83,6 +101,72 @@ def test_every_role_can_view(
 
     get_response = client.get(f"/opportunities/{existing['id']}", headers=_auth(token))
     assert get_response.status_code == 200
+
+
+# --- Customers RBAC ---
+
+
+@pytest.mark.parametrize("role_attr", ["admin_a", "manager_a"])
+def test_admin_and_manager_can_manage_customers(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str], role_attr: str
+) -> None:
+    token = login(getattr(two_orgs, role_attr))
+
+    created = client.post(
+        "/customers",
+        json={"name": "New Corp"},
+        headers=_auth(token),
+    )
+    assert created.status_code == 201
+
+    patched = client.patch(
+        f"/customers/{created.json()['id']}",
+        json={"name": "New Corp Updated"},
+        headers=_auth(token),
+    )
+    assert patched.status_code == 200
+    assert patched.json()["name"] == "New Corp Updated"
+
+    deleted = client.delete(f"/customers/{created.json()['id']}", headers=_auth(token))
+    assert deleted.status_code == 204
+
+
+@pytest.mark.parametrize("role_attr", ["approver_a", "viewer_a"])
+def test_approver_and_viewer_cannot_manage_customers(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str], role_attr: str
+) -> None:
+    admin_token = login(two_orgs.admin_a)
+    existing = client.post(
+        "/customers",
+        json={"name": "Protected Corp"},
+        headers=_auth(admin_token),
+    ).json()
+
+    token = login(getattr(two_orgs, role_attr))
+
+    create_res = client.post("/customers", json={"name": "Forbidden"}, headers=_auth(token))
+    assert create_res.status_code == 403
+
+    patch_res = client.patch(
+        f"/customers/{existing['id']}", json={"name": "Renamed"}, headers=_auth(token)
+    )
+    assert patch_res.status_code == 403
+
+    del_res = client.delete(f"/customers/{existing['id']}", headers=_auth(token))
+    assert del_res.status_code == 403
+
+
+@pytest.mark.parametrize("role_attr", ["admin_a", "manager_a", "approver_a", "viewer_a"])
+def test_every_role_can_view_customers(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str], role_attr: str
+) -> None:
+    token = login(getattr(two_orgs, role_attr))
+
+    list_res = client.get("/customers", headers=_auth(token))
+    assert list_res.status_code == 200
+
+    get_res = client.get(f"/customers/{two_orgs.customer_a_id}", headers=_auth(token))
+    assert get_res.status_code == 200
 
 
 # --- Deferred: no Proposal/ApprovalRequest domain exists yet (see QD-105 card) ---

@@ -25,9 +25,21 @@ def test_summary_counts_are_scoped_to_the_caller_org(
 ) -> None:
     manager_a_token = login(two_orgs.manager_a)
     admin_b_token = login(two_orgs.admin_b)
-    client.post("/opportunities", json={"title": "Org A deal 1"}, headers=_auth(manager_a_token))
-    client.post("/opportunities", json={"title": "Org A deal 2"}, headers=_auth(manager_a_token))
-    client.post("/opportunities", json={"title": "Org B deal"}, headers=_auth(admin_b_token))
+    client.post(
+        "/opportunities",
+        json={"title": "Org A deal 1", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(manager_a_token),
+    )
+    client.post(
+        "/opportunities",
+        json={"title": "Org A deal 2", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(manager_a_token),
+    )
+    client.post(
+        "/opportunities",
+        json={"title": "Org B deal", "customer_id": two_orgs.customer_b_id},
+        headers=_auth(admin_b_token),
+    )
 
     response = client.get("/dashboard/summary", headers=_auth(manager_a_token))
 
@@ -40,7 +52,9 @@ def test_audit_events_appear_after_create_and_update_most_recent_first(
 ) -> None:
     token = login(two_orgs.manager_a)
     created = client.post(
-        "/opportunities", json={"title": "Org A deal"}, headers=_auth(token)
+        "/opportunities",
+        json={"title": "Org A deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(token),
     ).json()
     client.patch(
         f"/opportunities/{created['id']}",
@@ -63,7 +77,11 @@ def test_audit_events_are_scoped_to_the_caller_org(
 ) -> None:
     manager_a_token = login(two_orgs.manager_a)
     admin_b_token = login(two_orgs.admin_b)
-    client.post("/opportunities", json={"title": "Org A deal"}, headers=_auth(manager_a_token))
+    client.post(
+        "/opportunities",
+        json={"title": "Org A deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(manager_a_token),
+    )
 
     response = client.get("/audit-events", headers=_auth(admin_b_token))
 
@@ -75,9 +93,15 @@ def test_audit_events_filters_by_entity_type_and_entity_id(
     client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
 ) -> None:
     token = login(two_orgs.manager_a)
-    first = client.post("/opportunities", json={"title": "First deal"}, headers=_auth(token)).json()
+    first = client.post(
+        "/opportunities",
+        json={"title": "First deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(token),
+    ).json()
     second = client.post(
-        "/opportunities", json={"title": "Second deal"}, headers=_auth(token)
+        "/opportunities",
+        json={"title": "Second deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(token),
     ).json()
 
     response = client.get(
@@ -98,7 +122,11 @@ def test_audit_events_respects_limit(
 ) -> None:
     token = login(two_orgs.manager_a)
     for i in range(3):
-        client.post("/opportunities", json={"title": f"Deal {i}"}, headers=_auth(token))
+        client.post(
+            "/opportunities",
+            json={"title": f"Deal {i}", "customer_id": two_orgs.customer_a_id},
+            headers=_auth(token),
+        )
 
     response = client.get("/audit-events?limit=2", headers=_auth(token))
 

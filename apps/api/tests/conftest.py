@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import get_db
 from app.main import app
-from app.models import Base, Organization, OrganizationMembership, Role, User
+from app.models import Base, Customer, Organization, OrganizationMembership, Role, User
 
 
 @pytest.fixture()
@@ -57,6 +57,8 @@ def demo_admin(db_session: Session) -> User:
 class TwoOrgs:
     org_a_id: int
     org_b_id: int
+    customer_a_id: int
+    customer_b_id: int
     admin_a: str
     manager_a: str
     approver_a: str
@@ -71,6 +73,11 @@ def two_orgs(db_session: Session) -> TwoOrgs:
     org_a = Organization(name="Org A", slug="org-a")
     org_b = Organization(name="Org B", slug="org-b")
     db_session.add_all([org_a, org_b])
+    db_session.flush()
+
+    customer_a = Customer(name="Customer A", organization_id=org_a.id, status="active")
+    customer_b = Customer(name="Customer B", organization_id=org_b.id, status="active")
+    db_session.add_all([customer_a, customer_b])
     db_session.flush()
 
     users = {
@@ -90,6 +97,8 @@ def two_orgs(db_session: Session) -> TwoOrgs:
     return TwoOrgs(
         org_a_id=org_a.id,
         org_b_id=org_b.id,
+        customer_a_id=customer_a.id,
+        customer_b_id=customer_b.id,
         admin_a=users["admin_a"][0],
         manager_a=users["manager_a"][0],
         approver_a=users["approver_a"][0],

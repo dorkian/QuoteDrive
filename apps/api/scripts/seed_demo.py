@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
-from app.models import Opportunity, Organization, OrganizationMembership, Role, User
+from app.models import Customer, Opportunity, Organization, OrganizationMembership, Role, User
 from app.services.audit import record_audit_event
 
 ORG_NAME = "Northstar Mobility Advisory"
@@ -57,6 +57,34 @@ def seed(db: Session) -> None:
 
     assert manager is not None  # DEMO_USERS always includes a Proposal Manager
 
+    customer = db.execute(
+        select(Customer).where(
+            Customer.organization_id == org.id, Customer.name == "Lombarda Studio Group"
+        )
+    ).scalar_one_or_none()
+    if customer is None:
+        customer = Customer(
+            organization_id=org.id,
+            name="Lombarda Studio Group",
+            industry="Professional Services",
+        )
+        db.add(customer)
+        db.flush()
+        record_audit_event(
+            db,
+            organization_id=org.id,
+            actor_id=manager.id,
+            entity_type="customer",
+            entity_id=customer.id,
+            action="create",
+            after={
+                "name": customer.name,
+                "industry": customer.industry,
+                "status": customer.status,
+            },
+        )
+        print(f"created customer: {customer.name}")
+
     for title in DEMO_OPPORTUNITIES:
         existing = db.execute(
             select(Opportunity).where(
@@ -64,7 +92,12 @@ def seed(db: Session) -> None:
             )
         ).scalar_one_or_none()
         if existing is None:
-            opportunity = Opportunity(organization_id=org.id, owner_id=manager.id, title=title)
+            opportunity = Opportunity(
+                organization_id=org.id,
+                customer_id=customer.id,
+                owner_id=manager.id,
+                title=title,
+            )
             db.add(opportunity)
             db.flush()
             record_audit_event(
