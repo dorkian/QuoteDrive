@@ -8,6 +8,7 @@ from app.api.auth import router as auth_router
 from app.api.catalogue import router as catalogue_router
 from app.api.customers import router as customers_router
 from app.api.dashboard import router as dashboard_router
+from app.api.estimates import router as estimates_router
 from app.api.opportunities import router as opportunities_router
 from app.core.config import settings
 
@@ -40,6 +41,7 @@ app.include_router(catalogue_router)
 app.include_router(customers_router)
 app.include_router(opportunities_router)
 app.include_router(dashboard_router)
+app.include_router(estimates_router)
 
 
 @app.get("/health")
