@@ -14,6 +14,7 @@ import { ComingSoonPanel } from "./features/dashboard/ComingSoonPanel";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { OpportunitiesListPage } from "./features/opportunities/OpportunitiesListPage";
 import { OpportunityDetailPage } from "./features/opportunities/OpportunityDetailPage";
+import { PackageComparison } from "./features/proposals/PackageComparison";
 import { ProposalBuilder } from "./features/proposals/ProposalBuilder";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 
@@ -76,10 +77,7 @@ function AppShell() {
           path="/customers"
           element={<ComingSoonPanel title="Customers" />}
         />
-        <Route
-          path="/proposals"
-          element={<ComingSoonPanel title="Proposals" />}
-        />
+        <Route path="/proposals" element={<PackageComparison />} />
         <Route
           path="/settings"
           element={<ComingSoonPanel title="Settings" />}
