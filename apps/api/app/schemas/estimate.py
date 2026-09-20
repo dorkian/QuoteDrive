@@ -26,4 +26,3 @@ class EstimateCalculateResponse(BaseModel):
     lines: list[EstimateLineResult]
     total_estimate: Decimal
     disclaimer: str
-

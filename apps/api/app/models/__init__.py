@@ -5,6 +5,7 @@ from app.models.customer import Customer
 from app.models.membership import OrganizationMembership, Role
 from app.models.opportunity import Opportunity
 from app.models.organization import Organization
+from app.models.proposal_version import ProposalVersion, ProposalVersionStatus
 from app.models.user import User
 
 __all__ = [
@@ -15,6 +16,8 @@ __all__ = [
     "Opportunity",
     "Organization",
     "OrganizationMembership",
+    "ProposalVersion",
+    "ProposalVersionStatus",
     "Role",
     "User",
 ]

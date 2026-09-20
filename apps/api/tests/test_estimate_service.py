@@ -26,12 +26,12 @@ def test_calculate_line_total_zero_quantity() -> None:
     quantity = 0
 
     total = calculate_line_total(base, add_ons, quantity)
-    assert total == Decimal("0")
+    assert total == Decimal(0)
 
 
 def test_calculate_line_total_without_add_ons() -> None:
     base = Decimal("549.00")
-    add_ons = Decimal("0")
+    add_ons = Decimal(0)
     quantity = 5
 
     total = calculate_line_total(base, add_ons, quantity)
@@ -40,7 +40,7 @@ def test_calculate_line_total_without_add_ons() -> None:
 
 def test_calculate_proposal_total_empty() -> None:
     total = calculate_proposal_total([])
-    assert total == Decimal("0")
+    assert total == Decimal(0)
 
 
 def test_calculate_proposal_total_multiple_lines() -> None:
@@ -62,4 +62,3 @@ def test_decimal_precision_preserves_exact_values() -> None:
 
 def test_illustrative_disclaimer_text() -> None:
     assert ILLUSTRATIVE_DISCLAIMER == "Illustrative planning estimate only."
-

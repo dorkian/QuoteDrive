@@ -66,7 +66,9 @@ def seeded_catalogue(db_session: Session, two_orgs: TwoOrgs) -> dict[str, Catalo
         base_monthly_estimate=Decimal("549.00"),
         active=True,
     )
-    db_session.add_all([pkg_a, addon_maint_a, addon_tyres_a, inactive_pkg_a, inactive_addon_a, pkg_b])
+    db_session.add_all(
+        [pkg_a, addon_maint_a, addon_tyres_a, inactive_pkg_a, inactive_addon_a, pkg_b]
+    )
     db_session.commit()
     for item in [pkg_a, addon_maint_a, addon_tyres_a, inactive_pkg_a, inactive_addon_a, pkg_b]:
         db_session.refresh(item)
@@ -144,8 +146,8 @@ def test_calculate_estimate_zero_quantity(
 
     assert response.status_code == 200
     data = response.json()
-    assert Decimal(str(data["lines"][0]["line_total"])) == Decimal("0")
-    assert Decimal(str(data["total_estimate"])) == Decimal("0")
+    assert Decimal(str(data["lines"][0]["line_total"])) == Decimal(0)
+    assert Decimal(str(data["total_estimate"])) == Decimal(0)
 
 
 def test_calculate_estimate_inactive_package_returns_404(
@@ -271,4 +273,3 @@ def test_approver_and_viewer_cannot_calculate_estimates(
     payload = {"lines": [{"catalogue_item_id": seeded_catalogue["pkg_a"].id, "quantity": 1}]}
     response = client.post("/estimates/calculate", json=payload, headers=_auth(token))
     assert response.status_code == 403
-

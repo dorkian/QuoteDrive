@@ -10,6 +10,7 @@ from app.api.customers import router as customers_router
 from app.api.dashboard import router as dashboard_router
 from app.api.estimates import router as estimates_router
 from app.api.opportunities import router as opportunities_router
+from app.api.proposal_versions import router as proposal_versions_router
 from app.core.config import settings
 
 
@@ -42,6 +43,7 @@ app.include_router(customers_router)
 app.include_router(opportunities_router)
 app.include_router(dashboard_router)
 app.include_router(estimates_router)
+app.include_router(proposal_versions_router)
 
 
 @app.get("/health")
