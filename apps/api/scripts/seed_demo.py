@@ -6,11 +6,21 @@ Idempotent — safe to run multiple times. Run after `alembic upgrade head`:
     python -m scripts.seed_demo
 """
 
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
-from app.models import Customer, Opportunity, Organization, OrganizationMembership, Role, User
+from app.models import (
+    CatalogueItem,
+    Customer,
+    Opportunity,
+    Organization,
+    OrganizationMembership,
+    Role,
+    User,
+)
 from app.services.audit import record_audit_event
 
 ORG_NAME = "Northstar Mobility Advisory"
@@ -27,6 +37,18 @@ DEMO_OPPORTUNITIES = [
     "2026 Fleet Modernization & Mobility Services",
     "Downtown Campus Shuttle Expansion",
     "Executive Fleet Refresh",
+]
+
+CATALOGUE_ITEMS = [
+    # Packages
+    ("package", "Electric City", "electric_city", Decimal("649.00")),
+    ("package", "Hybrid Account Manager", "hybrid", Decimal("549.00")),
+    ("package", "Long Distance", "long_distance", Decimal("729.00")),
+    # Add-ons
+    ("add_on", "Maintenance", "maintenance", Decimal("89.00")),
+    ("add_on", "Tyres", "tyres", Decimal("35.00")),
+    ("add_on", "Roadside Assistance", "roadside_assistance", Decimal("19.00")),
+    ("add_on", "Home Charging Advisory", "home_charging_advisory", Decimal("59.00")),
 ]
 
 
@@ -110,6 +132,26 @@ def seed(db: Session) -> None:
                 after={"title": opportunity.title, "status": opportunity.status},
             )
             print(f"created opportunity: {title}")
+
+    for type_, name, category, price in CATALOGUE_ITEMS:
+        existing_item = db.execute(
+            select(CatalogueItem).where(
+                CatalogueItem.organization_id == org.id,
+                CatalogueItem.type == type_,
+                CatalogueItem.name == name,
+            )
+        ).scalar_one_or_none()
+        if existing_item is None:
+            item = CatalogueItem(
+                organization_id=org.id,
+                type=type_,
+                name=name,
+                category=category,
+                base_monthly_estimate=price,
+                active=True,
+            )
+            db.add(item)
+            print(f"created catalogue item: {name} (${price})")
 
     db.commit()
 

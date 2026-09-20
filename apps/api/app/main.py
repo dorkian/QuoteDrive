@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.catalogue import router as catalogue_router
 from app.api.customers import router as customers_router
 from app.api.dashboard import router as dashboard_router
 from app.api.opportunities import router as opportunities_router
@@ -35,6 +36,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(catalogue_router)
 app.include_router(customers_router)
 app.include_router(opportunities_router)
 app.include_router(dashboard_router)
