@@ -3,10 +3,13 @@ list/get/patch/delete on tenant-owned resources (Opportunity and Customer) shoul
 per security-and-tenancy.md's roles matrix (Create/edit/delete: Admin + Proposal Manager
 only; view: all four roles).
 
-Three AC items from the QD-105 card can't be tested yet — they describe
-Proposal/ApprovalRequest behavior (submit, approve, self-approval, state
-transitions) and no such domain exists in the codebase. Marked skip rather
-than silently dropped; see the QD-105 Trello card for the scope decision.
+Three AC items from the QD-105 card originally couldn't be tested here — they
+describe Proposal/ApprovalRequest behavior (submit, approve, self-approval, state
+transitions) that didn't exist in the codebase yet. That domain is now implemented
+and covered by tests/test_approvals.py (test_only_admin_or_approver_can_decide,
+test_owner_cannot_approve_own_version, test_submit_requires_proposal_drafted_status,
+test_approving_an_already_decided_request_returns_400), so the skip stubs here are
+removed rather than left as stale placeholders.
 """
 
 from collections.abc import Callable
@@ -167,21 +170,3 @@ def test_every_role_can_view_customers(
 
     get_res = client.get(f"/customers/{two_orgs.customer_a_id}", headers=_auth(token))
     assert get_res.status_code == 200
-
-
-# --- Deferred: no Proposal/ApprovalRequest domain exists yet (see QD-105 card) ---
-
-
-@pytest.mark.skip(reason="Proposal domain doesn't exist yet — deferred, see QD-105 Trello card")
-def test_viewer_cannot_submit_or_approve_proposal() -> None:
-    raise NotImplementedError
-
-
-@pytest.mark.skip(reason="Proposal domain doesn't exist yet — deferred, see QD-105 Trello card")
-def test_proposal_manager_cannot_approve_own_version() -> None:
-    raise NotImplementedError
-
-
-@pytest.mark.skip(reason="Proposal domain doesn't exist yet — deferred, see QD-105 Trello card")
-def test_illegal_state_transition_returns_400() -> None:
-    raise NotImplementedError

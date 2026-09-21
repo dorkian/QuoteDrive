@@ -7,8 +7,17 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentMembership, get_current_membership, require_role
 from app.core.database import get_db
-from app.models import Opportunity, ProposalVersion, ProposalVersionStatus, Role
+from app.models import (
+    ApprovalRequest,
+    ApprovalRequestStatus,
+    Opportunity,
+    OrganizationMembership,
+    ProposalVersion,
+    ProposalVersionStatus,
+    Role,
+)
 from app.repositories.base import get_tenant_scoped_or_404
+from app.schemas.approval_request import ApprovalRequestCreate, ApprovalRequestOut
 from app.schemas.proposal_version import (
     ProposalVersionCreate,
     ProposalVersionOut,
@@ -200,3 +209,104 @@ def finalize_proposal_version(
     db.commit()
     db.refresh(version)
     return version
+
+
+@router.post("/proposal-versions/{version_id}/submit", response_model=ProposalVersionOut)
+def submit_proposal_version(
+    version_id: int,
+    current: CurrentMembership = Depends(_can_edit),
+    db: Session = Depends(get_db),
+) -> ProposalVersion:
+    version = get_tenant_scoped_or_404(db, ProposalVersion, version_id, current.organization.id)
+
+    if version.status != ProposalVersionStatus.PROPOSAL_DRAFTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Version must be finalized before submitting",
+        )
+
+    before = {"status": version.status.value}
+    version.status = ProposalVersionStatus.AWAITING_APPROVAL
+
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        entity_type="proposal_version",
+        entity_id=version.id,
+        action="submit",
+        before=before,
+        after={"status": version.status.value},
+    )
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+@router.post(
+    "/proposal-versions/{version_id}/approval-request",
+    response_model=ApprovalRequestOut,
+    status_code=201,
+)
+def create_approval_request(
+    version_id: int,
+    body: ApprovalRequestCreate,
+    current: CurrentMembership = Depends(_can_edit),
+    db: Session = Depends(get_db),
+) -> ApprovalRequest:
+    version = get_tenant_scoped_or_404(db, ProposalVersion, version_id, current.organization.id)
+
+    if version.status != ProposalVersionStatus.AWAITING_APPROVAL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Version must be submitted before requesting approval",
+        )
+
+    existing_pending = db.execute(
+        select(ApprovalRequest).where(
+            ApprovalRequest.proposal_version_id == version.id,
+            ApprovalRequest.organization_id == current.organization.id,
+            ApprovalRequest.status == ApprovalRequestStatus.PENDING,
+        )
+    ).scalar_one_or_none()
+    if existing_pending is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An approval request is already pending for this version",
+        )
+
+    if body.assigned_to == version.created_by:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot assign approval to the owner"
+        )
+
+    membership = db.get(OrganizationMembership, (body.assigned_to, current.organization.id))
+    if membership is None or membership.role not in (Role.ADMIN, Role.APPROVER):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    approval_request = ApprovalRequest(
+        organization_id=current.organization.id,
+        proposal_version_id=version.id,
+        requested_by=current.user.id,
+        assigned_to=body.assigned_to,
+        status=ApprovalRequestStatus.PENDING,
+    )
+    db.add(approval_request)
+    db.flush()
+
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        entity_type="approval_request",
+        entity_id=approval_request.id,
+        action="create",
+        after={
+            "proposal_version_id": approval_request.proposal_version_id,
+            "assigned_to": approval_request.assigned_to,
+            "status": approval_request.status.value,
+        },
+    )
+    db.commit()
+    db.refresh(approval_request)
+    return approval_request

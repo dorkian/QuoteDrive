@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.approval_requests import router as approval_requests_router
 from app.api.auth import router as auth_router
 from app.api.catalogue import router as catalogue_router
 from app.api.customers import router as customers_router
@@ -44,6 +45,7 @@ app.include_router(opportunities_router)
 app.include_router(dashboard_router)
 app.include_router(estimates_router)
 app.include_router(proposal_versions_router)
+app.include_router(approval_requests_router)
 
 
 @app.get("/health")

@@ -1,3 +1,5 @@
+from app.models.approval_comment import ApprovalComment
+from app.models.approval_request import ApprovalRequest, ApprovalRequestStatus
 from app.models.audit_event import AuditEvent
 from app.models.base import Base
 from app.models.catalogue_item import CatalogueItem
@@ -9,6 +11,9 @@ from app.models.proposal_version import ProposalVersion, ProposalVersionStatus
 from app.models.user import User
 
 __all__ = [
+    "ApprovalComment",
+    "ApprovalRequest",
+    "ApprovalRequestStatus",
     "AuditEvent",
     "Base",
     "CatalogueItem",
