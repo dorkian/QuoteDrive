@@ -157,3 +157,35 @@ def test_get_nonexistent_opportunity_in_own_org_returns_404(
     response = client.get("/opportunities/999999", headers=_auth(token))
 
     assert response.status_code == 404
+
+
+def test_delete_opportunity_emits_audit_event(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.admin_a)
+    created = client.post(
+        "/opportunities",
+        json={"title": "To Delete With Audit", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(token),
+    ).json()
+
+    del_response = client.delete(f"/opportunities/{created['id']}", headers=_auth(token))
+    assert del_response.status_code == 204
+
+    audit_res = client.get(
+        f"/audit-events?entity_type=opportunity&entity_id={created['id']}",
+        headers=_auth(token),
+    )
+    assert audit_res.status_code == 200
+    events = audit_res.json()
+    assert len(events) == 2
+    # Ordered most recent first: delete, create
+    assert events[0]["action"] == "delete"
+    assert events[0]["entity_type"] == "opportunity"
+    assert events[0]["entity_id"] == created["id"]
+    assert events[0]["before_json"] == {
+        "title": "To Delete With Audit",
+        "status": "open",
+        "customer_id": two_orgs.customer_a_id,
+    }
+    assert events[0]["after_json"] is None

@@ -102,3 +102,63 @@ def test_delete_customer_with_existing_opportunities_returns_409(
 
     assert response.status_code == 409
     assert response.json()["detail"] == "Cannot delete customer with existing opportunities"
+
+
+def test_customer_crud_emits_audit_events(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.admin_a)
+    created = client.post(
+        "/customers",
+        json={"name": "Audit Customer", "industry": "Logistics"},
+        headers=_auth(token),
+    ).json()
+    client.patch(
+        f"/customers/{created['id']}",
+        json={"name": "Audit Customer Updated", "status": "inactive"},
+        headers=_auth(token),
+    )
+    del_res = client.delete(f"/customers/{created['id']}", headers=_auth(token))
+    assert del_res.status_code == 204
+
+    response = client.get(
+        f"/audit-events?entity_type=customer&entity_id={created['id']}",
+        headers=_auth(token),
+    )
+    assert response.status_code == 200
+    events = response.json()
+    assert len(events) == 3
+    # Ordered most recent first: delete, update, create
+    assert events[0]["action"] == "delete"
+    assert events[0]["entity_type"] == "customer"
+    assert events[0]["entity_id"] == created["id"]
+    assert events[0]["before_json"] == {
+        "name": "Audit Customer Updated",
+        "industry": "Logistics",
+        "status": "inactive",
+    }
+    assert events[0]["after_json"] is None
+
+    assert events[1]["action"] == "update"
+    assert events[1]["entity_type"] == "customer"
+    assert events[1]["entity_id"] == created["id"]
+    assert events[1]["before_json"] == {
+        "name": "Audit Customer",
+        "industry": "Logistics",
+        "status": "active",
+    }
+    assert events[1]["after_json"] == {
+        "name": "Audit Customer Updated",
+        "industry": "Logistics",
+        "status": "inactive",
+    }
+
+    assert events[2]["action"] == "create"
+    assert events[2]["entity_type"] == "customer"
+    assert events[2]["entity_id"] == created["id"]
+    assert events[2]["before_json"] is None
+    assert events[2]["after_json"] == {
+        "name": "Audit Customer",
+        "industry": "Logistics",
+        "status": "active",
+    }

@@ -39,6 +39,8 @@ def list_audit_events(
         stmt = stmt.where(AuditEvent.entity_type == entity_type)
     if entity_id is not None:
         stmt = stmt.where(AuditEvent.entity_id == entity_id)
-    return list(
-        db.execute(stmt.order_by(AuditEvent.created_at.desc()).limit(limit)).scalars().all()
-    )
+    # id is a tiebreaker for events sharing a created_at tick — created_at alone
+    # isn't a stable sort key, and callers (this card's tests, QD-304's timeline
+    # UI) depend on a deterministic most-recent-first order.
+    stmt = stmt.order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc()).limit(limit)
+    return list(db.execute(stmt).scalars().all())

@@ -510,3 +510,82 @@ def test_every_role_can_list_versions(
     token = login(getattr(two_orgs, role_attr))
     response = client.get(f"/opportunities/{seeded_env['opp_a_id']}/versions", headers=_auth(token))
     assert response.status_code == 200
+
+
+def test_create_proposal_version_emits_audit_event(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+) -> None:
+    token = login(two_orgs.manager_a)
+    opp_id = seeded_env["opp_a_id"]
+    response = client.post(
+        f"/opportunities/{opp_id}/versions",
+        json={},
+        headers=_auth(token),
+    )
+    assert response.status_code == 201
+    version_id = response.json()["id"]
+
+    audit_res = client.get(
+        f"/audit-events?entity_type=proposal_version&entity_id={version_id}",
+        headers=_auth(token),
+    )
+    assert audit_res.status_code == 200
+    events = audit_res.json()
+    assert len(events) == 1
+    event = events[0]
+    assert event["action"] == "create"
+    assert event["entity_type"] == "proposal_version"
+    assert event["entity_id"] == version_id
+    assert event["before_json"] is None
+    assert event["after_json"] == {
+        "opportunity_id": opp_id,
+        "version_number": 1,
+        "status": "draft",
+        "total_estimate": "0",
+    }
+
+
+def test_submit_proposal_version_emits_audit_event(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+) -> None:
+    token = login(two_orgs.manager_a)
+    opp_id = seeded_env["opp_a_id"]
+    version_res = client.post(
+        f"/opportunities/{opp_id}/versions",
+        json={},
+        headers=_auth(token),
+    )
+    assert version_res.status_code == 201
+    version_id = version_res.json()["id"]
+
+    finalize_res = client.post(
+        f"/proposal-versions/{version_id}/finalize",
+        headers=_auth(token),
+    )
+    assert finalize_res.status_code == 200
+
+    submit_res = client.post(
+        f"/proposal-versions/{version_id}/submit",
+        headers=_auth(token),
+    )
+    assert submit_res.status_code == 200
+
+    audit_res = client.get(
+        f"/audit-events?entity_type=proposal_version&entity_id={version_id}",
+        headers=_auth(token),
+    )
+    assert audit_res.status_code == 200
+    events = audit_res.json()
+    submit_events = [e for e in events if e["action"] == "submit"]
+    assert len(submit_events) == 1
+    submit_event = submit_events[0]
+    assert submit_event["entity_type"] == "proposal_version"
+    assert submit_event["entity_id"] == version_id
+    assert submit_event["before_json"] == {"status": "proposal_drafted"}
+    assert submit_event["after_json"] == {"status": "awaiting_approval"}
