@@ -80,10 +80,10 @@ export function ApprovalDashboard() {
                   <li key={req.id}>
                     <Link
                       to={`/approvals/${req.id}`}
-                      className="flex flex-col gap-2 rounded-md border border-navy-800 bg-navy-900 p-4 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-3 rounded-md border border-navy-800 bg-navy-900 p-4 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-navy-50">
                             {req.opportunity_title}
                           </span>
@@ -102,11 +102,11 @@ export function ApprovalDashboard() {
                           </time>
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-navy-400">
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="whitespace-nowrap text-xs text-navy-400">
                           Assigned to: {req.assigned_to_name}
                         </span>
-                        <span className="rounded-full border border-amber-800 bg-amber-950 px-2.5 py-0.5 text-xs font-medium text-amber-300">
+                        <span className="whitespace-nowrap rounded-full border border-amber-800 bg-amber-950 px-2.5 py-0.5 text-xs font-medium text-amber-300">
                           {req.status}
                         </span>
                       </div>

@@ -327,15 +327,15 @@ export function ApprovalDetail() {
                         </button>
                       </div>
                     ) : confirmMode === "confirm_approve" ? (
-                      <div className="mt-2 flex items-center gap-3">
-                        <span className="text-xs text-navy-300">
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-navy-300">
                           Confirm approval of this version?
                         </span>
                         <button
                           type="button"
                           onClick={() => void handleApprove()}
                           disabled={submitting}
-                          className="rounded-md bg-lime-400 px-3 py-1.5 text-xs font-medium text-navy-950 transition-colors hover:bg-lime-300 disabled:opacity-60"
+                          className="rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {submitting ? "Approving…" : "Confirm approve"}
                         </button>
@@ -343,21 +343,21 @@ export function ApprovalDetail() {
                           type="button"
                           onClick={() => setConfirmMode("idle")}
                           disabled={submitting}
-                          className="text-xs text-navy-400 hover:text-navy-200"
+                          className="rounded-md px-4 py-2 text-sm font-medium text-navy-400 transition-colors duration-150 hover:text-navy-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           Cancel
                         </button>
                       </div>
                     ) : (
-                      <div className="mt-2 flex items-center gap-3">
-                        <span className="text-xs text-navy-300">
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <span className="text-sm text-navy-300">
                           Confirm request changes and fork draft?
                         </span>
                         <button
                           type="button"
                           onClick={() => void handleRequestChanges()}
                           disabled={submitting}
-                          className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-60"
+                          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {submitting
                             ? "Requesting…"
@@ -367,7 +367,7 @@ export function ApprovalDetail() {
                           type="button"
                           onClick={() => setConfirmMode("idle")}
                           disabled={submitting}
-                          className="text-xs text-navy-400 hover:text-navy-200"
+                          className="rounded-md px-4 py-2 text-sm font-medium text-navy-400 transition-colors duration-150 hover:text-navy-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           Cancel
                         </button>
