@@ -43,7 +43,12 @@ def create_proposal_version(
     current: CurrentMembership = Depends(_can_edit),
     db: Session = Depends(get_db),
 ) -> ProposalVersion:
-    opportunity = get_tenant_scoped_or_404(db, Opportunity, opportunity_id, current.organization.id)
+    # Row-locked: serializes version-number allocation for this opportunity
+    # against any concurrent version creation (this, or the request-changes fork)
+    # so two concurrent inserts can't compute the same max(version_number).
+    opportunity = get_tenant_scoped_or_404(
+        db, Opportunity, opportunity_id, current.organization.id, for_update=True
+    )
 
     max_ver = (
         db.execute(
@@ -254,7 +259,11 @@ def create_approval_request(
     current: CurrentMembership = Depends(_can_edit),
     db: Session = Depends(get_db),
 ) -> ApprovalRequest:
-    version = get_tenant_scoped_or_404(db, ProposalVersion, version_id, current.organization.id)
+    # Row-locked: a concurrent approval-request creation for the same version
+    # must block here rather than both passing the "no existing pending" check.
+    version = get_tenant_scoped_or_404(
+        db, ProposalVersion, version_id, current.organization.id, for_update=True
+    )
 
     if version.status != ProposalVersionStatus.AWAITING_APPROVAL:
         raise HTTPException(

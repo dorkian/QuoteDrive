@@ -54,6 +54,8 @@ def _make_awaiting_approval_version(
 
 
 def test_unauthenticated_request_returns_401(client: TestClient) -> None:
+    assert client.get("/approval-requests").status_code == 401
+    assert client.get("/approval-requests/1").status_code == 401
     assert client.post("/proposal-versions/1/submit").status_code == 401
     assert client.post("/proposal-versions/1/approval-request", json={}).status_code == 401
     assert client.post("/approval-requests/1/approve", json={}).status_code == 401
@@ -502,3 +504,133 @@ def test_cross_tenant_approve_and_request_changes_return_404(
         ).status_code
         == 404
     )
+
+
+def test_list_approval_requests_filters_by_status(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    manager_token = login(two_orgs.manager_a)
+    approver_token = login(two_orgs.approver_a)
+    approver_id = client.get("/me", headers=_auth(approver_token)).json()["user"]["id"]
+
+    v1 = _make_awaiting_approval_version(client, manager_token, seeded_env["opp_a_id"])
+    req1 = client.post(
+        f"/proposal-versions/{v1['id']}/approval-request",
+        json={"assigned_to": approver_id},
+        headers=_auth(manager_token),
+    ).json()
+
+    opp2 = client.post(
+        "/opportunities",
+        json={"title": "Second Deal", "customer_id": two_orgs.customer_a_id},
+        headers=_auth(manager_token),
+    ).json()
+    v2 = _make_awaiting_approval_version(client, manager_token, opp2["id"])
+    req2 = client.post(
+        f"/proposal-versions/{v2['id']}/approval-request",
+        json={"assigned_to": approver_id},
+        headers=_auth(manager_token),
+    ).json()
+
+    client.post(f"/approval-requests/{req1['id']}/approve", json={}, headers=_auth(approver_token))
+
+    pending_res = client.get("/approval-requests?status=pending", headers=_auth(approver_token))
+    assert pending_res.status_code == 200
+    pending_list = pending_res.json()
+    assert len(pending_list) == 1
+    assert pending_list[0]["id"] == req2["id"]
+    assert pending_list[0]["status"] == "pending"
+
+    all_res = client.get("/approval-requests", headers=_auth(approver_token))
+    assert all_res.status_code == 200
+    all_list = all_res.json()
+    assert len(all_list) == 2
+
+
+def test_list_approval_requests_tenant_scoped(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    manager_a_token = login(two_orgs.manager_a)
+    approver_a_token = login(two_orgs.approver_a)
+    approver_a_id = client.get("/me", headers=_auth(approver_a_token)).json()["user"]["id"]
+
+    admin_b_token = login(two_orgs.admin_b)
+
+    v_a = _make_awaiting_approval_version(client, manager_a_token, seeded_env["opp_a_id"])
+    req_a = client.post(
+        f"/proposal-versions/{v_a['id']}/approval-request",
+        json={"assigned_to": approver_a_id},
+        headers=_auth(manager_a_token),
+    ).json()
+
+    list_b = client.get("/approval-requests", headers=_auth(admin_b_token)).json()
+    assert all(r["organization_id"] == two_orgs.org_b_id for r in list_b)
+    assert not any(r["id"] == req_a["id"] for r in list_b)
+
+
+@pytest.mark.parametrize("role_attr", ["manager_a", "viewer_a"])
+def test_only_admin_or_approver_can_list_and_get_approval_requests(
+    client: TestClient,
+    two_orgs: TwoOrgs,
+    seeded_env: dict[str, int],
+    login: Callable[[str], str],
+    role_attr: str,
+) -> None:
+    manager_token = login(two_orgs.manager_a)
+    approver_token = login(two_orgs.approver_a)
+    approver_id = client.get("/me", headers=_auth(approver_token)).json()["user"]["id"]
+
+    v = _make_awaiting_approval_version(client, manager_token, seeded_env["opp_a_id"])
+    req = client.post(
+        f"/proposal-versions/{v['id']}/approval-request",
+        json={"assigned_to": approver_id},
+        headers=_auth(manager_token),
+    ).json()
+
+    token = login(getattr(two_orgs, role_attr))
+    assert client.get("/approval-requests", headers=_auth(token)).status_code == 403
+    assert client.get(f"/approval-requests/{req['id']}", headers=_auth(token)).status_code == 403
+
+
+def test_get_approval_request_detail_returns_enriched_item(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    manager_token = login(two_orgs.manager_a)
+    approver_token = login(two_orgs.approver_a)
+    approver_id = client.get("/me", headers=_auth(approver_token)).json()["user"]["id"]
+
+    v = _make_awaiting_approval_version(client, manager_token, seeded_env["opp_a_id"])
+    req = client.post(
+        f"/proposal-versions/{v['id']}/approval-request",
+        json={"assigned_to": approver_id},
+        headers=_auth(manager_token),
+    ).json()
+
+    detail = client.get(f"/approval-requests/{req['id']}", headers=_auth(approver_token))
+    assert detail.status_code == 200
+    data = detail.json()
+    assert data["id"] == req["id"]
+    assert data["opportunity_id"] == seeded_env["opp_a_id"]
+    assert data["opportunity_title"] == "Org A Opportunity"
+    assert data["version_number"] == 1
+    assert data["requested_by_name"] == "manager-a@example.com"
+    assert data["assigned_to_name"] == "approver-a@example.com"
+    assert data["status"] == "pending"
+
+
+def test_get_approval_request_cross_tenant_returns_404(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    manager_token = login(two_orgs.manager_a)
+    approver_token = login(two_orgs.approver_a)
+    approver_id = client.get("/me", headers=_auth(approver_token)).json()["user"]["id"]
+
+    v = _make_awaiting_approval_version(client, manager_token, seeded_env["opp_a_id"])
+    req = client.post(
+        f"/proposal-versions/{v['id']}/approval-request",
+        json={"assigned_to": approver_id},
+        headers=_auth(manager_token),
+    ).json()
+
+    token_b = login(two_orgs.admin_b)
+    assert client.get(f"/approval-requests/{req['id']}", headers=_auth(token_b)).status_code == 404

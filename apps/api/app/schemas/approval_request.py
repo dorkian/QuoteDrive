@@ -22,6 +22,14 @@ class ApprovalRequestOut(BaseModel):
     created_at: datetime
 
 
+class ApprovalRequestListItem(ApprovalRequestOut):
+    opportunity_id: int
+    opportunity_title: str
+    version_number: int
+    requested_by_name: str
+    assigned_to_name: str
+
+
 class ApproveRequest(BaseModel):
     comment: str | None = Field(default=None, max_length=_COMMENT_MAX_LENGTH)
 

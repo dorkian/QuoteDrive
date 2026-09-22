@@ -327,3 +327,100 @@ export async function calculateEstimate(
   }
   return (await res.json()) as EstimateCalculateResponse;
 }
+
+export type ApprovalRequestStatus =
+  | "pending"
+  | "approved"
+  | "changes_requested";
+
+export interface ApprovalRequest {
+  id: number;
+  organization_id: number;
+  proposal_version_id: number;
+  requested_by: number;
+  assigned_to: number;
+  status: ApprovalRequestStatus;
+  decision_at: string | null;
+  created_at: string;
+  opportunity_id: number;
+  opportunity_title: string;
+  version_number: number;
+  requested_by_name: string;
+  assigned_to_name: string;
+}
+
+export async function fetchApprovalRequests(
+  token: string,
+  status?: ApprovalRequestStatus,
+): Promise<ApprovalRequest[]> {
+  const url = new URL(`${API_URL}/approval-requests`);
+  if (status) {
+    url.searchParams.set("status", status);
+  }
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to load approval requests");
+  }
+  return (await res.json()) as ApprovalRequest[];
+}
+
+export async function fetchApprovalRequest(
+  token: string,
+  id: number,
+): Promise<ApprovalRequest> {
+  const res = await fetch(`${API_URL}/approval-requests/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to load approval request");
+  }
+  return (await res.json()) as ApprovalRequest;
+}
+
+export async function approveRequest(
+  token: string,
+  id: number,
+  comment?: string,
+): Promise<ApprovalRequest> {
+  const res = await fetch(`${API_URL}/approval-requests/${id}/approve`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(comment ? { comment } : {}),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to approve request");
+  }
+  return (await res.json()) as ApprovalRequest;
+}
+
+export async function requestChanges(
+  token: string,
+  id: number,
+  comment: string,
+): Promise<ApprovalRequest> {
+  const res = await fetch(`${API_URL}/approval-requests/${id}/request-changes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ comment }),
+  });
+  if (!res.ok) {
+    throw new Error("Failed to request changes");
+  }
+  return (await res.json()) as ApprovalRequest;
+}
+
+export function canDecideApproval(role: string): boolean {
+  return role === "admin" || role === "approver";
+}
+
+export function isBlank(str: string): boolean {
+  return str.trim().length === 0;
+}

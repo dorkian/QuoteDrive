@@ -3,6 +3,7 @@ export const NAV_ITEMS = [
   "Customers",
   "Opportunities",
   "Proposals",
+  "Approvals",
   "Settings",
 ] as const;
 

@@ -5,7 +5,7 @@ import { NAV_ITEMS } from "./nav-items";
 import { Sidebar } from "./Sidebar";
 
 describe("Sidebar", () => {
-  it("renders all five nav items", () => {
+  it("renders all nav items", () => {
     render(<Sidebar active="Dashboard" onSelect={() => {}} />);
 
     for (const item of NAV_ITEMS) {

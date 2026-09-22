@@ -17,6 +17,8 @@
 - `GET /proposal-versions/{id}`
 - `POST /proposal-versions/{id}/submit`
 - `POST /proposal-versions/{id}/approval-request`
+- `GET /approval-requests`
+- `GET /approval-requests/{id}`
 - `POST /approval-requests/{id}/approve`
 - `POST /approval-requests/{id}/request-changes`
 - `POST /ai/proposal-narrative`

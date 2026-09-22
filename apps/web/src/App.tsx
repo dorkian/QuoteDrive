@@ -16,6 +16,8 @@ import { OpportunitiesListPage } from "./features/opportunities/OpportunitiesLis
 import { OpportunityDetailPage } from "./features/opportunities/OpportunityDetailPage";
 import { PackageComparison } from "./features/proposals/PackageComparison";
 import { ProposalBuilder } from "./features/proposals/ProposalBuilder";
+import { ApprovalDashboard } from "./features/approvals/ApprovalDashboard";
+import { ApprovalDetail } from "./features/approvals/ApprovalDetail";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 
 const NAV_PATHS: Record<NavItem, string> = {
@@ -23,6 +25,7 @@ const NAV_PATHS: Record<NavItem, string> = {
   Customers: "/customers",
   Opportunities: "/opportunities",
   Proposals: "/proposals",
+  Approvals: "/approvals",
   Settings: "/settings",
 };
 
@@ -78,6 +81,11 @@ function AppShell() {
           element={<ComingSoonPanel title="Customers" />}
         />
         <Route path="/proposals" element={<PackageComparison />} />
+        <Route path="/approvals" element={<ApprovalDashboard />} />
+        <Route
+          path="/approvals/:requestId"
+          element={<ApprovalDetail />}
+        />
         <Route
           path="/settings"
           element={<ComingSoonPanel title="Settings" />}
