@@ -1,19 +1,8 @@
 import { useEffect, useState } from "react";
 
-import {
-  fetchAuditEvents,
-  fetchDashboardSummary,
-  type AuditEvent,
-  type DashboardSummary,
-} from "../../lib/api";
+import { ActivityTimeline } from "../../components/ActivityTimeline";
+import { fetchDashboardSummary, type DashboardSummary } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
-
-function describeEvent(event: AuditEvent): string {
-  const verb = event.action === "create" ? "created" : "updated";
-  const title =
-    (event.after_json?.title as string | undefined) ?? `#${event.entity_id}`;
-  return `Opportunity ${verb}: ${title}`;
-}
 
 function LoadingSkeleton() {
   return (
@@ -38,24 +27,24 @@ function LoadingSkeleton() {
 export function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [events, setEvents] = useState<AuditEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) {
       return;
     }
-    Promise.all([fetchDashboardSummary(token), fetchAuditEvents(token)])
-      .then(([fetchedSummary, fetchedEvents]) => {
-        setSummary(fetchedSummary);
-        setEvents(fetchedEvents);
-      })
+    const promise = fetchDashboardSummary(token);
+    if (!promise?.then) {
+      return;
+    }
+    promise
+      .then(setSummary)
       .catch(() =>
         setError("Couldn't load dashboard data. Try refreshing the page."),
       );
   }, [token]);
 
-  const isLoading = summary === null || events === null;
+  const isLoading = summary === null;
   const statusEntries = summary
     ? Object.entries(summary.opportunities_by_status)
     : [];
@@ -103,28 +92,10 @@ export function DashboardPage() {
           </section>
 
           <section>
-            <h2 className="text-sm font-medium text-navy-50">
+            <h2 className="mb-4 text-sm font-medium text-navy-50">
               Recent activity
             </h2>
-            {events && events.length === 0 ? (
-              <p className="mt-2 text-sm text-navy-300">
-                No activity yet. Actions on opportunities will show up here.
-              </p>
-            ) : (
-              <ul className="mt-2 flex flex-col gap-2">
-                {events?.map((event) => (
-                  <li
-                    key={event.id}
-                    className="flex items-center justify-between rounded-md border border-navy-800 bg-navy-900 px-3 py-2 text-sm"
-                  >
-                    <span className="text-navy-50">{describeEvent(event)}</span>
-                    <span className="text-xs text-navy-300">
-                      {new Date(event.created_at).toLocaleString()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ActivityTimeline emptyMessage="No activity yet. Actions on opportunities will show up here." />
           </section>
         </div>
       )}

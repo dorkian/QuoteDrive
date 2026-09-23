@@ -11,6 +11,7 @@ class DashboardSummary(BaseModel):
 class AuditEventOut(BaseModel):
     id: int
     actor_id: int
+    actor_name: str
     entity_type: str
     entity_id: int
     action: str

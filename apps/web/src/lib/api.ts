@@ -27,6 +27,7 @@ export interface DashboardSummary {
 export interface AuditEvent {
   id: number;
   actor_id: number;
+  actor_name: string;
   entity_type: string;
   entity_id: number;
   action: string;
@@ -161,11 +162,31 @@ export async function fetchDashboardSummary(
   return (await res.json()) as DashboardSummary;
 }
 
+export interface FetchAuditEventsOptions {
+  limit?: number;
+  entityType?: string;
+  entityId?: number;
+  beforeId?: number;
+}
+
 export async function fetchAuditEvents(
   token: string,
-  limit = 20,
+  opts?: FetchAuditEventsOptions,
 ): Promise<AuditEvent[]> {
-  const res = await fetch(`${API_URL}/audit-events?limit=${limit}`, {
+  const url = new URL(`${API_URL}/audit-events`);
+  if (opts?.limit !== undefined) {
+    url.searchParams.set("limit", String(opts.limit));
+  }
+  if (opts?.entityType !== undefined) {
+    url.searchParams.set("entity_type", opts.entityType);
+  }
+  if (opts?.entityId !== undefined) {
+    url.searchParams.set("entity_id", String(opts.entityId));
+  }
+  if (opts?.beforeId !== undefined) {
+    url.searchParams.set("before_id", String(opts.beforeId));
+  }
+  const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {

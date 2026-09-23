@@ -45,6 +45,7 @@ describe("DashboardPage", () => {
       {
         id: 1,
         actor_id: 1,
+        actor_name: "Proposal Manager",
         entity_type: "opportunity",
         entity_id: 1,
         action: "create",
@@ -62,10 +63,12 @@ describe("DashboardPage", () => {
     await waitFor(() =>
       expect(screen.getByText("open · 2")).toBeInTheDocument(),
     );
+    await waitFor(() =>
+      expect(screen.getByText("Proposal Manager")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("created opportunity")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Opportunity created: 2026 Fleet Modernization & Mobility Services",
-      ),
+      screen.getByText("2026 Fleet Modernization & Mobility Services"),
     ).toBeInTheDocument();
   });
 
@@ -82,10 +85,13 @@ describe("DashboardPage", () => {
         screen.getByText("No opportunities yet. Create one to see it here."),
       ).toBeInTheDocument(),
     );
-    expect(
-      screen.getByText(
-        "No activity yet. Actions on opportunities will show up here.",
-      ),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "No activity yet. Actions on opportunities will show up here.",
+        ),
+      ).toBeInTheDocument(),
+    );
   });
 });
+

@@ -15,6 +15,9 @@ class AuditEvent(TenantOwnedMixin, Base):
     __tablename__ = "audit_events"
 
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    # Snapshotted at write time (not joined live) so the audit trail reflects the
+    # actor's name as of the action, unaffected by later profile renames.
+    actor_name: Mapped[str] = mapped_column(String(255), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
     entity_id: Mapped[int] = mapped_column(nullable=False)
     action: Mapped[str] = mapped_column(String(32), nullable=False)

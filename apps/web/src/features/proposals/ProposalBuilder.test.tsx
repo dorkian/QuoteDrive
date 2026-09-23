@@ -108,6 +108,7 @@ function renderBuilder(me: api.Me, version: api.ProposalVersion) {
 beforeEach(() => {
   localStorage.clear();
   vi.resetAllMocks();
+  vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
 });
 
 describe("ProposalBuilder", () => {
@@ -254,4 +255,30 @@ describe("ProposalBuilder", () => {
       screen.getByRole("button", { name: "Add package line" }),
     ).toBeInTheDocument();
   });
+
+  it("renders the proposal version activity timeline", async () => {
+    vi.mocked(api.fetchAuditEvents).mockResolvedValue([
+      {
+        id: 1,
+        actor_id: 1,
+        actor_name: "Proposal Manager",
+        entity_type: "proposal_version",
+        entity_id: 5,
+        action: "create",
+        before_json: null,
+        after_json: { version_number: 1 },
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    renderBuilder(managerMe, draftVersion());
+
+    await waitFor(() =>
+      expect(screen.getByText("created proposal version")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Activity")).toBeInTheDocument();
+    expect(screen.getByText("v1")).toBeInTheDocument();
+  });
 });
+
+
