@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -17,6 +19,14 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "demo-insecure-secret-change-if-this-ever-leaves-localhost"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
+
+    # AI provider (see AGENTS.md: "Use FakeProvider for automated AI tests")
+    AI_PROVIDER: Literal["fake", "openrouter", "ollama"] = "fake"
+    OPENROUTER_API_KEY: str | None = None
+    OPENROUTER_MODEL: str = "openai/gpt-4o-mini"
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3"
+    AI_REQUEST_TIMEOUT_SECONDS: float = 30.0
 
     @property
     def DATABASE_URL(self) -> str:
