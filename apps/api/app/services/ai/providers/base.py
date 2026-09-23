@@ -37,3 +37,6 @@ class ProviderResponseError(ProviderError):
 class GenerationProvider(ABC):
     @abstractmethod
     def generate(self, request: GenerationRequest) -> GenerationResult: ...
+
+    def close(self) -> None:
+        """Release any held resources (e.g. an HTTP connection pool). No-op by default."""

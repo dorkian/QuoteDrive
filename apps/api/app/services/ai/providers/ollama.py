@@ -50,7 +50,7 @@ class OllamaProvider(GenerationProvider):
 
         if response.status_code >= 400:
             raise ProviderResponseError(
-                f"Ollama returned status {response.status_code}: {response.text}"
+                f"Ollama returned status {response.status_code}: {response.text[:250]}"
             )
 
         try:
@@ -59,9 +59,15 @@ class OllamaProvider(GenerationProvider):
         except (ValueError, KeyError, TypeError) as exc:
             raise ProviderResponseError("Ollama returned an unparseable response") from exc
 
+        if not isinstance(text, str) or not text:
+            raise ProviderResponseError("Ollama returned non-string or empty response content")
+
         return GenerationResult(
             text=text,
             provider="ollama",
             model=data.get("model", self._model),
             latency_ms=latency_ms,
         )
+
+    def close(self) -> None:
+        self._client.close()

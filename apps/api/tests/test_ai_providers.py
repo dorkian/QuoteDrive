@@ -1,3 +1,6 @@
+import json
+from typing import Any
+
 import httpx
 import pytest
 
@@ -104,6 +107,86 @@ def test_openrouter_provider_raises_response_error_on_malformed_body() -> None:
         provider.generate(GenerationRequest(prompt="draft a proposal"))
 
 
+def test_openrouter_provider_raises_authentication_error_on_403() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"error": "forbidden"})
+
+    provider = OpenRouterProvider(
+        api_key="bad-key",
+        model="openai/gpt-4o-mini",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderAuthenticationError):
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+
+
+def test_openrouter_provider_raises_response_error_on_null_content() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"choices": [{"message": {"content": None}}]})
+
+    provider = OpenRouterProvider(
+        api_key="test-key",
+        model="openai/gpt-4o-mini",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderResponseError, match="non-string or empty message content"):
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+
+
+def test_openrouter_provider_truncates_large_error_body() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(502, text="<html>" + "x" * 5000 + "</html>")
+
+    provider = OpenRouterProvider(
+        api_key="test-key",
+        model="openai/gpt-4o-mini",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderResponseError) as exc_info:
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+    assert len(str(exc_info.value)) < 400
+
+
+def test_openrouter_provider_sends_system_message_and_sampling_params() -> None:
+    captured: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}], "model": "m"})
+
+    provider = OpenRouterProvider(
+        api_key="test-key",
+        model="openai/gpt-4o-mini",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    provider.generate(
+        GenerationRequest(
+            prompt="draft a proposal", system="be concise", max_tokens=256, temperature=0.2
+        )
+    )
+
+    assert captured["messages"][0] == {"role": "system", "content": "be concise"}
+    assert captured["messages"][1] == {"role": "user", "content": "draft a proposal"}
+    assert captured["max_tokens"] == 256
+    assert captured["temperature"] == 0.2
+
+
+def test_openrouter_provider_close_closes_client() -> None:
+    provider = OpenRouterProvider(api_key="key", model="m", timeout_seconds=5.0)
+
+    provider.close()
+
+    assert provider._client.is_closed
+
+
 def test_ollama_provider_parses_successful_response() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/generate"
@@ -136,6 +219,101 @@ def test_ollama_provider_raises_response_error_on_failure_status() -> None:
 
     with pytest.raises(ProviderResponseError):
         provider.generate(GenerationRequest(prompt="draft a proposal"))
+
+
+def test_ollama_provider_truncates_large_error_body() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(502, text="<html>" + "x" * 5000 + "</html>")
+
+    provider = OllamaProvider(
+        base_url="http://localhost:11434",
+        model="llama3",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderResponseError) as exc_info:
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+    assert len(str(exc_info.value)) < 400
+
+
+def test_ollama_provider_raises_response_error_on_malformed_body() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"unexpected": "shape"})
+
+    provider = OllamaProvider(
+        base_url="http://localhost:11434",
+        model="llama3",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderResponseError):
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+
+
+def test_ollama_provider_raises_response_error_on_null_content() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"model": "llama3", "response": None})
+
+    provider = OllamaProvider(
+        base_url="http://localhost:11434",
+        model="llama3",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderResponseError, match="non-string or empty response content"):
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+
+
+def test_ollama_provider_raises_timeout_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    provider = OllamaProvider(
+        base_url="http://localhost:11434",
+        model="llama3",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProviderTimeoutError):
+        provider.generate(GenerationRequest(prompt="draft a proposal"))
+
+
+def test_ollama_provider_sends_system_prompt_and_sampling_options() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(json.loads(request.content))
+        return httpx.Response(200, json={"model": "llama3", "response": "ok"})
+
+    provider = OllamaProvider(
+        base_url="http://localhost:11434",
+        model="llama3",
+        timeout_seconds=5.0,
+        transport=httpx.MockTransport(handler),
+    )
+
+    provider.generate(
+        GenerationRequest(
+            prompt="draft a proposal", system="be concise", max_tokens=256, temperature=0.2
+        )
+    )
+
+    assert captured["system"] == "be concise"
+    assert captured["options"] == {"num_predict": 256, "temperature": 0.2}
+
+
+def test_ollama_provider_close_closes_client() -> None:
+    provider = OllamaProvider(
+        base_url="http://localhost:11434", model="llama3", timeout_seconds=5.0
+    )
+
+    provider.close()
+
+    assert provider._client.is_closed
 
 
 def test_get_provider_returns_fake_by_default() -> None:

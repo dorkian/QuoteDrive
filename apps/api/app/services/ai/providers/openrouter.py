@@ -55,7 +55,7 @@ class OpenRouterProvider(GenerationProvider):
             raise ProviderAuthenticationError("OpenRouter rejected the configured API key")
         if response.status_code >= 400:
             raise ProviderResponseError(
-                f"OpenRouter returned status {response.status_code}: {response.text}"
+                f"OpenRouter returned status {response.status_code}: {response.text[:250]}"
             )
 
         try:
@@ -64,9 +64,17 @@ class OpenRouterProvider(GenerationProvider):
         except (ValueError, KeyError, IndexError, TypeError) as exc:
             raise ProviderResponseError("OpenRouter returned an unparseable response") from exc
 
+        # content can be null on content-filter refusals or tool-call-only
+        # responses (OpenAI-compatible APIs) — GenerationResult.text must be str.
+        if not isinstance(text, str) or not text:
+            raise ProviderResponseError("OpenRouter returned non-string or empty message content")
+
         return GenerationResult(
             text=text,
             provider="openrouter",
             model=data.get("model", self._model),
             latency_ms=latency_ms,
         )
+
+    def close(self) -> None:
+        self._client.close()
