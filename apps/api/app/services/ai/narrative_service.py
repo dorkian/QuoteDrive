@@ -43,9 +43,15 @@ def build_prompt(
         if timeline
         else "Timeline: [Not provided - please list this under assumptions/next-steps as an open question]"
     )
+    brief_line = (
+        f"Discovery Brief:\n{json.dumps(opportunity.brief_json, indent=2)}\n"
+        if opportunity.brief_json
+        else ""
+    )
     data = (
         f"Customer: {customer.name}\n"
         f"Opportunity: {opportunity.title}\n"
+        f"{brief_line}"
         f"Proposal Version Content:\n{json.dumps(version.content_json, indent=2)}\n"
         f"{timeline_line}"
     )

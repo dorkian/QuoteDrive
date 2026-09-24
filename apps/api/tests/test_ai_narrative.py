@@ -258,3 +258,42 @@ def test_generate_narrative_includes_provider_and_model(
     data = response.json()
     assert data["provider"] == "fake"
     assert data["model"] == "fake-model"
+
+
+def test_build_prompt_includes_brief_json(
+    proposal_version: ProposalVersion, db_session: Session
+) -> None:
+    opp = db_session.get(Opportunity, proposal_version.opportunity_id)
+    assert opp is not None
+    opp.brief_json = {"pain_points": "Legacy system is too slow"}
+    cust = db_session.get(Customer, opp.customer_id)
+    assert cust is not None
+
+    req = build_prompt(proposal_version, opp, cust, timeline=None)
+
+    assert "Discovery Brief:" in req.prompt
+    assert "pain_points" in req.prompt
+    assert "Legacy system is too slow" in req.prompt
+
+    # Ensure it's still inside the untrusted data block
+    prompt_lines = req.prompt.split("\n")
+    start_idx = prompt_lines.index("<<<PROPOSAL_DATA>>>")
+    end_idx = prompt_lines.index("<<<END_PROPOSAL_DATA>>>")
+    brief_idx = next(i for i, line in enumerate(prompt_lines) if "Discovery Brief:" in line)
+
+    assert start_idx < brief_idx < end_idx
+
+
+def test_build_prompt_omits_brief_json_when_absent(
+    proposal_version: ProposalVersion, db_session: Session
+) -> None:
+    opp = db_session.get(Opportunity, proposal_version.opportunity_id)
+    assert opp is not None
+    # Ensure it is absent
+    assert not opp.brief_json
+    cust = db_session.get(Customer, opp.customer_id)
+    assert cust is not None
+
+    req = build_prompt(proposal_version, opp, cust, timeline=None)
+
+    assert "Discovery Brief" not in req.prompt
