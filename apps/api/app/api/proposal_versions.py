@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -20,6 +21,7 @@ from app.repositories.base import get_tenant_scoped_or_404
 from app.schemas.approval_request import ApprovalRequestCreate, ApprovalRequestOut
 from app.schemas.proposal_version import (
     ProposalVersionCreate,
+    ProposalVersionNarrativeUpdate,
     ProposalVersionOut,
     ProposalVersionUpdate,
 )
@@ -324,3 +326,35 @@ def create_approval_request(
     db.commit()
     db.refresh(approval_request)
     return approval_request
+
+
+@router.patch("/proposal-versions/{version_id}/narrative", response_model=ProposalVersionOut)
+def update_proposal_version_narrative(
+    version_id: int,
+    body: ProposalVersionNarrativeUpdate,
+    current: CurrentMembership = Depends(_can_edit),
+    db: Session = Depends(get_db),
+) -> ProposalVersion:
+    version = get_tenant_scoped_or_404(db, ProposalVersion, version_id, current.organization.id)
+
+    if version.status not in (ProposalVersionStatus.DRAFT, ProposalVersionStatus.CONFIGURED):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Version is immutable")
+
+    was_none = version.narrative_json is None
+
+    version.narrative_json = {**body.model_dump(), "generated_at": datetime.now(UTC).isoformat()}
+
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        actor_name=current.user.display_name,
+        entity_type="proposal_version",
+        entity_id=version.id,
+        action="save_narrative",
+        before={"has_narrative": not was_none},
+        after={"has_narrative": True, "provider": body.provider, "model": body.model},
+    )
+    db.commit()
+    db.refresh(version)
+    return version

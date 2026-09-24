@@ -11,6 +11,7 @@ const v1: ProposalVersion = {
   opportunity_id: 1,
   version_number: 1,
   status: "awaiting_approval",
+  narrative_json: null,
   content_json: {
     lines: [
       {
@@ -45,6 +46,7 @@ const v2: ProposalVersion = {
   opportunity_id: 1,
   version_number: 2,
   status: "awaiting_approval",
+  narrative_json: null,
   content_json: {
     lines: [
       {
@@ -105,6 +107,7 @@ describe("computeLineDiff", () => {
   it("handles duplicate catalogue_item_id lines without collapsing", () => {
     const prevWithDups: ProposalVersion = {
       ...v1,
+      narrative_json: null,
       content_json: {
         lines: [
           {
@@ -133,6 +136,7 @@ describe("computeLineDiff", () => {
 
     const currWithDups: ProposalVersion = {
       ...v2,
+      narrative_json: null,
       content_json: {
         lines: [
           {
@@ -168,6 +172,7 @@ describe("computeLineDiff", () => {
   it("detects price-only changes as changed", () => {
     const prevPrice: ProposalVersion = {
       ...v1,
+      narrative_json: null,
       content_json: {
         lines: [
           {
@@ -186,6 +191,7 @@ describe("computeLineDiff", () => {
 
     const currPrice: ProposalVersion = {
       ...v1,
+      narrative_json: null,
       content_json: {
         lines: [
           {
@@ -221,9 +227,7 @@ describe("VersionComparison component", () => {
   it("renders comparison title, status badges, and delta when previous exists", () => {
     render(<VersionComparison current={v2} previous={v1} />);
 
-    expect(
-      screen.getByText("Comparison with Version 1"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Comparison with Version 1")).toBeInTheDocument();
     expect(screen.getByText("+$650.00")).toBeInTheDocument();
     expect(screen.getByText("Added")).toBeInTheDocument();
     expect(screen.getByText("Removed")).toBeInTheDocument();

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,6 +21,20 @@ class ProposalVersionUpdate(BaseModel):
     lines: list[ProposalVersionLineInput]
 
 
+class ProposalVersionNarrativeUpdate(BaseModel):
+    executive_summary: str
+    recommended_approach: str
+    scope: str
+    assumptions_exclusions: list[str]
+    next_steps: list[str]
+    email_draft: str
+    # Restricted to the GenerationProvider adapters that actually exist
+    # (providers/openrouter.py, ollama.py, fake.py's `.name`), so a client
+    # can't record a fabricated provider as generation provenance.
+    provider: Literal["openrouter", "ollama", "fake"]
+    model: str
+
+
 class ProposalVersionOut(BaseModel):
     id: int
     organization_id: int
@@ -28,5 +42,6 @@ class ProposalVersionOut(BaseModel):
     version_number: int
     status: ProposalVersionStatus
     content_json: dict[str, Any]
+    narrative_json: dict[str, Any] | None = None
     total_estimate: Decimal
     created_by: int

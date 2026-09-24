@@ -589,3 +589,90 @@ def test_submit_proposal_version_emits_audit_event(
     assert submit_event["entity_id"] == version_id
     assert submit_event["before_json"] == {"status": "proposal_drafted"}
     assert submit_event["after_json"] == {"status": "awaiting_approval"}
+
+
+def test_update_proposal_version_narrative(
+    client: TestClient,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    seeded_env: dict[str, int],
+) -> None:
+    # 1. Setup version
+    token = login(two_orgs.manager_a)
+    create_res = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={"from_version_id": None},
+        headers=_auth(token),
+    )
+    version_id = create_res.json()["id"]
+
+    # 2. Update narrative
+    narrative_data = {
+        "executive_summary": "Summary",
+        "recommended_approach": "Approach",
+        "scope": "Scope",
+        "assumptions_exclusions": ["Assumptions"],
+        "next_steps": ["Steps"],
+        "email_draft": "Email",
+        "provider": "openrouter",
+        "model": "anthropic/claude-3.5-sonnet",
+    }
+    patch_res = client.patch(
+        f"/proposal-versions/{version_id}/narrative",
+        json=narrative_data,
+        headers=_auth(token),
+    )
+    assert patch_res.status_code == 200
+    data = patch_res.json()
+    assert data["narrative_json"]["executive_summary"] == "Summary"
+    assert data["narrative_json"]["provider"] == "openrouter"
+    assert "generated_at" in data["narrative_json"]
+
+    # 3. Verify audit event
+    audit_res = client.get(
+        f"/audit-events?entity_type=proposal_version&entity_id={version_id}",
+        headers=_auth(token),
+    )
+    events = audit_res.json()
+    save_event = next(e for e in events if e["action"] == "save_narrative")
+    assert save_event["before_json"]["has_narrative"] is False
+    assert save_event["after_json"]["has_narrative"] is True
+    assert save_event["after_json"]["provider"] == "openrouter"
+
+
+def test_update_proposal_version_narrative_immutable(
+    client: TestClient,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    seeded_env: dict[str, int],
+) -> None:
+    token = login(two_orgs.manager_a)
+    create_res = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={"from_version_id": None},
+        headers=_auth(token),
+    )
+    version_id = create_res.json()["id"]
+
+    # Finalize it so it's immutable
+    client.post(f"/proposal-versions/{version_id}/finalize", headers=_auth(token))
+
+    narrative_data = {
+        "executive_summary": "Summary",
+        "recommended_approach": "Approach",
+        "scope": "Scope",
+        "assumptions_exclusions": ["Assumptions"],
+        "next_steps": ["Steps"],
+        "email_draft": "Email",
+        "provider": "openrouter",
+        "model": "model",
+    }
+    patch_res = client.patch(
+        f"/proposal-versions/{version_id}/narrative",
+        json=narrative_data,
+        headers=_auth(token),
+    )
+    assert patch_res.status_code == 400
+    assert patch_res.json()["detail"] == "Version is immutable"

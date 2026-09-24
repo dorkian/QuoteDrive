@@ -52,6 +52,7 @@ function draftVersion(): api.ProposalVersion {
     opportunity_id: 1,
     version_number: 1,
     status: "draft",
+    narrative_json: null,
     content_json: { lines: [] },
     total_estimate: "0.00",
     created_by: 1,
@@ -65,6 +66,7 @@ function finalizedVersion(): api.ProposalVersion {
     opportunity_id: 1,
     version_number: 1,
     status: "proposal_drafted",
+    narrative_json: null,
     content_json: {
       lines: [
         {
@@ -229,6 +231,7 @@ describe("ProposalBuilder", () => {
     const legacyVersion: api.ProposalVersion = {
       ...finalizedVersion(),
       status: "draft",
+      narrative_json: null,
       content_json: {
         lines: [
           {
@@ -280,5 +283,3 @@ describe("ProposalBuilder", () => {
     expect(screen.getByText("v1")).toBeInTheDocument();
   });
 });
-
-

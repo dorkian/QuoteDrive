@@ -238,3 +238,23 @@ def test_generate_narrative_malformed_json(
     assert log.status == "error"
     assert log.error_detail is not None
     assert "Failed to parse" in log.error_detail
+
+
+def test_generate_narrative_includes_provider_and_model(
+    client: TestClient,
+    fake_provider: FakeProvider,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    db_session: Session,
+) -> None:
+    token = login(two_orgs.manager_a)
+    response = client.post(
+        "/ai/proposal-narrative",
+        json={"proposal_version_id": proposal_version.id, "timeline": "Q4"},
+        headers=_auth(token),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provider"] == "fake"
+    assert data["model"] == "fake-model"

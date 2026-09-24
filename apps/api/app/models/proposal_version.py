@@ -44,6 +44,7 @@ class ProposalVersion(TenantOwnedMixin, Base):
     content_json: Mapped[dict[str, Any]] = mapped_column(
         JSON, nullable=False, default=lambda: {"lines": []}
     )
+    narrative_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True, default=None)
     total_estimate: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), nullable=False, default=Decimal(0)
     )

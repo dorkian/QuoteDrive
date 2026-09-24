@@ -17,3 +17,5 @@ class NarrativeOutput(BaseModel):
 
 class ProposalNarrativeResponse(NarrativeOutput):
     disclaimer: str
+    provider: str
+    model: str

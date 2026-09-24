@@ -125,5 +125,8 @@ def generate_narrative(
         db.commit()
 
     return ProposalNarrativeResponse(
-        **output.model_dump(), disclaimer="Draft AI Content — Requires human review"
+        **output.model_dump(),
+        disclaimer="Draft AI Content — Requires human review",
+        provider=res.provider,
+        model=res.model,
     )

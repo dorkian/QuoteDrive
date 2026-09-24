@@ -66,6 +66,7 @@ describe("OpportunityDetailPage", () => {
         opportunity_id: 1,
         version_number: 1,
         status: "draft",
+        narrative_json: null,
         content_json: { lines: [] },
         total_estimate: "0.00",
         created_by: 1,

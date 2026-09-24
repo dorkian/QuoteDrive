@@ -116,6 +116,13 @@ export interface ProposalVersion {
   version_number: number;
   status: ProposalVersionStatus;
   content_json: { lines: ProposalVersionLine[] };
+  narrative_json:
+    | (NarrativeOutput & {
+        provider: string;
+        model: string;
+        generated_at: string;
+      })
+    | null;
   total_estimate: string;
   created_by: number;
 }
@@ -350,9 +357,7 @@ export async function calculateEstimate(
 }
 
 export type ApprovalRequestStatus =
-  | "pending"
-  | "approved"
-  | "changes_requested";
+  "pending" | "approved" | "changes_requested";
 
 export interface ApprovalRequest {
   id: number;
@@ -424,14 +429,17 @@ export async function requestChanges(
   id: number,
   comment: string,
 ): Promise<ApprovalRequest> {
-  const res = await fetch(`${API_URL}/approval-requests/${id}/request-changes`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const res = await fetch(
+    `${API_URL}/approval-requests/${id}/request-changes`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ comment }),
     },
-    body: JSON.stringify({ comment }),
-  });
+  );
   if (!res.ok) {
     throw new Error("Failed to request changes");
   }
@@ -444,4 +452,67 @@ export function canDecideApproval(role: string): boolean {
 
 export function isBlank(str: string): boolean {
   return str.trim().length === 0;
+}
+
+export interface NarrativeOutput {
+  executive_summary: string;
+  recommended_approach: string;
+  scope: string;
+  assumptions_exclusions: string[];
+  next_steps: string[];
+  email_draft: string;
+}
+
+export interface ProposalNarrativeResponse extends NarrativeOutput {
+  disclaimer: string;
+  provider: string;
+  model: string;
+}
+
+export async function generateProposalNarrative(
+  token: string,
+  versionId: number,
+  timeline?: string,
+): Promise<ProposalNarrativeResponse> {
+  const res = await fetch(`${API_URL}/ai/proposal-narrative`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ proposal_version_id: versionId, timeline }),
+  });
+  if (!res.ok) {
+    let msg = "Failed to generate narrative";
+    try {
+      const errBody = await res.json();
+      if (errBody.detail) msg = errBody.detail;
+    } catch {
+      // response body wasn't JSON; fall back to the generic message
+    }
+    throw new Error(msg);
+  }
+  return (await res.json()) as ProposalNarrativeResponse;
+}
+
+export async function saveProposalVersionNarrative(
+  token: string,
+  versionId: number,
+  narrative: NarrativeOutput & { provider: string; model: string },
+): Promise<ProposalVersion> {
+  const res = await fetch(
+    `${API_URL}/proposal-versions/${versionId}/narrative`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(narrative),
+    },
+  );
+  if (!res.ok) {
+    throw new Error("Failed to save narrative");
+  }
+  return (await res.json()) as ProposalVersion;
 }

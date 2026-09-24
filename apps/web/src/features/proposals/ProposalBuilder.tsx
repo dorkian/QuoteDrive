@@ -14,6 +14,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { ActivityTimeline } from "../../components/ActivityTimeline";
+import { AiNarrativeEditor } from "./AiNarrativeEditor";
 
 const ESTIMATE_DEBOUNCE_MS = 400;
 
@@ -455,6 +456,13 @@ export function ProposalBuilder() {
           </div>
         </div>
       )}
+
+      <AiNarrativeEditor
+        version={version}
+        editable={editable}
+        token={token!}
+        onSaved={setVersion}
+      />
 
       <section className="mt-10 border-t border-navy-800 pt-6">
         <h2 className="mb-4 text-sm font-medium text-navy-50">Activity</h2>

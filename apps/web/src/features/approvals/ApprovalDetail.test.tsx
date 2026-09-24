@@ -61,6 +61,7 @@ const mockVersion: api.ProposalVersion = {
   opportunity_id: 1,
   version_number: 2,
   status: "awaiting_approval",
+  narrative_json: null,
   content_json: {
     lines: [
       {
@@ -85,6 +86,7 @@ const mockPrevVersion: api.ProposalVersion = {
   opportunity_id: 1,
   version_number: 1,
   status: "changes_requested",
+  narrative_json: null,
   content_json: {
     lines: [
       {
@@ -137,9 +139,7 @@ describe("ApprovalDetail", () => {
     );
     expect(screen.getByText("Total: $1500.00")).toBeInTheDocument();
     expect(screen.getByText("Electric Sedan · qty 3")).toBeInTheDocument();
-    expect(
-      screen.getByText("Comparison with Version 1"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Comparison with Version 1")).toBeInTheDocument();
   });
 
   it("shows self-submitter guard when the acting user created the version", async () => {
@@ -170,10 +170,14 @@ describe("ApprovalDetail", () => {
     renderDetail();
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("button", { name: "Approve" }),
+      ).toBeInTheDocument(),
     );
 
-    const textarea = screen.getByPlaceholderText("Add notes or reason for changes...");
+    const textarea = screen.getByPlaceholderText(
+      "Add notes or reason for changes...",
+    );
     fireEvent.change(textarea, { target: { value: "Approved, looks great." } });
 
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
@@ -214,7 +218,9 @@ describe("ApprovalDetail", () => {
     expect(api.requestChanges).not.toHaveBeenCalled();
 
     // Fill comment with only spaces
-    const textarea = screen.getByPlaceholderText("Add notes or reason for changes...");
+    const textarea = screen.getByPlaceholderText(
+      "Add notes or reason for changes...",
+    );
     fireEvent.change(textarea, { target: { value: "   " } });
     fireEvent.click(screen.getByRole("button", { name: "Request Changes" }));
 
@@ -239,7 +245,9 @@ describe("ApprovalDetail", () => {
       ).toBeInTheDocument(),
     );
 
-    const textarea = screen.getByPlaceholderText("Add notes or reason for changes...");
+    const textarea = screen.getByPlaceholderText(
+      "Add notes or reason for changes...",
+    );
     fireEvent.change(textarea, {
       target: { value: "Please include maintenance add-on." },
     });
@@ -261,7 +269,9 @@ describe("ApprovalDetail", () => {
         "Please include maintenance add-on.",
       );
       expect(
-        screen.getByText("Changes requested. A new draft version has been forked."),
+        screen.getByText(
+          "Changes requested. A new draft version has been forked.",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -299,7 +309,9 @@ describe("ApprovalDetail", () => {
     renderDetail();
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("button", { name: "Approve" }),
+      ).toBeInTheDocument(),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
@@ -316,4 +328,3 @@ describe("ApprovalDetail", () => {
     ).toBeInTheDocument();
   });
 });
-
