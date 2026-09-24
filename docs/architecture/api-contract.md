@@ -23,6 +23,6 @@
 - `POST /approval-requests/{id}/request-changes`
 - `POST /ai/proposal-narrative`
 - `POST /ai/discovery-brief`
-- `GET /audit-events?entity_type=&entity_id=&limit=&before_id=` (includes `actor_name` via User join)
+- `GET /audit-events?entity_type=&entity_id=&limit=&before_id=` (includes `actor_name`, snapshotted at write time)
 
 No endpoint accepts a client-trusted tenant ID for authorization.
