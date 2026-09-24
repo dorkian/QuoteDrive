@@ -82,10 +82,7 @@ function AppShell() {
         />
         <Route path="/proposals" element={<PackageComparison />} />
         <Route path="/approvals" element={<ApprovalDashboard />} />
-        <Route
-          path="/approvals/:requestId"
-          element={<ApprovalDetail />}
-        />
+        <Route path="/approvals/:requestId" element={<ApprovalDetail />} />
         <Route
           path="/settings"
           element={<ComingSoonPanel title="Settings" />}

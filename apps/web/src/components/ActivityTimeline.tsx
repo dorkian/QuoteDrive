@@ -56,7 +56,12 @@ export function ActivityTimeline({
   // convention) so the stale-data flash and an extra effect commit are both
   // avoided; comparing the individual values directly rather than a
   // synthesized string key.
-  const [prevQuery, setPrevQuery] = useState({ token, entityType, entityId, limit });
+  const [prevQuery, setPrevQuery] = useState({
+    token,
+    entityType,
+    entityId,
+    limit,
+  });
   if (
     prevQuery.token !== token ||
     prevQuery.entityType !== entityType ||
@@ -201,4 +206,3 @@ export function ActivityTimeline({
     </div>
   );
 }
-

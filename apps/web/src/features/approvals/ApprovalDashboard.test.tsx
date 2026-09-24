@@ -103,7 +103,9 @@ describe("ApprovalDashboard", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Couldn't load pending approvals. Try refreshing the page."),
+        screen.getByText(
+          "Couldn't load pending approvals. Try refreshing the page.",
+        ),
       ).toBeInTheDocument(),
     );
   });
@@ -119,4 +121,3 @@ describe("ApprovalDashboard", () => {
     expect(api.fetchApprovalRequests).not.toHaveBeenCalled();
   });
 });
-

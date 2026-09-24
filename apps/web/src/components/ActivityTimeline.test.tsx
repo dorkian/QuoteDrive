@@ -4,10 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as api from "../lib/api";
 import { AuthProvider } from "../lib/auth-context";
 import { ActivityTimeline } from "./ActivityTimeline";
-import {
-  describeEvent,
-  formatRelativeTime,
-} from "./activity-timeline-utils";
+import { describeEvent, formatRelativeTime } from "./activity-timeline-utils";
 
 vi.mock("../lib/api");
 
@@ -161,9 +158,10 @@ describe("describeEvent", () => {
       };
       const { actionDescription } = describeEvent(event);
       const genericFallback = `${action.replace(/_/g, " ")} ${entity_type.replace(/_/g, " ")}`;
-      expect(actionDescription, `${entity_type}/${action} has no explicit copy`).not.toBe(
-        genericFallback,
-      );
+      expect(
+        actionDescription,
+        `${entity_type}/${action} has no explicit copy`,
+      ).not.toBe(genericFallback);
     }
   });
 });
@@ -210,7 +208,11 @@ describe("ActivityTimeline", () => {
     // fetchLimit). Page 1 returns 3 rows so it must slice to 2 and show
     // "Load more"; page 2 returns 1 row (<= limit), so it's shown in full and
     // the button disappears.
-    const opp = (id: number, title: string, secondsAgo: number): api.AuditEvent => ({
+    const opp = (
+      id: number,
+      title: string,
+      secondsAgo: number,
+    ): api.AuditEvent => ({
       id,
       actor_id: 1,
       actor_name: "Jane Doe",
@@ -222,7 +224,11 @@ describe("ActivityTimeline", () => {
       created_at: new Date(Date.now() - secondsAgo * 1000).toISOString(),
     });
 
-    const page1 = [opp(3, "Third Opp", 0), opp(2, "Second Opp", 60), opp(1, "First Opp", 120)];
+    const page1 = [
+      opp(3, "Third Opp", 0),
+      opp(2, "Second Opp", 60),
+      opp(1, "First Opp", 120),
+    ];
     const page2 = [opp(0, "Oldest Opp", 180)];
 
     vi.mocked(api.fetchAuditEvents)

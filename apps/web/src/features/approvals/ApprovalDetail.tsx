@@ -256,10 +256,7 @@ export function ApprovalDetail() {
             </section>
 
             {/* Version Comparison */}
-            <VersionComparison
-              current={version}
-              previous={previousVersion}
-            />
+            <VersionComparison current={version} previous={previousVersion} />
 
             {/* Decision Controls */}
             {showDecisionControls && (
@@ -383,4 +380,3 @@ export function ApprovalDetail() {
     </div>
   );
 }
-

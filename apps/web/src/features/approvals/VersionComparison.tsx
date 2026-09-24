@@ -6,24 +6,25 @@ interface VersionComparisonProps {
   previous: ProposalVersion | null;
 }
 
-const STATUS_BADGES: Record<DiffStatus, { label: string; className: string }> = {
-  added: {
-    label: "Added",
-    className: "border border-lime-800 bg-lime-950 text-lime-400",
-  },
-  removed: {
-    label: "Removed",
-    className: "border border-red-800 bg-red-950 text-red-400",
-  },
-  changed: {
-    label: "Changed",
-    className: "border border-amber-800 bg-amber-950 text-amber-300",
-  },
-  unchanged: {
-    label: "Unchanged",
-    className: "bg-navy-800 text-navy-400",
-  },
-};
+const STATUS_BADGES: Record<DiffStatus, { label: string; className: string }> =
+  {
+    added: {
+      label: "Added",
+      className: "border border-lime-800 bg-lime-950 text-lime-400",
+    },
+    removed: {
+      label: "Removed",
+      className: "border border-red-800 bg-red-950 text-red-400",
+    },
+    changed: {
+      label: "Changed",
+      className: "border border-amber-800 bg-amber-950 text-amber-300",
+    },
+    unchanged: {
+      label: "Unchanged",
+      className: "bg-navy-800 text-navy-400",
+    },
+  };
 
 function parseCents(val: string | null | undefined): number {
   if (!val) return 0;
@@ -105,9 +106,7 @@ export function VersionComparison({
                 className="flex flex-col gap-1 rounded-md border border-navy-800 bg-navy-950 p-3 text-sm"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-navy-100">
-                    {diff.name}
-                  </span>
+                  <span className="font-medium text-navy-100">{diff.name}</span>
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
                   >
@@ -117,8 +116,8 @@ export function VersionComparison({
 
                 {line && (
                   <p className="text-xs text-navy-400">
-                    qty {line.quantity} · ${line.unit_estimate}/mo · line total $
-                    {line.line_total}
+                    qty {line.quantity} · ${line.unit_estimate}/mo · line total
+                    ${line.line_total}
                   </p>
                 )}
 

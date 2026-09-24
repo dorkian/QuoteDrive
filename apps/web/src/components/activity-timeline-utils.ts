@@ -163,4 +163,3 @@ export function describeEvent(event: AuditEvent): EventDescription {
     entityReference: `#${entity_id}`,
   };
 }
-
