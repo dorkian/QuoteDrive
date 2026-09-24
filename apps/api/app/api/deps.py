@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 
 import jwt
@@ -6,11 +6,31 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models import Organization, OrganizationMembership, Role, User
+from app.services.ai.providers import GenerationProvider, get_provider
 
 _bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_ai_provider() -> Generator[GenerationProvider, None, None]:
+    try:
+        provider = get_provider(settings)
+    except ValueError as exc:
+        # A misconfigured AI_PROVIDER (e.g. openrouter with no API key) is a
+        # deployment error, not a per-request attempt — surface it as a clean
+        # 500 here rather than letting it propagate as an opaque, unhandled
+        # error from dependency resolution.
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="AI provider misconfigured",
+        ) from exc
+    try:
+        yield provider
+    finally:
+        provider.close()
 
 
 @dataclass

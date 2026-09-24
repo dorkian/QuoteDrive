@@ -23,6 +23,14 @@ class OllamaProvider(GenerationProvider):
         self._model = model
         self._client = httpx.Client(transport=transport, timeout=timeout_seconds)
 
+    @property
+    def name(self) -> str:
+        return "ollama"
+
+    @property
+    def model(self) -> str:
+        return self._model
+
     def generate(self, request: GenerationRequest) -> GenerationResult:
         body: dict[str, object] = {
             "model": self._model,

@@ -35,6 +35,17 @@ class ProviderResponseError(ProviderError):
 
 
 class GenerationProvider(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Short provider identifier (e.g. "openrouter"), known before any call succeeds —
+        lets a caller log which provider/model an attempt used even if it fails."""
+
+    @property
+    @abstractmethod
+    def model(self) -> str:
+        """The configured model identifier, known before any call succeeds."""
+
     @abstractmethod
     def generate(self, request: GenerationRequest) -> GenerationResult: ...
 
