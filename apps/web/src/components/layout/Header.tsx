@@ -1,11 +1,5 @@
 import type { Role } from "../../lib/api";
-
-const ROLE_LABELS: Record<Role, string> = {
-  admin: "Admin",
-  proposal_manager: "Proposal Manager",
-  approver: "Approver",
-  viewer: "Viewer",
-};
+import { ROLE_LABELS } from "../../lib/roles";
 
 interface HeaderProps {
   organizationName: string;

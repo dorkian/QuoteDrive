@@ -159,10 +159,11 @@ describe("PackageComparison", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "Couldn't load catalogue packages. Try refreshing the page.",
-        ),
+        screen.getByText("Couldn't load catalogue packages."),
       ).toBeInTheDocument(),
     );
+    expect(
+      screen.getByRole("button", { name: "Try again" }),
+    ).toBeInTheDocument();
   });
 });

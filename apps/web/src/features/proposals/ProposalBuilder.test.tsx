@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../../lib/api";
 import { AuthProvider } from "../../lib/auth-context";
+import { ApiError } from "../../lib/errors";
 import { ProposalBuilder } from "./ProposalBuilder";
 
 vi.mock("../../lib/api");
@@ -147,6 +148,34 @@ describe("ProposalBuilder", () => {
     expect(
       screen.getByText("Illustrative planning estimate only."),
     ).toBeInTheDocument();
+  });
+
+  it("recovers from a failed load with Try again", async () => {
+    localStorage.setItem("quotedrive.token", "stored-token");
+    vi.mocked(api.fetchMe).mockResolvedValue(managerMe);
+    vi.mocked(api.fetchProposalVersion)
+      .mockRejectedValueOnce(new ApiError(503, "Failed", null))
+      .mockResolvedValueOnce(finalizedVersion());
+    vi.mocked(api.fetchCatalogueItems).mockResolvedValue(catalogueItems);
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/opportunities/1/versions/6"]}>
+          <Routes>
+            <Route
+              path="/opportunities/:opportunityId/versions/:versionId"
+              element={<ProposalBuilder />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+    );
+
+    expect(
+      await screen.findByText("Couldn't load this proposal version."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("12-month term")).toBeInTheDocument();
   });
 
   it("renders a read-only summary for a finalized (immutable) version", async () => {

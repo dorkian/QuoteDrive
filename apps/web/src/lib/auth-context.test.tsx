@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "./api";
 import { AuthProvider, useAuth } from "./auth-context";
+import { UNAUTHORIZED_EVENT } from "./errors";
 
 vi.mock("./api");
 
@@ -26,6 +27,22 @@ afterEach(() => {
 });
 
 describe("AuthProvider", () => {
+  it("returns to the login screen with an explanation when a call comes back 401", async () => {
+    localStorage.setItem("quotedrive.token", "stored-token");
+    vi.mocked(api.fetchMe).mockResolvedValue(mockMe);
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+
+    act(() => {
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    });
+
+    expect(result.current.status).toBe("unauthenticated");
+    expect(result.current.token).toBeNull();
+    expect(result.current.error).toBe("Your session expired. Sign in again.");
+    expect(localStorage.getItem("quotedrive.token")).toBeNull();
+  });
+
   it("starts unauthenticated when there is no stored token", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 

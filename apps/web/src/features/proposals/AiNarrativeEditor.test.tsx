@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../../lib/api";
+import { ApiError } from "../../lib/errors";
 import { AiNarrativeEditor } from "./AiNarrativeEditor";
 
 vi.mock("../../lib/api");
@@ -58,6 +59,10 @@ const mockGeneratedResponse: api.ProposalNarrativeResponse = {
   model: "llama3",
 };
 
+beforeEach(() => {
+  vi.resetAllMocks();
+});
+
 describe("AiNarrativeEditor", () => {
   it("renders nothing if not editable and no narrative", () => {
     const { container } = render(
@@ -87,7 +92,7 @@ describe("AiNarrativeEditor", () => {
     const generateBtn = screen.getByText("Generate draft");
     fireEvent.click(generateBtn);
 
-    expect(generateBtn).toHaveTextContent("Generating...");
+    expect(generateBtn).toHaveTextContent("Generating…");
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Gen Exec Summary")).toBeInTheDocument();
@@ -104,9 +109,80 @@ describe("AiNarrativeEditor", () => {
     expect(screen.getByText("Save")).not.toBeDisabled();
   });
 
-  it("generate failure", async () => {
+  it("explains a provider timeout and offers retry or writing it yourself", async () => {
+    vi.mocked(api.generateProposalNarrative)
+      .mockRejectedValueOnce(
+        new ApiError(504, "Failed to generate narrative", "Provider timeout"),
+      )
+      .mockResolvedValueOnce(mockGeneratedResponse);
+    render(
+      <AiNarrativeEditor
+        version={draftVersion}
+        editable={true}
+        token="tok"
+        onSaved={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Generate draft"));
+
+    expect(
+      await screen.findByText("The AI provider took too long to respond."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Write it yourself" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(
+      await screen.findByDisplayValue("Gen Exec Summary"),
+    ).toBeInTheDocument();
+    expect(api.generateProposalNarrative).toHaveBeenCalledTimes(2);
+  });
+
+  it("lets the user write the narrative manually when drafting fails", async () => {
     vi.mocked(api.generateProposalNarrative).mockRejectedValue(
-      new Error("Timeout error"),
+      new ApiError(502, "Failed to generate narrative", "Bad response"),
+    );
+    vi.mocked(api.saveProposalVersionNarrative).mockResolvedValue(draftVersion);
+    render(
+      <AiNarrativeEditor
+        version={draftVersion}
+        editable={true}
+        token="tok"
+        onSaved={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Generate draft"));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Write it yourself" }),
+    );
+
+    expect(screen.getByText("Written manually")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Draft AI Content — Requires human review"),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Executive summary"), {
+      target: { value: "Hand-written summary" },
+    });
+    fireEvent.click(screen.getByText("Save"));
+
+    await waitFor(() =>
+      expect(api.saveProposalVersionNarrative).toHaveBeenCalledWith(
+        "tok",
+        draftVersion.id,
+        expect.objectContaining({
+          provider: "manual",
+          executive_summary: "Hand-written summary",
+        }),
+      ),
+    );
+  });
+
+  it("does not offer a manual fallback when drafting is forbidden", async () => {
+    vi.mocked(api.generateProposalNarrative).mockRejectedValue(
+      new ApiError(403, "Failed to generate narrative", null),
     );
     render(
       <AiNarrativeEditor
@@ -119,11 +195,44 @@ describe("AiNarrativeEditor", () => {
 
     fireEvent.click(screen.getByText("Generate draft"));
 
-    await waitFor(() => {
-      expect(screen.getByText("Timeout error")).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByText("Your role can't draft proposal narratives."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Write it yourself" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Retry" }),
+    ).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Retry")).toBeInTheDocument();
+  it("retries the save, not generation, when saving fails", async () => {
+    vi.mocked(api.saveProposalVersionNarrative)
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce(savedVersion);
+    render(
+      <AiNarrativeEditor
+        version={savedVersion}
+        editable={true}
+        token="tok"
+        onSaved={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByDisplayValue("Saved Exec Summary"), {
+      target: { value: "Edited" },
+    });
+    fireEvent.click(screen.getByText("Save"));
+
+    expect(
+      await screen.findByText("Couldn't save the narrative."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() =>
+      expect(api.saveProposalVersionNarrative).toHaveBeenCalledTimes(2),
+    );
+    expect(api.generateProposalNarrative).not.toHaveBeenCalled();
   });
 
   it("edit-then-save", async () => {

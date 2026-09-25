@@ -106,7 +106,7 @@ export function VersionComparison({
                 className="flex flex-col gap-1 rounded-md border border-navy-800 bg-navy-950 p-3 text-sm"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-navy-100">{diff.name}</span>
+                  <span className="font-medium text-navy-50">{diff.name}</span>
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
                   >

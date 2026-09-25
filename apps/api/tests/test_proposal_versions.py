@@ -676,3 +676,46 @@ def test_update_proposal_version_narrative_immutable(
     )
     assert patch_res.status_code == 400
     assert patch_res.json()["detail"] == "Version is immutable"
+
+
+def test_update_proposal_version_narrative_accepts_manual_provider(
+    client: TestClient,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    seeded_env: dict[str, int],
+) -> None:
+    """A narrative written by hand after AI drafting failed saves as "manual"."""
+    token = login(two_orgs.manager_a)
+    create_res = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={"from_version_id": None},
+        headers=_auth(token),
+    )
+    version_id = create_res.json()["id"]
+
+    narrative_data = {
+        "executive_summary": "Written by hand",
+        "recommended_approach": "",
+        "scope": "",
+        "assumptions_exclusions": [],
+        "next_steps": [],
+        "email_draft": "",
+        "provider": "manual",
+        "model": "none",
+    }
+    patch_res = client.patch(
+        f"/proposal-versions/{version_id}/narrative",
+        json=narrative_data,
+        headers=_auth(token),
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.json()["narrative_json"]["provider"] == "manual"
+
+    narrative_data["provider"] = "invented-provider"
+    rejected = client.patch(
+        f"/proposal-versions/{version_id}/narrative",
+        json=narrative_data,
+        headers=_auth(token),
+    )
+    assert rejected.status_code == 422

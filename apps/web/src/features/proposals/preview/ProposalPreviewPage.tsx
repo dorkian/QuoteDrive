@@ -12,6 +12,7 @@ import {
   type ProposalVersionStatus,
 } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-context";
+import { describeError } from "../../../lib/errors";
 import { LoginScreen } from "../../auth/LoginScreen";
 
 const PRINT_PAGE_CSS = "@page { size: A4; margin: 18mm 16mm; }";
@@ -44,7 +45,7 @@ type LoadState =
       opportunity: Opportunity;
       customer: Customer;
     }
-  | { kind: "error"; versionId: number };
+  | { kind: "error"; versionId: number; retryable: boolean };
 
 // Formats the API's decimal strings without a float round-trip.
 function formatAmount(value: string): string {
@@ -57,10 +58,12 @@ export function ProposalPreviewPage() {
   const { status, me, token } = useAuth();
   const { versionId } = useParams<{ versionId: string }>();
   const id = Number(versionId);
+  const isInvalidId = !Number.isInteger(id) || id <= 0;
   const [state, setState] = useState<LoadState | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!token || Number.isNaN(id)) {
+    if (!token || isInvalidId) {
       return;
     }
     let cancelled = false;
@@ -81,16 +84,24 @@ export function ProposalPreviewPage() {
             customer,
           });
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setState({ kind: "error", versionId: id });
+          const { retryable } = describeError(err, {
+            action: "load this proposal",
+          });
+          setState({ kind: "error", versionId: id, retryable });
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [token, id]);
+  }, [token, id, isInvalidId, attempt]);
+
+  function retry(): void {
+    setState(null);
+    setAttempt((n) => n + 1);
+  }
 
   if (status === "unauthenticated" || (status === "authenticated" && !me)) {
     return <LoginScreen />;
@@ -99,10 +110,14 @@ export function ProposalPreviewPage() {
   // Ignore a result that belongs to a previous :versionId.
   const current = state?.versionId === id ? state : null;
 
-  if (Number.isNaN(id) || current?.kind === "error") {
+  if (isInvalidId || current?.kind === "error") {
     return (
       <PreviewShell>
-        <LoadError />
+        <LoadError
+          onRetry={
+            current?.kind === "error" && current.retryable ? retry : undefined
+          }
+        />
       </PreviewShell>
     );
   }
@@ -416,7 +431,9 @@ function NotApproved({
   );
 }
 
-function LoadError() {
+// With onRetry the failure was transient (server/network); without it the
+// proposal is missing or belongs to another workspace.
+function LoadError({ onRetry }: { onRetry?: () => void }) {
   return (
     <div
       role="alert"
@@ -426,15 +443,27 @@ function LoadError() {
         This proposal couldn't be loaded
       </h1>
       <p className="mt-2 max-w-prose text-sm leading-6 text-navy-300">
-        It may not exist, or it may belong to a different workspace. Check the
-        link, or open the proposal from its opportunity.
+        {onRetry
+          ? "The server didn't respond as expected. Try again in a moment."
+          : "It may not exist, or it may belong to a different workspace. Check the link, or open the proposal from its opportunity."}
       </p>
-      <Link
-        to="/opportunities"
-        className={`mt-6 inline-block rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 ${FOCUS}`}
-      >
-        Go to opportunities
-      </Link>
+      <div className="mt-6 flex flex-wrap gap-3">
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className={`min-h-10 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 ${FOCUS}`}
+          >
+            Try again
+          </button>
+        )}
+        <Link
+          to="/opportunities"
+          className={`inline-flex min-h-10 items-center rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 ${FOCUS}`}
+        >
+          Go to opportunities
+        </Link>
+      </div>
     </div>
   );
 }

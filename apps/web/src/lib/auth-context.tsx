@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { demoLogin, fetchMe, type Me } from "./api";
+import { UNAUTHORIZED_EVENT } from "./errors";
 
 const TOKEN_STORAGE_KEY = "quotedrive.token";
 
@@ -48,6 +49,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  // Any authenticated call that comes back 401 (e.g. the JWT expired mid-session)
+  // drops back to the login screen at the current URL, so signing in again
+  // returns the user to the page they were on.
+  useEffect(() => {
+    function handleUnauthorized(): void {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      setMe(null);
+      setToken(null);
+      setStatus("unauthenticated");
+      setError("Your session expired. Sign in again.");
+    }
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () =>
+      window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+  }, []);
+
   async function login(email: string): Promise<void> {
     setError(null);
     try {
@@ -63,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout(): void {
+    setError(null);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setMe(null);
     setToken(null);

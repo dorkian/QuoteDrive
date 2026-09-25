@@ -14,14 +14,26 @@ import {
   type ProposalVersionLineInput,
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
+import { describeError, type ErrorDescription } from "../../lib/errors";
+import { canEditProposals } from "../../lib/roles";
 import { ActivityTimeline } from "../../components/ActivityTimeline";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingRegion,
+  Skeleton,
+} from "../../components/states/StateViews";
 import { AiNarrativeEditor } from "./AiNarrativeEditor";
 
 const ESTIMATE_DEBOUNCE_MS = 400;
 
-function canEdit(role: string): boolean {
-  return role === "admin" || role === "proposal_manager";
-}
+const NOT_FOUND: ErrorDescription = {
+  message: "This proposal version doesn't exist or isn't in your organization.",
+  retryable: false,
+};
+
+const ICON_BUTTON =
+  "inline-flex min-h-10 min-w-10 items-center justify-center rounded-md px-2 text-navy-300 transition-colors duration-150 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-40";
 
 function isVersionEditable(status: string): boolean {
   return status === "draft" || status === "configured";
@@ -42,6 +54,7 @@ export function ProposalBuilder() {
   const { token, me } = useAuth();
   const { versionId } = useParams<{ versionId: string }>();
   const id = Number(versionId);
+  const isInvalidId = !Number.isInteger(id) || id <= 0;
 
   const [version, setVersion] = useState<ProposalVersion | null>(null);
   const [catalogueItems, setCatalogueItems] = useState<CatalogueItem[] | null>(
@@ -50,7 +63,9 @@ export function ProposalBuilder() {
   const [lines, setLines] = useState<ProposalVersionLineInput[]>([]);
   const [liveEstimate, setLiveEstimate] =
     useState<EstimateCalculateResponse | null>(null);
+  const [loadError, setLoadError] = useState<ErrorDescription | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(
@@ -60,7 +75,7 @@ export function ProposalBuilder() {
   const requestIdRef = useRef(0);
 
   useEffect(() => {
-    if (!token || Number.isNaN(id)) {
+    if (!token || isInvalidId) {
       return;
     }
     Promise.all([fetchProposalVersion(token, id), fetchCatalogueItems(token)])
@@ -73,13 +88,33 @@ export function ProposalBuilder() {
         );
         setSelectedPackageId(firstPackage?.id ?? null);
       })
-      .catch(() =>
-        setError("Couldn't load this proposal version. Try refreshing."),
+      .catch((err: unknown) =>
+        setLoadError(
+          describeError(err, {
+            action: "load this proposal version",
+            subject: "proposal version",
+            role: me?.role,
+          }),
+        ),
       );
-  }, [token, id]);
+  }, [token, id, isInvalidId, me?.role, attempt]);
+
+  function retry(): void {
+    setLoadError(null);
+    setVersion(null);
+    setCatalogueItems(null);
+    setAttempt((n) => n + 1);
+  }
+
+  function describeActionError(err: unknown, action: string): string {
+    return describeError(err, { action, role: me?.role }).message;
+  }
 
   const editable =
-    !!version && !!me && canEdit(me.role) && isVersionEditable(version.status);
+    !!version &&
+    !!me &&
+    canEditProposals(me.role) &&
+    isVersionEditable(version.status);
 
   useEffect(() => {
     if (!token || !editable || lines.length === 0) {
@@ -101,9 +136,9 @@ export function ProposalBuilder() {
             setLiveEstimate(result);
           }
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           if (requestId === requestIdRef.current) {
-            setError("Couldn't recalculate the estimate.");
+            setError(describeActionError(err, "recalculate the estimate"));
           }
         });
     }, ESTIMATE_DEBOUNCE_MS);
@@ -178,8 +213,8 @@ export function ProposalBuilder() {
       const saved = await updateProposalVersion(token, version.id, lines);
       setVersion(saved);
       setLines(saved.content_json.lines.map(toLineInput));
-    } catch {
-      setError("Couldn't save the proposal version.");
+    } catch (err) {
+      setError(describeActionError(err, "save this proposal version"));
     } finally {
       setSaving(false);
     }
@@ -195,28 +230,29 @@ export function ProposalBuilder() {
       await updateProposalVersion(token, version.id, lines);
       const finalized = await finalizeProposalVersion(token, version.id);
       setVersion(finalized);
-    } catch {
-      setError("Couldn't finalize the proposal version.");
+    } catch (err) {
+      setError(describeActionError(err, "finalize this proposal version"));
     } finally {
       setFinalizing(false);
     }
   }
 
-  if (error && !version) {
+  const blockingError = isInvalidId ? NOT_FOUND : loadError;
+  if (blockingError) {
     return (
-      <p className="text-sm text-red-400" role="alert">
-        {error}
-      </p>
+      <ErrorState
+        className=""
+        message={blockingError.message}
+        onRetry={blockingError.retryable ? retry : undefined}
+      />
     );
   }
 
   if (!version || !catalogueItems) {
     return (
-      <div
-        className="h-32 animate-pulse rounded-md border border-navy-800 bg-navy-900"
-        role="status"
-        aria-label="Proposal builder loading"
-      />
+      <LoadingRegion label="Proposal builder loading" className="">
+        <Skeleton className="h-32" />
+      </LoadingRegion>
     );
   }
 
@@ -236,16 +272,16 @@ export function ProposalBuilder() {
     <div>
       <Link
         to={`/opportunities/${version.opportunity_id}`}
-        className="text-xs text-navy-300 hover:text-lime-400"
+        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-navy-300 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
       >
         ← Back to opportunity
       </Link>
 
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold tracking-tight text-navy-50">
           Version {version.version_number}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {isPreviewableStatus(version.status) && (
             <Link
               to={`/proposal-versions/${version.id}/preview`}
@@ -268,12 +304,13 @@ export function ProposalBuilder() {
 
       {editable ? (
         <>
-          <div className="mt-6 flex items-center gap-2">
+          <div className="mt-6 flex flex-wrap items-center gap-2">
             <select
               value={selectedPackageId ?? ""}
               onChange={(e) => setSelectedPackageId(Number(e.target.value))}
               disabled={packages.length === 0}
-              className="rounded-md border border-navy-700 bg-navy-900 px-3 py-2 text-sm text-navy-50"
+              aria-label="Package to add"
+              className="min-h-10 min-w-0 max-w-full rounded-md border border-navy-700 bg-navy-900 px-3 py-2 text-sm text-navy-50"
             >
               {packages.map((pkg) => (
                 <option key={pkg.id} value={pkg.id}>
@@ -285,16 +322,17 @@ export function ProposalBuilder() {
               type="button"
               onClick={addLine}
               disabled={packages.length === 0}
-              className="rounded-md border border-navy-700 px-3 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-10 rounded-md border border-navy-700 px-3 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Add package line
             </button>
           </div>
 
           {displayLines.length === 0 ? (
-            <p className="mt-4 text-sm text-navy-300">
-              No package lines yet. Add one above.
-            </p>
+            <EmptyState
+              className="mt-4"
+              message="No package lines yet. Add one above."
+            />
           ) : (
             <ul className="mt-4 flex flex-col gap-3">
               {displayLines.map(({ input, live, catalogue }, index) => (
@@ -303,7 +341,7 @@ export function ProposalBuilder() {
                   className="rounded-md border border-navy-800 bg-navy-900 p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-medium text-navy-50">
                         {catalogue?.name ?? live?.name ?? "Package"}
                       </p>
@@ -313,13 +351,13 @@ export function ProposalBuilder() {
                           : "Calculating…"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center">
                       <button
                         type="button"
                         onClick={() => moveLine(index, -1)}
                         disabled={index === 0}
                         aria-label="Move line up"
-                        className="rounded px-2 py-1 text-navy-300 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-40"
+                        className={ICON_BUTTON}
                       >
                         ↑
                       </button>
@@ -328,7 +366,7 @@ export function ProposalBuilder() {
                         onClick={() => moveLine(index, 1)}
                         disabled={index === displayLines.length - 1}
                         aria-label="Move line down"
-                        className="rounded px-2 py-1 text-navy-300 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-40"
+                        className={ICON_BUTTON}
                       >
                         ↓
                       </button>
@@ -336,7 +374,7 @@ export function ProposalBuilder() {
                         type="button"
                         onClick={() => removeLine(index)}
                         aria-label="Remove line"
-                        className="rounded px-2 py-1 text-navy-300 hover:text-red-400"
+                        className="inline-flex min-h-10 items-center rounded-md px-2 text-sm text-navy-300 transition-colors duration-150 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
                       >
                         Remove
                       </button>
@@ -382,13 +420,13 @@ export function ProposalBuilder() {
                         {addOns.map((addOn) => (
                           <label
                             key={addOn.id}
-                            className="flex items-center gap-1.5 text-xs text-navy-50"
+                            className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-navy-50"
                           >
                             <input
                               type="checkbox"
                               checked={input.add_on_item_ids.includes(addOn.id)}
                               onChange={() => toggleAddOn(index, addOn.id)}
-                              className="accent-lime-400"
+                              className="size-4 accent-lime-400"
                             />
                             {addOn.name}
                           </label>
@@ -401,7 +439,7 @@ export function ProposalBuilder() {
             </ul>
           )}
 
-          <div className="mt-6 flex items-center justify-between border-t border-navy-800 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-navy-800 pt-4">
             <div>
               <p className="text-sm font-medium text-navy-50">
                 Total: ${liveEstimate?.total_estimate ?? version.total_estimate}
@@ -416,7 +454,7 @@ export function ProposalBuilder() {
                 type="button"
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-h-10 rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving…" : "Save"}
               </button>
@@ -424,7 +462,7 @@ export function ProposalBuilder() {
                 type="button"
                 onClick={() => void handleFinalize()}
                 disabled={finalizing || lines.length === 0}
-                className="rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-h-10 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {finalizing ? "Finalizing…" : "Finalize"}
               </button>
@@ -434,7 +472,7 @@ export function ProposalBuilder() {
       ) : (
         <div className="mt-6">
           {version.content_json.lines.length === 0 ? (
-            <p className="text-sm text-navy-300">No package lines.</p>
+            <EmptyState className="" message="No package lines." />
           ) : (
             <ul className="flex flex-col gap-3">
               {version.content_json.lines.map((line, index) => (

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../../lib/api";
 import { AuthProvider } from "../../lib/auth-context";
+import { ApiError } from "../../lib/errors";
 import { ApprovalDetail } from "./ApprovalDetail";
 
 vi.mock("../../lib/api", async (importOriginal) => {
@@ -131,6 +132,31 @@ beforeEach(() => {
 });
 
 describe("ApprovalDetail", () => {
+  it("explains the restriction to non-approvers instead of failing to load", async () => {
+    renderDetail({ ...approverMe, role: "viewer" });
+
+    expect(
+      await screen.findByText(
+        "Your role (Viewer) can't review approval requests.",
+      ),
+    ).toBeInTheDocument();
+    expect(api.fetchApprovalRequest).not.toHaveBeenCalled();
+  });
+
+  it("shows the API's reason when an approval is forbidden", async () => {
+    vi.mocked(api.approveRequest).mockRejectedValue(
+      new ApiError(403, "Failed", "Cannot approve your own version"),
+    );
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm approve" }));
+
+    expect(
+      await screen.findByText("Cannot approve your own version."),
+    ).toBeInTheDocument();
+  });
+
   it("renders proposal details, lines, and comparison with previous version", async () => {
     renderDetail();
 
@@ -156,7 +182,7 @@ describe("ApprovalDetail", () => {
       screen.queryByRole("button", { name: "Approve" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Request Changes" }),
+      screen.queryByRole("button", { name: "Request changes" }),
     ).not.toBeInTheDocument();
   });
 
@@ -205,12 +231,12 @@ describe("ApprovalDetail", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Request Changes" }),
+        screen.getByRole("button", { name: "Request changes" }),
       ).toBeInTheDocument(),
     );
 
     // Click without comment
-    fireEvent.click(screen.getByRole("button", { name: "Request Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request changes" }));
 
     expect(
       screen.getByText("A comment is required when requesting changes."),
@@ -222,7 +248,7 @@ describe("ApprovalDetail", () => {
       "Add notes or reason for changes...",
     );
     fireEvent.change(textarea, { target: { value: "   " } });
-    fireEvent.click(screen.getByRole("button", { name: "Request Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request changes" }));
 
     expect(
       screen.getByText("A comment is required when requesting changes."),
@@ -241,7 +267,7 @@ describe("ApprovalDetail", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Request Changes" }),
+        screen.getByRole("button", { name: "Request changes" }),
       ).toBeInTheDocument(),
     );
 
@@ -252,7 +278,7 @@ describe("ApprovalDetail", () => {
       target: { value: "Please include maintenance add-on." },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Request Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request changes" }));
 
     expect(
       screen.getByText("Confirm request changes and fork draft?"),
@@ -293,7 +319,9 @@ describe("ApprovalDetail", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Invalid approval request ID."),
+        screen.getByText(
+          "This approval request doesn't exist or isn't in your organization.",
+        ),
       ).toBeInTheDocument(),
     );
   });

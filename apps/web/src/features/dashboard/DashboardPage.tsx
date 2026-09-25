@@ -1,33 +1,32 @@
 import { useEffect, useState } from "react";
 
 import { ActivityTimeline } from "../../components/ActivityTimeline";
+import {
+  ErrorState,
+  LoadingRegion,
+  Skeleton,
+} from "../../components/states/StateViews";
 import { fetchDashboardSummary, type DashboardSummary } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
+import { describeError, type ErrorDescription } from "../../lib/errors";
 
 function LoadingSkeleton() {
   return (
-    <div
-      className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      role="status"
-      aria-label="Dashboard content loading"
-    >
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="animate-pulse rounded-lg border border-navy-800 bg-navy-900 p-4"
-        >
-          <div className="h-3 w-1/3 rounded bg-navy-700" />
-          <div className="mt-4 h-6 w-2/3 rounded bg-navy-700" />
-        </div>
-      ))}
-    </div>
+    <LoadingRegion label="Dashboard content loading">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-lg" />
+        ))}
+      </div>
+    </LoadingRegion>
   );
 }
 
 export function DashboardPage() {
-  const { token } = useAuth();
+  const { token, me } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDescription | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) {
@@ -37,14 +36,22 @@ export function DashboardPage() {
     if (!promise?.then) {
       return;
     }
-    promise
-      .then(setSummary)
-      .catch(() =>
-        setError("Couldn't load dashboard data. Try refreshing the page."),
-      );
-  }, [token]);
+    promise.then(setSummary).catch((err: unknown) =>
+      setError(
+        describeError(err, {
+          action: "load the dashboard",
+          role: me?.role,
+        }),
+      ),
+    );
+  }, [token, me?.role, attempt]);
 
-  const isLoading = summary === null;
+  function retry(): void {
+    setError(null);
+    setSummary(null);
+    setAttempt((n) => n + 1);
+  }
+
   const statusEntries = summary
     ? Object.entries(summary.opportunities_by_status)
     : [];
@@ -58,13 +65,12 @@ export function DashboardPage() {
         Northstar workspace at a glance.
       </p>
 
-      {error && (
-        <p className="mt-4 text-sm text-red-400" role="alert">
-          {error}
-        </p>
-      )}
-
-      {isLoading && !error ? (
+      {error ? (
+        <ErrorState
+          message={error.message}
+          onRetry={error.retryable ? retry : undefined}
+        />
+      ) : summary === null ? (
         <LoadingSkeleton />
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-2">

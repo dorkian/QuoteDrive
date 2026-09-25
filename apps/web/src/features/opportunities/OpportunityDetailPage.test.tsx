@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../../lib/api";
 import { AuthProvider } from "../../lib/auth-context";
+import { ApiError } from "../../lib/errors";
 import { OpportunityDetailPage } from "./OpportunityDetailPage";
 
 vi.mock("../../lib/api");
@@ -34,12 +35,12 @@ const opportunity: api.Opportunity = {
   brief_json: null,
 };
 
-function renderAuthenticated(me: api.Me) {
+function renderAuthenticated(me: api.Me, path = "/opportunities/1") {
   localStorage.setItem("quotedrive.token", "stored-token");
   vi.mocked(api.fetchMe).mockResolvedValue(me);
   return render(
     <AuthProvider>
-      <MemoryRouter initialEntries={["/opportunities/1"]}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route
             path="/opportunities/:opportunityId"
@@ -57,6 +58,35 @@ beforeEach(() => {
 });
 
 describe("OpportunityDetailPage", () => {
+  it("shows not-found instead of loading forever for a malformed id", async () => {
+    renderAuthenticated(managerMe, "/opportunities/not-a-number");
+
+    expect(
+      await screen.findByText(
+        "This opportunity doesn't exist or isn't in your organization.",
+      ),
+    ).toBeInTheDocument();
+    expect(api.fetchOpportunity).not.toHaveBeenCalled();
+  });
+
+  it("treats a 404 as not found, with no retry", async () => {
+    vi.mocked(api.fetchOpportunity).mockRejectedValue(
+      new ApiError(404, "Failed", "Not found"),
+    );
+    vi.mocked(api.fetchProposalVersions).mockResolvedValue([]);
+
+    renderAuthenticated(managerMe);
+
+    expect(
+      await screen.findByText(
+        "This opportunity doesn't exist or isn't in your organization.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("lists proposal versions and shows Create draft version for a manager", async () => {
     vi.mocked(api.fetchOpportunity).mockResolvedValue(opportunity);
     vi.mocked(api.fetchProposalVersions).mockResolvedValue([

@@ -103,9 +103,7 @@ describe("ApprovalDashboard", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "Couldn't load pending approvals. Try refreshing the page.",
-        ),
+        screen.getByText("Couldn't load pending approvals."),
       ).toBeInTheDocument(),
     );
   });
@@ -115,7 +113,7 @@ describe("ApprovalDashboard", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Approvals are restricted to Approvers and Admins."),
+        screen.getByText("Your role (Viewer) can't review approval requests."),
       ).toBeInTheDocument(),
     );
     expect(api.fetchApprovalRequests).not.toHaveBeenCalled();

@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 
+import {
+  ErrorState,
+  LoadingRegion,
+  Skeleton,
+} from "../../components/states/StateViews";
 import { fetchCatalogueItems, type CatalogueItem } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
+import { describeError, type ErrorDescription } from "../../lib/errors";
 
 interface PackageSpec {
   category: "electric_city" | "hybrid" | "long_distance";
@@ -58,35 +64,36 @@ function multiplyMoney(amount: string, quantity: number): string {
 
 function LoadingSkeleton() {
   return (
-    <div
-      className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      role="status"
-      aria-label="Package comparison loading"
-    >
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="animate-pulse rounded-lg border border-navy-800 bg-navy-900 p-5"
-        >
-          <div className="h-4 w-1/2 rounded bg-navy-700" />
-          <div className="mt-4 h-8 w-2/3 rounded bg-navy-700" />
-          <div className="mt-6 space-y-3">
-            <div className="h-3 w-3/4 rounded bg-navy-700" />
-            <div className="h-3 w-full rounded bg-navy-700" />
-            <div className="h-3 w-5/6 rounded bg-navy-700" />
-          </div>
-        </div>
-      ))}
-    </div>
+    <LoadingRegion label="Package comparison loading">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-72 rounded-lg" />
+        ))}
+      </div>
+    </LoadingRegion>
+  );
+}
+
+function PageHeading() {
+  return (
+    <>
+      <h1 className="text-xl font-semibold tracking-tight text-navy-50">
+        Package comparison
+      </h1>
+      <p className="mt-1 text-sm text-navy-300">
+        Compare three canonical fleet options side by side.
+      </p>
+    </>
   );
 }
 
 export function PackageComparison() {
-  const { token } = useAuth();
+  const { token, me } = useAuth();
   const [catalogueItems, setCatalogueItems] = useState<CatalogueItem[] | null>(
     null,
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDescription | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!token) {
@@ -94,23 +101,30 @@ export function PackageComparison() {
     }
     fetchCatalogueItems(token)
       .then((items) => setCatalogueItems(items))
-      .catch(() =>
-        setError("Couldn't load catalogue packages. Try refreshing the page."),
+      .catch((err: unknown) =>
+        setError(
+          describeError(err, {
+            action: "load catalogue packages",
+            role: me?.role,
+          }),
+        ),
       );
-  }, [token]);
+  }, [token, me?.role, attempt]);
+
+  function retry(): void {
+    setError(null);
+    setCatalogueItems(null);
+    setAttempt((n) => n + 1);
+  }
 
   if (error) {
     return (
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-navy-50">
-          Package comparison
-        </h1>
-        <p className="mt-1 text-sm text-navy-300">
-          Compare three canonical fleet options side by side.
-        </p>
-        <p className="mt-4 text-sm text-red-400" role="alert">
-          {error}
-        </p>
+        <PageHeading />
+        <ErrorState
+          message={error.message}
+          onRetry={error.retryable ? retry : undefined}
+        />
       </div>
     );
   }
@@ -118,12 +132,7 @@ export function PackageComparison() {
   if (catalogueItems === null) {
     return (
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-navy-50">
-          Package comparison
-        </h1>
-        <p className="mt-1 text-sm text-navy-300">
-          Compare three canonical fleet options side by side.
-        </p>
+        <PageHeading />
         <LoadingSkeleton />
       </div>
     );
@@ -141,12 +150,7 @@ export function PackageComparison() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold tracking-tight text-navy-50">
-        Package comparison
-      </h1>
-      <p className="mt-1 text-sm text-navy-300">
-        Compare three canonical fleet options side by side.
-      </p>
+      <PageHeading />
 
       {!allThreePresent ? (
         <div className="mt-6 rounded-lg border border-navy-800 bg-navy-900 p-6 text-center">
@@ -183,7 +187,7 @@ export function PackageComparison() {
                     >
                       {item.name}
                     </h2>
-                    <span className="rounded-full bg-navy-800 px-2.5 py-0.5 text-xs font-medium text-lime-400">
+                    <span className="shrink-0 rounded-full bg-navy-800 px-2.5 py-0.5 text-xs font-medium text-lime-400">
                       {spec.vehicleCount} vehicles
                     </span>
                   </div>
@@ -206,7 +210,7 @@ export function PackageComparison() {
                       <dt className="text-xs font-medium text-navy-300">
                         Services included
                       </dt>
-                      <dd className="mt-0.5 text-xs text-navy-100">
+                      <dd className="mt-0.5 text-xs text-navy-50">
                         {spec.services}
                       </dd>
                     </div>
@@ -215,7 +219,7 @@ export function PackageComparison() {
                       <dt className="text-xs font-medium text-navy-300">
                         Assumptions
                       </dt>
-                      <dd className="mt-0.5 text-xs text-navy-100">
+                      <dd className="mt-0.5 text-xs text-navy-50">
                         {spec.assumptions}
                       </dd>
                     </div>
@@ -224,7 +228,7 @@ export function PackageComparison() {
                       <dt className="text-xs font-medium text-navy-300">
                         Timeline
                       </dt>
-                      <dd className="mt-0.5 text-xs text-navy-100">
+                      <dd className="mt-0.5 text-xs text-navy-50">
                         {spec.timeline}
                       </dd>
                     </div>

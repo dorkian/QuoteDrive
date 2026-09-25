@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { fetchAuditEvents, type AuditEvent } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { describeError, type ErrorDescription } from "../lib/errors";
+import { EmptyState, ErrorState } from "./states/StateViews";
 import { describeEvent, formatRelativeTime } from "./activity-timeline-utils";
 
 export interface ActivityTimelineProps {
@@ -19,7 +21,10 @@ function TimelineSkeleton() {
       aria-label="Activity timeline loading"
     >
       {[0, 1, 2].map((i) => (
-        <div key={i} className="flex items-center gap-3 animate-pulse">
+        <div
+          key={i}
+          className="flex animate-pulse items-center gap-3 motion-reduce:animate-none"
+        >
           <div className="h-2 w-2 rounded-full bg-navy-700" />
           <div className="h-4 w-52 rounded bg-navy-800" />
         </div>
@@ -34,11 +39,15 @@ export function ActivityTimeline({
   emptyMessage = "No activity yet.",
   limit = 20,
 }: ActivityTimelineProps) {
-  const { token } = useAuth();
+  const { token, me } = useAuth();
   const [events, setEvents] = useState<AuditEvent[] | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  // A failed first load replaces the timeline; a failed "Load more" is shown
+  // above the events already loaded.
+  const [loadError, setLoadError] = useState<ErrorDescription | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   // Fetch one extra row so we can tell "exactly `limit` events, no more" apart
   // from "more than `limit` events exist" without a second round-trip — the
@@ -70,6 +79,7 @@ export function ActivityTimeline({
   ) {
     setPrevQuery({ token, entityType, entityId, limit });
     setEvents(null);
+    setLoadError(null);
     setError(null);
     setHasMore(false);
   }
@@ -94,13 +104,21 @@ export function ActivityTimeline({
         setEvents(more ? fetched.slice(0, limit) : fetched);
         setHasMore(more);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (requestIdRef.current !== requestId) {
           return;
         }
-        setError("Couldn't load activity. Try refreshing the page.");
+        setLoadError(
+          describeError(err, { action: "load activity", role: me?.role }),
+        );
       });
-  }, [token, entityType, entityId, limit, fetchLimit]);
+  }, [token, me?.role, entityType, entityId, limit, fetchLimit, attempt]);
+
+  function retry(): void {
+    setLoadError(null);
+    setEvents(null);
+    setAttempt((n) => n + 1);
+  }
 
   const handleLoadMore = async () => {
     if (!token || !events || events.length === 0 || loadingMore) {
@@ -135,22 +153,22 @@ export function ActivityTimeline({
     }
   };
 
-  const isLoading = events === null && !error;
-
-  if (isLoading) {
-    return <TimelineSkeleton />;
-  }
-
-  if (error && (!events || events.length === 0)) {
+  if (loadError) {
     return (
-      <p className="text-sm text-red-400" role="alert">
-        {error}
-      </p>
+      <ErrorState
+        className=""
+        message={loadError.message}
+        onRetry={loadError.retryable ? retry : undefined}
+      />
     );
   }
 
-  if (!events || events.length === 0) {
-    return <p className="text-sm text-navy-300">{emptyMessage}</p>;
+  if (events === null) {
+    return <TimelineSkeleton />;
+  }
+
+  if (events.length === 0) {
+    return <EmptyState className="" message={emptyMessage} />;
   }
 
   return (
@@ -170,12 +188,12 @@ export function ActivityTimeline({
                 aria-hidden="true"
               />
               <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                <p className="text-sm text-navy-200">
+                <p className="min-w-0 text-sm text-navy-50">
                   <span className="font-medium text-navy-50">
                     {event.actor_name}
                   </span>{" "}
                   <span className="text-navy-300">{actionDescription}</span>{" "}
-                  <span className="font-medium text-navy-100">
+                  <span className="font-medium text-navy-50">
                     {entityReference}
                   </span>
                 </p>
@@ -197,7 +215,7 @@ export function ActivityTimeline({
             type="button"
             onClick={() => void handleLoadMore()}
             disabled={loadingMore}
-            className="rounded-md border border-navy-700 px-3 py-1.5 text-xs font-medium text-navy-200 transition-colors duration-150 hover:border-lime-400 hover:text-navy-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-10 rounded-md border border-navy-700 px-3 py-1.5 text-xs font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loadingMore ? "Loading…" : "Load more"}
           </button>

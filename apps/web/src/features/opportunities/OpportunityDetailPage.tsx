@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
+  EmptyState,
+  ErrorState,
+  LoadingRegion,
+  Skeleton,
+} from "../../components/states/StateViews";
+import {
   createProposalVersion,
   fetchOpportunity,
   fetchProposalVersions,
@@ -9,24 +15,30 @@ import {
   type ProposalVersion,
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
+import { describeError, type ErrorDescription } from "../../lib/errors";
+import { canEditProposals } from "../../lib/roles";
 
-function canEdit(role: string): boolean {
-  return role === "admin" || role === "proposal_manager";
-}
+const NOT_FOUND: ErrorDescription = {
+  message: "This opportunity doesn't exist or isn't in your organization.",
+  retryable: false,
+};
 
 export function OpportunityDetailPage() {
   const { token, me } = useAuth();
   const navigate = useNavigate();
   const { opportunityId } = useParams<{ opportunityId: string }>();
   const id = Number(opportunityId);
+  const isInvalidId = !Number.isInteger(id) || id <= 0;
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [versions, setVersions] = useState<ProposalVersion[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<ErrorDescription | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!token || Number.isNaN(id)) {
+    if (!token || isInvalidId) {
       return;
     }
     Promise.all([fetchOpportunity(token, id), fetchProposalVersions(token, id)])
@@ -34,100 +46,119 @@ export function OpportunityDetailPage() {
         setOpportunity(fetchedOpportunity);
         setVersions(fetchedVersions);
       })
-      .catch(() =>
-        setError("Couldn't load this opportunity. Try refreshing the page."),
+      .catch((err: unknown) =>
+        setLoadError(
+          describeError(err, {
+            action: "load this opportunity",
+            subject: "opportunity",
+            role: me?.role,
+          }),
+        ),
       );
-  }, [token, id]);
+  }, [token, id, isInvalidId, me?.role, attempt]);
+
+  function retry(): void {
+    setLoadError(null);
+    setOpportunity(null);
+    setVersions(null);
+    setAttempt((n) => n + 1);
+  }
 
   async function handleCreateDraft(): Promise<void> {
     if (!token) {
       return;
     }
     setCreating(true);
+    setActionError(null);
     try {
       const version = await createProposalVersion(token, id);
       navigate(`/opportunities/${id}/versions/${version.id}`);
-    } catch {
-      setError("Couldn't create a draft version. Try again.");
+    } catch (err) {
+      setActionError(
+        describeError(err, {
+          action: "create a draft version",
+          role: me?.role,
+        }).message,
+      );
       setCreating(false);
     }
   }
 
-  const isLoading = opportunity === null || versions === null;
+  const error = isInvalidId ? NOT_FOUND : loadError;
 
   return (
     <div>
       <Link
         to="/opportunities"
-        className="text-xs text-navy-300 hover:text-lime-400"
+        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-navy-300 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
       >
         ← Opportunities
       </Link>
 
-      {error && (
-        <p className="mt-4 text-sm text-red-400" role="alert">
-          {error}
-        </p>
-      )}
-
-      {isLoading && !error ? (
-        <div
-          className="mt-4 h-24 animate-pulse rounded-md border border-navy-800 bg-navy-900"
-          role="status"
-          aria-label="Opportunity loading"
+      {error ? (
+        <ErrorState
+          className="mt-4"
+          message={error.message}
+          onRetry={error.retryable ? retry : undefined}
         />
+      ) : opportunity === null || versions === null ? (
+        <LoadingRegion label="Opportunity loading" className="mt-4">
+          <Skeleton className="h-24" />
+        </LoadingRegion>
       ) : (
-        opportunity && (
-          <>
-            <div className="mt-2 flex items-center justify-between">
-              <h1 className="text-xl font-semibold tracking-tight text-navy-50">
-                {opportunity.title}
-              </h1>
-              {me && canEdit(me.role) && (
-                <button
-                  type="button"
-                  onClick={() => void handleCreateDraft()}
-                  disabled={creating}
-                  className="rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {creating ? "Creating…" : "Create draft version"}
-                </button>
-              )}
-            </div>
-
-            <h2 className="mt-8 text-sm font-medium text-navy-50">
-              Proposal versions
-            </h2>
-            {versions && versions.length === 0 ? (
-              <p className="mt-2 text-sm text-navy-300">
-                No proposal versions yet.
-              </p>
-            ) : (
-              <ul className="mt-2 flex flex-col gap-2">
-                {versions?.map((version) => (
-                  <li key={version.id}>
-                    <Link
-                      to={`/opportunities/${id}/versions/${version.id}`}
-                      className="flex items-center justify-between rounded-md border border-navy-800 bg-navy-900 px-4 py-3 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
-                    >
-                      <span className="text-sm font-medium text-navy-50">
-                        Version {version.version_number}
-                      </span>
-                      <span className="flex items-center gap-3">
-                        <span className="text-xs text-navy-300">
-                          ${version.total_estimate}
-                        </span>
-                        <span className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
-                          {version.status}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+        <>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="min-w-0 text-xl font-semibold tracking-tight text-balance text-navy-50">
+              {opportunity.title}
+            </h1>
+            {me && canEditProposals(me.role) && (
+              <button
+                type="button"
+                onClick={() => void handleCreateDraft()}
+                disabled={creating}
+                className="shrink-0 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {creating ? "Creating…" : "Create draft version"}
+              </button>
             )}
-          </>
-        )
+          </div>
+
+          {actionError && (
+            <p className="mt-4 text-sm text-red-400" role="alert">
+              {actionError}
+            </p>
+          )}
+
+          <h2 className="mt-8 text-sm font-medium text-navy-50">
+            Proposal versions
+          </h2>
+          {versions.length === 0 ? (
+            <EmptyState className="mt-2" message="No proposal versions yet." />
+          ) : (
+            <ul className="mt-2 flex flex-col gap-2">
+              {versions.map((version) => (
+                <li key={version.id}>
+                  <Link
+                    to={`/opportunities/${id}/versions/${version.id}`}
+                    className="flex items-center justify-between gap-3 rounded-md border border-navy-800 bg-navy-900 px-4 py-3 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+                  >
+                    <span className="text-sm font-medium text-navy-50">
+                      Version {version.version_number}
+                    </span>
+                    <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                      <span className="text-xs text-navy-300 tabular-nums">
+                        ${version.total_estimate}
+                      </span>
+                      <span className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
+                        {version.status}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   );

@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../../lib/api";
 import { AuthProvider } from "../../lib/auth-context";
+import { ApiError } from "../../lib/errors";
 import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../../lib/api");
@@ -70,6 +71,27 @@ describe("DashboardPage", () => {
     expect(
       screen.getByText("2026 Fleet Modernization & Mobility Services"),
     ).toBeInTheDocument();
+  });
+
+  it("shows an error with a working retry when the summary fails to load", async () => {
+    vi.mocked(api.fetchDashboardSummary)
+      .mockRejectedValueOnce(new ApiError(500, "Failed", null))
+      .mockResolvedValueOnce({ opportunities_by_status: { open: 1 } });
+    vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
+
+    renderAuthenticated();
+
+    expect(
+      await screen.findByText("Couldn't load the dashboard."),
+    ).toBeInTheDocument();
+    // An error must not fall through to the misleading empty state.
+    expect(
+      screen.queryByText("No opportunities yet. Create one to see it here."),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("open · 1")).toBeInTheDocument();
   });
 
   it("shows guidance empty states when there is no data yet", async () => {

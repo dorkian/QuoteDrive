@@ -1,3 +1,5 @@
+import { throwIfNotOk } from "./errors";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export type Role = "admin" | "proposal_manager" | "approver" | "viewer";
@@ -140,9 +142,7 @@ export async function demoLogin(email: string): Promise<string> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
-  if (!res.ok) {
-    throw new Error("Invalid demo login");
-  }
+  await throwIfNotOk(res, "Invalid demo login", { notifyUnauthorized: false });
   const data = (await res.json()) as { access_token: string };
   return data.access_token;
 }
@@ -151,9 +151,7 @@ export async function fetchMe(token: string): Promise<Me> {
   const res = await fetch(`${API_URL}/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Session expired");
-  }
+  await throwIfNotOk(res, "Session expired", { notifyUnauthorized: false });
   return (await res.json()) as Me;
 }
 
@@ -163,9 +161,7 @@ export async function fetchDashboardSummary(
   const res = await fetch(`${API_URL}/dashboard/summary`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load dashboard summary");
-  }
+  await throwIfNotOk(res, "Failed to load dashboard summary");
   return (await res.json()) as DashboardSummary;
 }
 
@@ -196,9 +192,7 @@ export async function fetchAuditEvents(
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load activity");
-  }
+  await throwIfNotOk(res, "Failed to load activity");
   return (await res.json()) as AuditEvent[];
 }
 
@@ -208,9 +202,7 @@ export async function fetchOpportunities(
   const res = await fetch(`${API_URL}/opportunities`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load opportunities");
-  }
+  await throwIfNotOk(res, "Failed to load opportunities");
   return (await res.json()) as Opportunity[];
 }
 
@@ -221,9 +213,7 @@ export async function fetchOpportunity(
   const res = await fetch(`${API_URL}/opportunities/${opportunityId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load opportunity");
-  }
+  await throwIfNotOk(res, "Failed to load opportunity");
   return (await res.json()) as Opportunity;
 }
 
@@ -231,9 +221,7 @@ export async function fetchCustomers(token: string): Promise<Customer[]> {
   const res = await fetch(`${API_URL}/customers`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load customers");
-  }
+  await throwIfNotOk(res, "Failed to load customers");
   return (await res.json()) as Customer[];
 }
 
@@ -244,9 +232,7 @@ export async function fetchCustomer(
   const res = await fetch(`${API_URL}/customers/${customerId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load customer");
-  }
+  await throwIfNotOk(res, "Failed to load customer");
   return (await res.json()) as Customer;
 }
 
@@ -256,9 +242,7 @@ export async function fetchCatalogueItems(
   const res = await fetch(`${API_URL}/catalogue/items`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load catalogue");
-  }
+  await throwIfNotOk(res, "Failed to load catalogue");
   return (await res.json()) as CatalogueItem[];
 }
 
@@ -272,9 +256,7 @@ export async function fetchProposalVersions(
       headers: { Authorization: `Bearer ${token}` },
     },
   );
-  if (!res.ok) {
-    throw new Error("Failed to load proposal versions");
-  }
+  await throwIfNotOk(res, "Failed to load proposal versions");
   return (await res.json()) as ProposalVersion[];
 }
 
@@ -285,9 +267,7 @@ export async function fetchProposalVersion(
   const res = await fetch(`${API_URL}/proposal-versions/${versionId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load proposal version");
-  }
+  await throwIfNotOk(res, "Failed to load proposal version");
   return (await res.json()) as ProposalVersion;
 }
 
@@ -309,9 +289,7 @@ export async function createProposalVersion(
       ),
     },
   );
-  if (!res.ok) {
-    throw new Error("Failed to create proposal version");
-  }
+  await throwIfNotOk(res, "Failed to create proposal version");
   return (await res.json()) as ProposalVersion;
 }
 
@@ -328,9 +306,7 @@ export async function updateProposalVersion(
     },
     body: JSON.stringify({ lines }),
   });
-  if (!res.ok) {
-    throw new Error("Failed to save proposal version");
-  }
+  await throwIfNotOk(res, "Failed to save proposal version");
   return (await res.json()) as ProposalVersion;
 }
 
@@ -345,9 +321,7 @@ export async function finalizeProposalVersion(
       headers: { Authorization: `Bearer ${token}` },
     },
   );
-  if (!res.ok) {
-    throw new Error("Failed to finalize proposal version");
-  }
+  await throwIfNotOk(res, "Failed to finalize proposal version");
   return (await res.json()) as ProposalVersion;
 }
 
@@ -363,9 +337,7 @@ export async function calculateEstimate(
     },
     body: JSON.stringify({ lines }),
   });
-  if (!res.ok) {
-    throw new Error("Failed to calculate estimate");
-  }
+  await throwIfNotOk(res, "Failed to calculate estimate");
   return (await res.json()) as EstimateCalculateResponse;
 }
 
@@ -399,9 +371,7 @@ export async function fetchApprovalRequests(
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load approval requests");
-  }
+  await throwIfNotOk(res, "Failed to load approval requests");
   return (await res.json()) as ApprovalRequest[];
 }
 
@@ -412,9 +382,7 @@ export async function fetchApprovalRequest(
   const res = await fetch(`${API_URL}/approval-requests/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    throw new Error("Failed to load approval request");
-  }
+  await throwIfNotOk(res, "Failed to load approval request");
   return (await res.json()) as ApprovalRequest;
 }
 
@@ -431,9 +399,7 @@ export async function approveRequest(
     },
     body: JSON.stringify(comment ? { comment } : {}),
   });
-  if (!res.ok) {
-    throw new Error("Failed to approve request");
-  }
+  await throwIfNotOk(res, "Failed to approve request");
   return (await res.json()) as ApprovalRequest;
 }
 
@@ -453,9 +419,7 @@ export async function requestChanges(
       body: JSON.stringify({ comment }),
     },
   );
-  if (!res.ok) {
-    throw new Error("Failed to request changes");
-  }
+  await throwIfNotOk(res, "Failed to request changes");
   return (await res.json()) as ApprovalRequest;
 }
 
@@ -509,16 +473,7 @@ export async function generateProposalNarrative(
     },
     body: JSON.stringify({ proposal_version_id: versionId, timeline }),
   });
-  if (!res.ok) {
-    let msg = "Failed to generate narrative";
-    try {
-      const errBody = await res.json();
-      if (errBody.detail) msg = errBody.detail;
-    } catch {
-      // response body wasn't JSON; fall back to the generic message
-    }
-    throw new Error(msg);
-  }
+  await throwIfNotOk(res, "Failed to generate narrative");
   return (await res.json()) as ProposalNarrativeResponse;
 }
 
@@ -538,8 +493,6 @@ export async function saveProposalVersionNarrative(
       body: JSON.stringify(narrative),
     },
   );
-  if (!res.ok) {
-    throw new Error("Failed to save narrative");
-  }
+  await throwIfNotOk(res, "Failed to save narrative");
   return (await res.json()) as ProposalVersion;
 }

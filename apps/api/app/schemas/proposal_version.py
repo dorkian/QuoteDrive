@@ -30,8 +30,10 @@ class ProposalVersionNarrativeUpdate(BaseModel):
     email_draft: str
     # Restricted to the GenerationProvider adapters that actually exist
     # (providers/openrouter.py, ollama.py, fake.py's `.name`), so a client
-    # can't record a fabricated provider as generation provenance.
-    provider: Literal["openrouter", "ollama", "fake"]
+    # can't record a fabricated provider as generation provenance. "manual"
+    # marks text a person wrote after AI drafting failed or wasn't used
+    # (docs/runbooks/ai-provider-failure.md).
+    provider: Literal["openrouter", "ollama", "fake", "manual"]
     model: str
 
 
