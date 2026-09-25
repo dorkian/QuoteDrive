@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { ActivityTimeline } from "../../components/ActivityTimeline";
 import { formatStatus } from "@/lib/format";
 import {
@@ -13,27 +12,14 @@ import { fetchDashboardSummary, type DashboardSummary } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { describeError, type ErrorDescription } from "../../lib/errors";
 
-function KpiCard({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: number;
-  highlight?: boolean;
-}) {
+function KpiCard({ label, value }: { label: string; value: number }) {
   return (
     <Card role="group" aria-label={`${label}: ${value}`}>
       <CardContent className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">
           {label}
         </span>
-        <span
-          className={cn(
-            "text-2xl font-semibold tabular-nums tracking-tight",
-            highlight ? "text-primary" : "text-foreground",
-          )}
-        >
+        <span className="text-2xl font-semibold tabular-nums tracking-tight text-foreground">
           {value}
         </span>
       </CardContent>
@@ -116,7 +102,7 @@ export function DashboardPage() {
               </p>
             ) : (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <KpiCard label="Total" value={total} highlight />
+                <KpiCard label="Total" value={total} />
                 {statusEntries.map(([status, count]) => (
                   <KpiCard
                     key={status}

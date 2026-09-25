@@ -38,7 +38,7 @@ export function BreadcrumbLink({
   return (
     <Comp
       className={cn(
-        "truncate transition-colors hover:text-foreground",
+        "inline-flex min-h-10 items-center truncate transition-colors hover:text-foreground",
         className,
       )}
       {...props}

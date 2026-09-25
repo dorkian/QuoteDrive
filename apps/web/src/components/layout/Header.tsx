@@ -52,10 +52,9 @@ export function Header({
       {onOpenSearch && (
         <Button
           variant="outline"
-          size="sm"
           onClick={onOpenSearch}
           aria-label="Search pages"
-          className="text-muted-foreground"
+          className="px-3 text-muted-foreground"
         >
           <Search />
           <span className="hidden lg:inline">Go to…</span>

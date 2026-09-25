@@ -297,7 +297,7 @@ export function ProposalBuilder() {
     <div>
       <Link
         to={`/opportunities/${version.opportunity_id}`}
-        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="-my-2 inline-flex min-h-10 items-center rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         ← Back to opportunity
       </Link>
