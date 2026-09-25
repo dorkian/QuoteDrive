@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { StatusBadge } from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import {
   EmptyState,
   ErrorState,
@@ -19,10 +21,10 @@ import { describeError, type ErrorDescription } from "../../lib/errors";
 function PageHeading() {
   return (
     <>
-      <h1 className="text-xl font-semibold tracking-tight text-navy-50">
+      <h1 className="text-xl font-semibold tracking-tight text-foreground">
         Pending approvals
       </h1>
-      <p className="mt-1 text-sm text-navy-300">
+      <p className="mt-1 text-sm text-muted-foreground">
         Review and decide on submitted proposal versions.
       </p>
     </>
@@ -98,20 +100,18 @@ export function ApprovalDashboard() {
                 <li key={req.id}>
                   <Link
                     to={`/approvals/${req.id}`}
-                    className="flex flex-col gap-3 rounded-md border border-navy-800 bg-navy-900 p-4 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-3 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:border-navy-700 hover:bg-navy-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-navy-50">
+                        <span className="text-sm font-semibold text-foreground">
                           {req.opportunity_title}
                         </span>
-                        <span className="rounded-full bg-navy-800 px-2 py-0.5 text-xs text-navy-300">
-                          v{req.version_number}
-                        </span>
+                        <Badge variant="outline">v{req.version_number}</Badge>
                       </div>
                       <p className="mt-1 text-xs text-navy-400">
                         Submitted by{" "}
-                        <span className="text-navy-50">
+                        <span className="text-foreground">
                           {req.requested_by_name}
                         </span>{" "}
                         on{" "}
@@ -124,9 +124,7 @@ export function ApprovalDashboard() {
                       <span className="whitespace-nowrap text-xs text-navy-400">
                         Assigned to: {req.assigned_to_name}
                       </span>
-                      <span className="whitespace-nowrap rounded-full border border-amber-800 bg-amber-950 px-2.5 py-0.5 text-xs font-medium text-amber-300">
-                        {req.status}
-                      </span>
+                      <StatusBadge status={req.status} />
                     </div>
                   </Link>
                 </li>
