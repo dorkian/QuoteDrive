@@ -11,8 +11,54 @@
   --color-navy-800: oklch(0.26 0.032 255);
   --color-navy-900: oklch(0.21 0.032 255);
   --color-navy-950: oklch(0.16 0.03 255);
+
+  /*
+   * Semantic tokens used by components/ui (shadcn/ui naming).
+   * Lime is reserved for primary actions and selected state; cyan marks AI,
+   * amber marks review warnings, red marks blocking risk.
+   */
+  --color-background: var(--color-navy-950);
+  --color-foreground: var(--color-navy-50);
+  --color-card: var(--color-navy-900);
+  --color-card-foreground: var(--color-navy-50);
+  --color-popover: var(--color-navy-900);
+  --color-popover-foreground: var(--color-navy-50);
+  --color-primary: var(--color-lime-400);
+  --color-primary-foreground: var(--color-navy-950);
+  --color-secondary: var(--color-navy-800);
+  --color-secondary-foreground: var(--color-navy-50);
+  --color-muted: var(--color-navy-800);
+  --color-muted-foreground: var(--color-navy-300);
+  --color-accent: var(--color-navy-800);
+  --color-accent-foreground: var(--color-navy-50);
+  --color-border: var(--color-navy-800);
+  --color-input: var(--color-navy-700);
+  --color-ring: var(--color-lime-400);
+  --color-info: var(--color-cyan-400);
+  --color-info-foreground: var(--color-cyan-200);
+  --color-warning: var(--color-amber-400);
+  --color-warning-foreground: var(--color-amber-200);
+  --color-destructive: var(--color-red-500);
+  --color-destructive-foreground: var(--color-red-200);
+
+  --color-sidebar: var(--color-navy-900);
+  --color-sidebar-foreground: var(--color-navy-300);
+  --color-sidebar-accent: var(--color-navy-800);
+  --color-sidebar-border: var(--color-navy-800);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
