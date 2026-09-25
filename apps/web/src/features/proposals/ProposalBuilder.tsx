@@ -1,5 +1,24 @@
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { toast } from "sonner";
+
+import { StatusBadge } from "@/components/StatusBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { FIELD_CLASSES, Input } from "@/components/ui/input";
+import { CARD_CLASSES } from "@/components/ui/variants";
+import { cn } from "@/lib/utils";
 
 import {
   calculateEstimate,
@@ -31,9 +50,6 @@ const NOT_FOUND: ErrorDescription = {
   message: "This proposal version doesn't exist or isn't in your organization.",
   retryable: false,
 };
-
-const ICON_BUTTON =
-  "inline-flex min-h-10 min-w-10 items-center justify-center rounded-md px-2 text-navy-300 transition-colors duration-150 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-40";
 
 function isVersionEditable(status: string): boolean {
   return status === "draft" || status === "configured";
@@ -213,8 +229,11 @@ export function ProposalBuilder() {
       const saved = await updateProposalVersion(token, version.id, lines);
       setVersion(saved);
       setLines(saved.content_json.lines.map(toLineInput));
+      toast.success("Proposal version saved");
     } catch (err) {
-      setError(describeActionError(err, "save this proposal version"));
+      const message = describeActionError(err, "save this proposal version");
+      setError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -230,8 +249,14 @@ export function ProposalBuilder() {
       await updateProposalVersion(token, version.id, lines);
       const finalized = await finalizeProposalVersion(token, version.id);
       setVersion(finalized);
+      toast.success(`Version ${finalized.version_number} finalized`);
     } catch (err) {
-      setError(describeActionError(err, "finalize this proposal version"));
+      const message = describeActionError(
+        err,
+        "finalize this proposal version",
+      );
+      setError(message);
+      toast.error(message);
     } finally {
       setFinalizing(false);
     }
@@ -272,32 +297,29 @@ export function ProposalBuilder() {
     <div>
       <Link
         to={`/opportunities/${version.opportunity_id}`}
-        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-navy-300 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         ← Back to opportunity
       </Link>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-tight text-navy-50">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
           Version {version.version_number}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
           {isPreviewableStatus(version.status) && (
-            <Link
-              to={`/proposal-versions/${version.id}/preview`}
-              className="rounded-md px-2 py-1.5 text-sm text-navy-300 transition-colors duration-150 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
-            >
-              Client preview →
-            </Link>
+            <Button asChild variant="link" size="sm">
+              <Link to={`/proposal-versions/${version.id}/preview`}>
+                Client preview →
+              </Link>
+            </Button>
           )}
-          <span className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
-            {version.status}
-          </span>
+          <StatusBadge status={version.status} />
         </div>
       </div>
 
       {error && (
-        <p className="mt-4 text-sm text-red-400" role="alert">
+        <p className="mt-4 text-sm text-destructive-foreground" role="alert">
           {error}
         </p>
       )}
@@ -310,7 +332,7 @@ export function ProposalBuilder() {
               onChange={(e) => setSelectedPackageId(Number(e.target.value))}
               disabled={packages.length === 0}
               aria-label="Package to add"
-              className="min-h-10 min-w-0 max-w-full rounded-md border border-navy-700 bg-navy-900 px-3 py-2 text-sm text-navy-50"
+              className={cn(FIELD_CLASSES, "h-10 w-auto max-w-full")}
             >
               {packages.map((pkg) => (
                 <option key={pkg.id} value={pkg.id}>
@@ -318,14 +340,13 @@ export function ProposalBuilder() {
                 </option>
               ))}
             </select>
-            <button
-              type="button"
+            <Button
+              variant="outline"
               onClick={addLine}
               disabled={packages.length === 0}
-              className="min-h-10 rounded-md border border-navy-700 px-3 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Add package line
-            </button>
+            </Button>
           </div>
 
           {displayLines.length === 0 ? (
@@ -336,55 +357,52 @@ export function ProposalBuilder() {
           ) : (
             <ul className="mt-4 flex flex-col gap-3">
               {displayLines.map(({ input, live, catalogue }, index) => (
-                <li
-                  key={index}
-                  className="rounded-md border border-navy-800 bg-navy-900 p-4"
-                >
+                <li key={index} className={cn(CARD_CLASSES, "p-4")}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-navy-50">
+                      <p className="text-sm font-medium text-foreground">
                         {catalogue?.name ?? live?.name ?? "Package"}
                       </p>
-                      <p className="text-xs text-navy-300">
+                      <p className="text-xs text-muted-foreground">
                         {live
                           ? `$${live.unit_estimate}/mo · line total $${live.line_total}`
                           : "Calculating…"}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center">
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => moveLine(index, -1)}
                         disabled={index === 0}
                         aria-label="Move line up"
-                        className={ICON_BUTTON}
                       >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
+                        <ArrowUp />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => moveLine(index, 1)}
                         disabled={index === displayLines.length - 1}
                         aria-label="Move line down"
-                        className={ICON_BUTTON}
                       >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
+                        <ArrowDown />
+                      </Button>
+                      <Button
+                        variant="ghost"
                         onClick={() => removeLine(index)}
                         aria-label="Remove line"
-                        className="inline-flex min-h-10 items-center rounded-md px-2 text-sm text-navy-300 transition-colors duration-150 hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+                        className="px-2 hover:text-destructive-foreground"
                       >
                         Remove
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-end gap-4">
-                    <label className="flex flex-col gap-1 text-xs text-navy-300">
+                    <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                       Quantity
-                      <input
+                      <Input
                         type="number"
                         min={0}
                         value={input.quantity}
@@ -393,13 +411,13 @@ export function ProposalBuilder() {
                             quantity: Math.max(0, Number(e.target.value)),
                           })
                         }
-                        className="w-20 rounded-md border border-navy-700 bg-navy-950 px-2 py-1 text-sm text-navy-50"
+                        className="w-20"
                       />
                     </label>
 
-                    <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-navy-300">
+                    <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-muted-foreground">
                       Assumptions
-                      <input
+                      <Input
                         type="text"
                         value={input.assumptions ?? ""}
                         onChange={(e) =>
@@ -408,19 +426,20 @@ export function ProposalBuilder() {
                           })
                         }
                         placeholder="e.g. 12-month term, standard mileage"
-                        className="rounded-md border border-navy-700 bg-navy-950 px-2 py-1 text-sm text-navy-50"
                       />
                     </label>
                   </div>
 
                   {addOns.length > 0 && (
                     <fieldset className="mt-3">
-                      <legend className="text-xs text-navy-300">Add-ons</legend>
+                      <legend className="text-xs text-muted-foreground">
+                        Add-ons
+                      </legend>
                       <div className="mt-1 flex flex-wrap gap-3">
                         {addOns.map((addOn) => (
                           <label
                             key={addOn.id}
-                            className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-navy-50"
+                            className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-foreground"
                           >
                             <input
                               type="checkbox"
@@ -439,9 +458,9 @@ export function ProposalBuilder() {
             </ul>
           )}
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-navy-800 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
             <div>
-              <p className="text-sm font-medium text-navy-50">
+              <p className="text-sm font-medium text-foreground">
                 Total: ${liveEstimate?.total_estimate ?? version.total_estimate}
               </p>
               <p className="text-xs text-navy-400">
@@ -450,22 +469,38 @@ export function ProposalBuilder() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button
-                type="button"
+              <Button
+                variant="outline"
                 onClick={() => void handleSave()}
                 disabled={saving}
-                className="min-h-10 rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving…" : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleFinalize()}
-                disabled={finalizing || lines.length === 0}
-                className="min-h-10 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {finalizing ? "Finalizing…" : "Finalize"}
-              </button>
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={finalizing || lines.length === 0}>
+                    {finalizing ? "Finalizing…" : "Finalize"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Finalize version {version.version_number}?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Pending changes are saved first. After finalizing, the
+                      package lines are locked and can&apos;t be edited in this
+                      version.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void handleFinalize()}>
+                      Finalize version
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </>
@@ -476,14 +511,11 @@ export function ProposalBuilder() {
           ) : (
             <ul className="flex flex-col gap-3">
               {version.content_json.lines.map((line, index) => (
-                <li
-                  key={index}
-                  className="rounded-md border border-navy-800 bg-navy-900 p-4"
-                >
-                  <p className="text-sm font-medium text-navy-50">
+                <li key={index} className={cn(CARD_CLASSES, "p-4")}>
+                  <p className="text-sm font-medium text-foreground">
                     {line.name} · qty {line.quantity}
                   </p>
-                  <p className="text-xs text-navy-300">
+                  <p className="text-xs text-muted-foreground">
                     ${line.unit_estimate}/mo · line total ${line.line_total}
                   </p>
                   {line.assumptions && (
@@ -495,8 +527,8 @@ export function ProposalBuilder() {
               ))}
             </ul>
           )}
-          <div className="mt-6 border-t border-navy-800 pt-4">
-            <p className="text-sm font-medium text-navy-50">
+          <div className="mt-6 border-t border-border pt-4">
+            <p className="text-sm font-medium text-foreground">
               Total: ${version.total_estimate}
             </p>
             <p className="text-xs text-navy-400">
@@ -513,8 +545,8 @@ export function ProposalBuilder() {
         onSaved={setVersion}
       />
 
-      <section className="mt-10 border-t border-navy-800 pt-6">
-        <h2 className="mb-4 text-sm font-medium text-navy-50">Activity</h2>
+      <section className="mt-10 border-t border-border pt-6">
+        <h2 className="mb-4 text-sm font-medium text-foreground">Activity</h2>
         <ActivityTimeline
           entityType="proposal_version"
           entityId={version.id}

@@ -1,17 +1,11 @@
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
+import { CARD_CLASSES } from "./variants";
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
-    <div
-      data-slot="card"
-      className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground",
-        className,
-      )}
-      {...props}
-    />
+    <div data-slot="card" className={cn(CARD_CLASSES, className)} {...props} />
   );
 }
 

@@ -24,3 +24,6 @@ export const buttonVariants = cva(
     defaultVariants: { variant: "default", size: "default" },
   },
 );
+
+export const CARD_CLASSES =
+  "rounded-lg border border-border bg-card text-card-foreground";
