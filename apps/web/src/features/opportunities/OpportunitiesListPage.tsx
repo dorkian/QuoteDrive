@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
+import { OpportunitiesTable } from "./OpportunitiesTable";
 import {
   EmptyState,
   ErrorState,
@@ -64,16 +64,13 @@ export function OpportunitiesListPage() {
   }
 
   const isLoading = opportunities === null || customers === null;
-  const customerNameById = new Map(
-    (customers ?? []).map((customer) => [customer.id, customer.name]),
-  );
 
   return (
     <div>
-      <h1 className="text-xl font-semibold tracking-tight text-navy-50">
+      <h1 className="text-xl font-semibold tracking-tight text-foreground">
         Opportunities
       </h1>
-      <p className="mt-1 text-sm text-navy-300">
+      <p className="mt-1 text-sm text-muted-foreground">
         Every opportunity in the Northstar workspace.
       </p>
 
@@ -84,32 +81,13 @@ export function OpportunitiesListPage() {
         />
       ) : isLoading ? (
         <LoadingSkeleton />
-      ) : opportunities && opportunities.length === 0 ? (
+      ) : opportunities.length === 0 ? (
         <EmptyState message="No opportunities yet." />
       ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {opportunities?.map((opportunity) => (
-            <li key={opportunity.id}>
-              <Link
-                to={`/opportunities/${opportunity.id}`}
-                className="flex items-center justify-between gap-3 rounded-md border border-navy-800 bg-navy-900 px-4 py-3 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
-              >
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-navy-50">
-                    {opportunity.title}
-                  </span>
-                  <span className="block text-xs text-navy-300">
-                    {customerNameById.get(opportunity.customer_id) ??
-                      `Customer #${opportunity.customer_id}`}
-                  </span>
-                </span>
-                <span className="shrink-0 rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
-                  {opportunity.status}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <OpportunitiesTable
+          opportunities={opportunities}
+          customers={customers}
+        />
       )}
     </div>
   );
