@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 
 import { DashboardLayout } from "./components/layout/DashboardLayout";
-import { NAV_ITEMS, type NavItem } from "./components/layout/nav-items";
+import { NAV_PATHS, navItemForPath } from "./components/layout/nav-items";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { ComingSoonPanel } from "./features/dashboard/ComingSoonPanel";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
@@ -20,22 +20,6 @@ import { ApprovalDashboard } from "./features/approvals/ApprovalDashboard";
 import { ApprovalDetail } from "./features/approvals/ApprovalDetail";
 import { ProposalPreviewPage } from "./features/proposals/preview/ProposalPreviewPage";
 import { AuthProvider, useAuth } from "./lib/auth-context";
-
-const NAV_PATHS: Record<NavItem, string> = {
-  Dashboard: "/",
-  Customers: "/customers",
-  Opportunities: "/opportunities",
-  Proposals: "/proposals",
-  Approvals: "/approvals",
-  Settings: "/settings",
-};
-
-function navItemForPath(pathname: string): NavItem {
-  const match = NAV_ITEMS.find(
-    (item) => item !== "Dashboard" && pathname.startsWith(NAV_PATHS[item]),
-  );
-  return match ?? "Dashboard";
-}
 
 function AppShell() {
   const { status, me, logout } = useAuth();

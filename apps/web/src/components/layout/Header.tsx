@@ -1,3 +1,7 @@
+import { LogOut, Menu, PanelLeft, Search } from "lucide-react";
+import type { ReactNode } from "react";
+
+import { Button } from "@/components/ui/button";
 import type { Role } from "../../lib/api";
 import { ROLE_LABELS } from "../../lib/roles";
 
@@ -5,22 +9,76 @@ interface HeaderProps {
   organizationName: string;
   role: Role;
   onLogout: () => void;
+  breadcrumbs?: ReactNode;
+  onOpenNav?: () => void;
+  onToggleSidebar?: () => void;
+  onOpenSearch?: () => void;
 }
 
-export function Header({ organizationName, role, onLogout }: HeaderProps) {
+export function Header({
+  organizationName,
+  role,
+  onLogout,
+  breadcrumbs,
+  onOpenNav,
+  onToggleSidebar,
+  onOpenSearch,
+}: HeaderProps) {
   return (
-    <header className="flex items-center justify-between border-b border-navy-800 bg-navy-950 px-6 py-4">
-      <div>
-        <p className="text-sm font-medium text-navy-50">{organizationName}</p>
-        <p className="text-xs text-navy-300">{ROLE_LABELS[role]}</p>
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur sm:px-6">
+      {onOpenNav && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Open navigation"
+          onClick={onOpenNav}
+          className="-ml-2 md:hidden"
+        >
+          <Menu />
+        </Button>
+      )}
+      {onToggleSidebar && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Toggle sidebar"
+          onClick={onToggleSidebar}
+          className="-ml-2 hidden md:inline-flex"
+        >
+          <PanelLeft />
+        </Button>
+      )}
+      <div className="min-w-0 flex-1">{breadcrumbs}</div>
+      {onOpenSearch && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onOpenSearch}
+          aria-label="Search pages"
+          className="text-muted-foreground"
+        >
+          <Search />
+          <span className="hidden lg:inline">Go to…</span>
+          <kbd className="hidden rounded border border-border px-1 font-sans text-[10px] lg:inline">
+            ⌘K
+          </kbd>
+        </Button>
+      )}
+      <div className="hidden min-w-0 text-right sm:block">
+        <p className="truncate text-sm font-medium text-foreground">
+          {organizationName}
+        </p>
+        <p className="text-xs text-muted-foreground">{ROLE_LABELS[role]}</p>
       </div>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Log out"
+        title="Log out"
         onClick={onLogout}
-        className="rounded-md px-3 py-1.5 text-sm text-navy-300 transition-colors duration-150 hover:bg-navy-800 hover:text-navy-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
       >
-        Log out
-      </button>
+        <LogOut />
+      </Button>
     </header>
   );
 }

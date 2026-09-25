@@ -1,34 +1,53 @@
-import { NAV_ITEMS, type NavItem } from "./nav-items";
+import { cn } from "@/lib/utils";
+import { FOCUS_RING } from "@/components/ui/variants";
+import { NAV_ICONS, NAV_ITEMS, type NavItem } from "./nav-items";
 
 interface SidebarProps {
   active: NavItem;
   onSelect: (item: NavItem) => void;
+  // Icon-only rail; labels stay available as accessible names.
+  collapsed?: boolean;
 }
 
-export function Sidebar({ active, onSelect }: SidebarProps) {
+export function Sidebar({ active, onSelect, collapsed = false }: SidebarProps) {
   return (
-    <nav
-      aria-label="Primary"
-      className="flex shrink-0 gap-1 overflow-x-auto border-b border-navy-800 bg-navy-900 px-3 py-2 md:h-screen md:w-56 md:flex-col md:overflow-x-visible md:border-b-0 md:border-r md:px-3 md:py-6"
-    >
-      <div className="hidden px-3 pb-6 text-sm font-semibold tracking-tight text-navy-50 md:block">
-        QuoteDrive
+    <nav aria-label="Primary" className="flex flex-1 flex-col gap-1 px-2 py-4">
+      <div
+        className={cn(
+          "mb-4 flex h-8 items-center gap-2 px-2 text-sm font-semibold tracking-tight text-foreground",
+          collapsed && "justify-center px-0",
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground"
+        >
+          Q
+        </span>
+        {!collapsed && <span>QuoteDrive</span>}
       </div>
       {NAV_ITEMS.map((item) => {
         const isActive = item === active;
+        const Icon = NAV_ICONS[item];
         return (
           <button
             key={item}
             type="button"
             aria-current={isActive ? "page" : undefined}
+            aria-label={collapsed ? item : undefined}
+            title={collapsed ? item : undefined}
             onClick={() => onSelect(item)}
-            className={`shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 ${
+            className={cn(
+              "flex min-h-10 items-center gap-3 rounded-md px-3 text-left text-sm font-medium transition-colors duration-150",
+              FOCUS_RING,
+              collapsed && "justify-center px-0",
               isActive
-                ? "bg-navy-800 text-lime-400"
-                : "text-navy-300 hover:bg-navy-800 hover:text-navy-50"
-            }`}
+                ? "bg-sidebar-accent text-primary"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground",
+            )}
           >
-            {item}
+            <Icon aria-hidden="true" className="size-4 shrink-0" />
+            {!collapsed && item}
           </button>
         );
       })}
