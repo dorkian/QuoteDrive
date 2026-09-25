@@ -18,6 +18,7 @@ import { PackageComparison } from "./features/proposals/PackageComparison";
 import { ProposalBuilder } from "./features/proposals/ProposalBuilder";
 import { ApprovalDashboard } from "./features/approvals/ApprovalDashboard";
 import { ApprovalDetail } from "./features/approvals/ApprovalDetail";
+import { ProposalPreviewPage } from "./features/proposals/preview/ProposalPreviewPage";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 
 const NAV_PATHS: Record<NavItem, string> = {
@@ -97,7 +98,14 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <AppShell />
+        <Routes>
+          {/* Client-facing document: rendered outside the app shell (no nav chrome). */}
+          <Route
+            path="/proposal-versions/:versionId/preview"
+            element={<ProposalPreviewPage />}
+          />
+          <Route path="/*" element={<AppShell />} />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );

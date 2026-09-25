@@ -165,6 +165,35 @@ describe("ProposalBuilder", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("links to the client preview only once the version is approved", async () => {
+    const actual =
+      await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
+    vi.mocked(api.isPreviewableStatus).mockImplementation(
+      actual.isPreviewableStatus,
+    );
+
+    renderBuilder(viewerMe, { ...finalizedVersion(), status: "approved" });
+    expect(
+      await screen.findByRole("link", { name: "Client preview →" }),
+    ).toHaveAttribute("href", "/proposal-versions/6/preview");
+  });
+
+  it("does not link to the client preview before approval", async () => {
+    const actual =
+      await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
+    vi.mocked(api.isPreviewableStatus).mockImplementation(
+      actual.isPreviewableStatus,
+    );
+
+    renderBuilder(managerMe, finalizedVersion());
+    await waitFor(() =>
+      expect(screen.getByText(/Electric City/)).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("link", { name: "Client preview →" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders read-only for a viewer even on an editable draft", async () => {
     renderBuilder(viewerMe, draftVersion());
 

@@ -237,6 +237,19 @@ export async function fetchCustomers(token: string): Promise<Customer[]> {
   return (await res.json()) as Customer[];
 }
 
+export async function fetchCustomer(
+  token: string,
+  customerId: number,
+): Promise<Customer> {
+  const res = await fetch(`${API_URL}/customers/${customerId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error("Failed to load customer");
+  }
+  return (await res.json()) as Customer;
+}
+
 export async function fetchCatalogueItems(
   token: string,
 ): Promise<CatalogueItem[]> {
@@ -452,6 +465,20 @@ export function canDecideApproval(role: string): boolean {
 
 export function isBlank(str: string): boolean {
   return str.trim().length === 0;
+}
+
+// Every state downstream of approval: the version is frozen (ADR-006) and its
+// content — including any saved narrative — has passed human review.
+const PREVIEWABLE_STATUSES: ReadonlySet<ProposalVersionStatus> = new Set([
+  "approved",
+  "shared",
+  "won",
+  "lost",
+  "expired",
+]);
+
+export function isPreviewableStatus(status: ProposalVersionStatus): boolean {
+  return PREVIEWABLE_STATUSES.has(status);
 }
 
 export interface NarrativeOutput {

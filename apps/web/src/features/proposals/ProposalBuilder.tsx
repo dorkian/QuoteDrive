@@ -6,6 +6,7 @@ import {
   fetchCatalogueItems,
   fetchProposalVersion,
   finalizeProposalVersion,
+  isPreviewableStatus,
   updateProposalVersion,
   type CatalogueItem,
   type EstimateCalculateResponse,
@@ -244,9 +245,19 @@ export function ProposalBuilder() {
         <h1 className="text-xl font-semibold tracking-tight text-navy-50">
           Version {version.version_number}
         </h1>
-        <span className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
-          {version.status}
-        </span>
+        <div className="flex items-center gap-3">
+          {isPreviewableStatus(version.status) && (
+            <Link
+              to={`/proposal-versions/${version.id}/preview`}
+              className="rounded-md px-2 py-1.5 text-sm text-navy-300 transition-colors duration-150 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+            >
+              Client preview →
+            </Link>
+          )}
+          <span className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
+            {version.status}
+          </span>
+        </div>
       </div>
 
       {error && (
