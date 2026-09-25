@@ -30,7 +30,9 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        # Name the driver explicitly: a bare postgresql:// resolves to psycopg2 on
+        # SQLAlchemy 2.0 but to psycopg (v3, not installed) on 2.1+.
+        return f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 
 settings = Settings()
