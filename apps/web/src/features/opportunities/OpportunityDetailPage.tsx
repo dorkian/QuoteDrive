@@ -20,6 +20,7 @@ import {
 import { useAuth } from "../../lib/auth-context";
 import { describeError, type ErrorDescription } from "../../lib/errors";
 import { canEditProposals } from "../../lib/roles";
+import { DiscoveryBriefPanel } from "./DiscoveryBriefPanel";
 
 const NOT_FOUND: ErrorDescription = {
   message: "This opportunity doesn't exist or isn't in your organization.",
@@ -132,6 +133,15 @@ export function OpportunityDetailPage() {
             >
               {actionError}
             </p>
+          )}
+
+          {token && (
+            <DiscoveryBriefPanel
+              token={token}
+              opportunity={opportunity}
+              editable={!!me && canEditProposals(me.role)}
+              onSaved={setOpportunity}
+            />
           )}
 
           <h2 className="mt-8 text-sm font-medium text-foreground">

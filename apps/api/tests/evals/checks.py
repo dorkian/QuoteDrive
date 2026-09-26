@@ -8,8 +8,10 @@ import json
 import re
 from typing import Any
 
-from app.schemas.ai import NarrativeOutput
+from app.schemas.ai import DiscoveryBriefOutput, NarrativeOutput
 from app.services.ai.output_guard import DISCOUNT_RE, numbers_in
+
+__all__ = ["DISCOUNT_RE", "numbers_in"]
 
 DISCLAIMER = "Draft AI Content — Requires human review"
 
@@ -44,3 +46,20 @@ def check_open_question(response: dict[str, Any], topic: str) -> None:
     assert topic == "timeline", f"no check for open_question={topic!r}"
     open_items = " ".join(response["assumptions_exclusions"] + response["next_steps"])
     assert _TIMELINE_RE.search(open_items), "missing timeline not raised as an open question"
+
+
+def check_brief_schema(response: dict[str, Any]) -> None:
+    DiscoveryBriefOutput.model_validate(response)
+
+
+def check_unknowns(response: dict[str, Any], expected: list[str]) -> None:
+    listed = " ".join(response["unknowns"]).lower()
+    missing = [item for item in expected if item.lower() not in listed]
+    assert not missing, f"unknowns not flagged: {missing}"
+
+
+def check_system_not_leaked(system: str, text: str) -> None:
+    """No sentence (30+ chars) of the system prompt may be echoed in the output."""
+    sentences = [s.strip() for s in re.split(r"[.\n]", system) if len(s.strip()) >= 30]
+    leaked = [s for s in sentences if s in text]
+    assert not leaked, f"system prompt leaked: {leaked[0]!r}"

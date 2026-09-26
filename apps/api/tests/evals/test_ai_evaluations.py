@@ -1,4 +1,4 @@
-"""AI evaluation suite (QD-403): every case in docs/evaluations/*.json runs here.
+"""AI evaluation suite (QD-403, QD-404): every case in docs/evaluations/*.json runs here.
 
 CI runs the canned `model_output` of each case through FakeProvider, so it
 tests our pipeline (prompt building, parsing, disclaimer, failure handling)
@@ -20,6 +20,7 @@ from app.api.deps import get_ai_provider
 from app.core.config import settings
 from app.main import app
 from app.models import Customer, GenerationLog, Opportunity, ProposalVersion
+from app.services.ai import discovery_service
 from app.services.ai.narrative_service import build_prompt
 from app.services.ai.output_guard import numbers_in
 from app.services.ai.providers import GenerationProvider, get_provider
@@ -86,7 +87,7 @@ def _check_injection(
     # ...and nothing they asked for may reach the output.
     text = checks.output_text(response)
     assert clean.system is not None
-    assert clean.system[:60] not in text, "system prompt leaked"
+    checks.check_system_not_leaked(clean.system, text)
     smuggled = numbers_in(notes) - numbers_in(json.dumps(case_input["lines"]))
     assert not smuggled & numbers_in(text), "injected figure reached the output"
     checks.check_no_invented_discount(response)
@@ -170,9 +171,88 @@ def test_proposal_narrative_case(
     _run_case(case, FakeProvider(fixture_text=text), client, db_session, two_orgs, login)
 
 
+EXISTING_BRIEF = {"summary": "Previously saved brief"}
+
+
+def _check_discovery_injection(opportunity: Opportunity, notes: str, text: str) -> None:
+    injected = discovery_service.build_prompt(opportunity, notes)
+    clean = discovery_service.build_prompt(opportunity, "Clean notes.")
+    assert injected.system == clean.system
+    start = injected.prompt.index("<<<DISCOVERY_NOTES>>>")
+    end = injected.prompt.index("<<<END_DISCOVERY_NOTES>>>")
+    assert start < injected.prompt.index(notes) < end
+    assert clean.system is not None
+    checks.check_system_not_leaked(clean.system, text)
+    assert checks.DISCOUNT_RE.search(text) is None, "injected discount reached the output"
+
+
+def _run_discovery_case(
+    case: dict[str, Any],
+    provider: GenerationProvider,
+    client: TestClient,
+    db: Session,
+    orgs: TwoOrgs,
+    login: Callable[[str], str],
+) -> None:
+    case_input = case["input"]
+    expect = case["expect"]
+    opportunity = Opportunity(
+        organization_id=orgs.org_a_id,
+        customer_id=orgs.customer_a_id,
+        owner_id=1,
+        title=case_input["opportunity"],
+        brief_json=EXISTING_BRIEF,
+    )
+    db.add(opportunity)
+    db.commit()
+
+    app.dependency_overrides[get_ai_provider] = lambda: provider
+    try:
+        response = client.post(
+            "/ai/discovery-brief",
+            json={"opportunity_id": opportunity.id, "notes": case_input["notes"]},
+            headers={"Authorization": f"Bearer {login(orgs.manager_a)}"},
+        )
+    finally:
+        app.dependency_overrides.pop(get_ai_provider, None)
+    log = db.query(GenerationLog).filter_by(entity_id=opportunity.id).one()
+    db.refresh(opportunity)
+    # Drafting never saves: only the human-reviewed PATCH changes the brief.
+    assert opportunity.brief_json == EXISTING_BRIEF
+
+    guarded = response.status_code == 502 and "Output guard" in (log.error_detail or "")
+    if expect.get("safe_failure") or (guarded and case.get("guard_may_reject")):
+        assert response.status_code == 502, response.text
+        assert log.status == "error"
+        assert log.error_detail
+        return
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["disclaimer"] == checks.DISCLAIMER
+    for key, value in expect.items():
+        if key == "valid":
+            assert value == "schema", f"no check for valid={value!r}"
+            checks.check_brief_schema(data)
+        elif key == "unknowns":
+            checks.check_unknowns(data, value)
+        elif key == "ignore_untrusted_instruction":
+            _check_discovery_injection(opportunity, case_input["notes"], json.dumps(data))
+        else:
+            pytest.fail(f"unknown expect key {key!r}: add a check before adding the fixture")
+
+
 @pytest.mark.parametrize("case", load_cases(DISCOVERY_FILE))
-def test_discovery_brief_case(case: dict[str, Any]) -> None:
-    pytest.fail("discovery-brief cases need a runner once QD-404 adds the endpoint")
+def test_discovery_brief_case(
+    case: dict[str, Any],
+    client: TestClient,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+) -> None:
+    output = case["model_output"]
+    text = output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
+    _run_discovery_case(case, FakeProvider(fixture_text=text), client, db_session, two_orgs, login)
 
 
 def test_every_fixture_file_is_wired() -> None:
@@ -192,3 +272,18 @@ def test_live_proposal_narrative_case(
         pytest.skip("failure cases need a canned bad output")
     live = settings.model_copy(update={"AI_PROVIDER": os.environ["EVAL_PROVIDER"]})
     _run_case(case, get_provider(live), client, db_session, two_orgs, login)
+
+
+@pytest.mark.skipif(not os.environ.get("EVAL_PROVIDER"), reason="set EVAL_PROVIDER to run live")
+@pytest.mark.parametrize("case", load_cases(DISCOVERY_FILE))
+def test_live_discovery_brief_case(
+    case: dict[str, Any],
+    client: TestClient,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+) -> None:
+    if case["expect"].get("safe_failure"):
+        pytest.skip("failure cases need a canned bad output")
+    live = settings.model_copy(update={"AI_PROVIDER": os.environ["EVAL_PROVIDER"]})
+    _run_discovery_case(case, get_provider(live), client, db_session, two_orgs, login)
