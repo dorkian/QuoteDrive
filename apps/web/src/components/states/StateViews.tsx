@@ -1,20 +1,14 @@
+import { CircleAlert, Inbox, Lock } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Button } from "@/components/ui/button";
+import { CARD_CLASSES } from "@/components/ui/variants";
+import { cn } from "@/lib/utils";
 import type { Role } from "../../lib/api";
 import { ROLE_LABELS } from "../../lib/roles";
 
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400";
-
 /** A pulsing placeholder block. Pages compose these into their own layout's shape. */
-export function Skeleton({ className = "" }: { className?: string }) {
-  return (
-    <div
-      aria-hidden="true"
-      className={`animate-pulse rounded-md border border-navy-800 bg-navy-900 motion-reduce:animate-none ${className}`}
-    />
-  );
-}
+export { Skeleton } from "@/components/ui/skeleton";
 
 /** Announces a loading region to assistive tech; children are the skeleton shapes. */
 export function LoadingRegion({
@@ -45,17 +39,23 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={`flex flex-col gap-3 rounded-md border border-red-900 bg-red-950/40 p-4 sm:flex-row sm:items-center sm:justify-between ${className}`}
+      className={cn(
+        "flex flex-col gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between",
+        className,
+      )}
     >
-      <p className="text-sm text-red-200">{message}</p>
+      <p className="flex items-start gap-2 text-sm text-destructive-foreground">
+        <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+        {message}
+      </p>
       {onRetry && (
-        <button
-          type="button"
+        <Button
+          variant="outline"
           onClick={onRetry}
-          className={`min-h-10 shrink-0 self-start rounded-md border border-navy-700 bg-navy-800 px-4 text-sm font-medium text-navy-50 transition-colors duration-150 hover:bg-navy-700 sm:self-auto ${FOCUS_RING}`}
+          className="self-start sm:self-auto"
         >
           Try again
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -71,9 +71,17 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={className}>
-      <p className="text-sm text-navy-300">{message}</p>
-      {action && <div className="mt-3">{action}</div>}
+    <div
+      className={cn(
+        "flex flex-col items-start gap-3 rounded-lg border border-dashed border-border p-6",
+        className,
+      )}
+    >
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Inbox aria-hidden="true" className="size-4 shrink-0" />
+        {message}
+      </p>
+      {action}
     </div>
   );
 }
@@ -91,11 +99,12 @@ export function ForbiddenState({
   allowed: string;
 }) {
   return (
-    <div className="mt-6 rounded-md border border-navy-800 bg-navy-900 p-4">
-      <p className="text-sm font-medium text-navy-50">
+    <div className={cn(CARD_CLASSES, "mt-6 p-4")}>
+      <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <Lock aria-hidden="true" className="size-4 shrink-0 text-warning" />
         Your role ({ROLE_LABELS[role]}) can&apos;t {what}.
       </p>
-      <p className="mt-1 text-sm text-navy-300">
+      <p className="mt-1 text-sm text-muted-foreground">
         Only {allowed} have access. Ask one of them if you need something here.
       </p>
     </div>

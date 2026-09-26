@@ -20,11 +20,17 @@ export function LoginScreen() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-navy-950 px-4 text-navy-50">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-foreground">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
+          <span
+            aria-hidden="true"
+            className="mx-auto mb-4 grid size-10 place-items-center rounded-lg bg-primary text-base font-bold text-primary-foreground"
+          >
+            Q
+          </span>
           <h1 className="text-2xl font-semibold tracking-tight">QuoteDrive</h1>
-          <p className="mt-2 text-sm text-navy-300">
+          <p className="mt-2 text-sm text-muted-foreground">
             Sign in as a demo user to continue
           </p>
         </div>
@@ -37,16 +43,18 @@ export function LoginScreen() {
               role="listitem"
               onClick={() => void handleSelect(email)}
               disabled={pending !== null}
-              className="group flex items-center justify-between rounded-lg border border-navy-700 bg-navy-900 px-4 py-3 text-left transition-colors duration-150 hover:border-lime-400 hover:bg-navy-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex items-center justify-between rounded-lg border border-navy-700 bg-card px-4 py-3 text-left transition-colors duration-150 hover:border-navy-400 hover:bg-navy-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span>
-                <span className="block text-sm font-medium text-navy-50 group-hover:text-lime-400">
+                <span className="block text-sm font-medium text-foreground">
                   {role}
                 </span>
-                <span className="block text-xs text-navy-300">{email}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {email}
+                </span>
               </span>
               {pending === email && (
-                <span className="text-xs text-navy-300" role="status">
+                <span className="text-xs text-muted-foreground" role="status">
                   Signing in…
                 </span>
               )}
@@ -55,7 +63,7 @@ export function LoginScreen() {
         </div>
 
         {error && (
-          <p className="mt-4 text-sm text-red-400" role="alert">
+          <p className="mt-4 text-sm text-destructive-foreground" role="alert">
             {error}
           </p>
         )}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
+import { Card, CardContent } from "@/components/ui/card";
 import { ActivityTimeline } from "../../components/ActivityTimeline";
+import { formatStatus } from "@/lib/format";
 import {
   ErrorState,
   LoadingRegion,
@@ -9,6 +11,21 @@ import {
 import { fetchDashboardSummary, type DashboardSummary } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { describeError, type ErrorDescription } from "../../lib/errors";
+
+function KpiCard({ label, value }: { label: string; value: number }) {
+  return (
+    <Card role="group" aria-label={`${label}: ${value}`}>
+      <CardContent className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">
+          {label}
+        </span>
+        <span className="text-2xl font-semibold tabular-nums tracking-tight text-foreground">
+          {value}
+        </span>
+      </CardContent>
+    </Card>
+  );
+}
 
 function LoadingSkeleton() {
   return (
@@ -55,13 +72,14 @@ export function DashboardPage() {
   const statusEntries = summary
     ? Object.entries(summary.opportunities_by_status)
     : [];
+  const total = statusEntries.reduce((sum, [, count]) => sum + count, 0);
 
   return (
     <div>
-      <h1 className="text-xl font-semibold tracking-tight text-navy-50">
+      <h1 className="text-xl font-semibold tracking-tight text-foreground">
         Dashboard
       </h1>
-      <p className="mt-1 text-sm text-navy-300">
+      <p className="mt-1 text-sm text-muted-foreground">
         Northstar workspace at a glance.
       </p>
 
@@ -75,30 +93,29 @@ export function DashboardPage() {
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section>
-            <h2 className="text-sm font-medium text-navy-50">Opportunities</h2>
+            <h2 className="text-sm font-medium text-foreground">
+              Opportunities by status
+            </h2>
             {statusEntries.length === 0 ? (
-              <p className="mt-2 text-sm text-navy-300">
+              <p className="mt-2 text-sm text-muted-foreground">
                 No opportunities yet. Create one to see it here.
               </p>
             ) : (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <KpiCard label="Total" value={total} />
                 {statusEntries.map(([status, count]) => (
-                  <span
+                  <KpiCard
                     key={status}
-                    className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50"
-                  >
-                    {status} · {count}
-                  </span>
+                    label={formatStatus(status)}
+                    value={count}
+                  />
                 ))}
               </div>
             )}
-            <p className="mt-4 text-xs text-navy-400">
-              Approvals tracking arrives once the proposal workflow ships.
-            </p>
           </section>
 
-          <section>
-            <h2 className="mb-4 text-sm font-medium text-navy-50">
+          <section className="rounded-lg border border-border bg-card p-4">
+            <h2 className="mb-4 text-sm font-medium text-foreground">
               Recent activity
             </h2>
             <ActivityTimeline emptyMessage="No activity yet. Actions on opportunities will show up here." />

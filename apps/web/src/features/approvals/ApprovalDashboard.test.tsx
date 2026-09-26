@@ -81,7 +81,7 @@ describe("ApprovalDashboard", () => {
     );
     expect(screen.getByText("v2")).toBeInTheDocument();
     expect(screen.getByText(/Proposal Manager/)).toBeInTheDocument();
-    expect(screen.getByText("pending")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
   });
 
   it("shows empty state when there are no pending approvals", async () => {

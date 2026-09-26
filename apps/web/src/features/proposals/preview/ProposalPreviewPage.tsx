@@ -18,11 +18,11 @@ import { LoginScreen } from "../../auth/LoginScreen";
 const PRINT_PAGE_CSS = "@page { size: A4; margin: 18mm 16mm; }";
 
 // Screen colors come from the navy system; print swaps to ink on white paper.
-const INK = "text-navy-50 print:text-black";
-const MUTED = "text-navy-300 print:text-neutral-600";
-const RULE = "border-navy-800 print:border-neutral-300";
+const INK = "text-foreground print:text-black";
+const MUTED = "text-muted-foreground print:text-neutral-600";
+const RULE = "border-border print:border-neutral-300";
 const FOCUS =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const STATUS_LABELS: Record<ProposalVersionStatus, string> = {
   draft: "Draft",
@@ -150,18 +150,18 @@ export function ProposalPreviewPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 print:hidden">
         <Link
           to={builderPath}
-          className={`-ml-2 rounded-md px-2 py-1.5 text-sm text-navy-300 transition-colors duration-150 hover:text-lime-400 ${FOCUS}`}
+          className={`-ml-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground ${FOCUS}`}
         >
           ← Back to version {version.version_number}
         </Link>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <p className="text-sm text-navy-300">
+          <p className="text-sm text-muted-foreground">
             Client preview · {STATUS_LABELS[version.status]}
           </p>
           <button
             type="button"
             onClick={() => window.print()}
-            className={`rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 ${FOCUS}`}
+            className={`rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-lime-300 ${FOCUS}`}
           >
             Print or save as PDF
           </button>
@@ -180,7 +180,7 @@ export function ProposalPreviewPage() {
 
 function PreviewShell({ children }: { children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-navy-950 px-4 py-8 text-navy-50 sm:px-6 sm:py-10 print:min-h-0 print:bg-white print:p-0 print:text-black">
+    <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-10 print:min-h-0 print:bg-white print:p-0 print:text-black">
       <style>{PRINT_PAGE_CSS}</style>
       <div className="mx-auto max-w-[52rem]">{children}</div>
     </main>
@@ -202,7 +202,7 @@ function ProposalDocument({
   const lines = version.content_json.lines;
 
   return (
-    <article className="rounded-lg border border-navy-800 bg-navy-900 px-6 py-8 sm:px-10 sm:py-10 print:rounded-none print:border-0 print:bg-transparent print:p-0">
+    <article className="rounded-lg border border-border bg-card px-6 py-8 sm:px-10 sm:py-10 print:rounded-none print:border-0 print:bg-transparent print:p-0">
       <header className={`border-b pb-6 ${RULE}`}>
         <p className={`text-sm ${MUTED}`}>
           {organizationName} · Proposal for {customer.name}
@@ -218,7 +218,7 @@ function ProposalDocument({
       </header>
 
       {!narrative && (
-        <p className="mt-8 rounded-md border border-navy-700 px-4 py-3 text-sm text-navy-300 print:hidden">
+        <p className="mt-8 rounded-md border border-navy-700 px-4 py-3 text-sm text-muted-foreground print:hidden">
           No narrative was saved for this version, so the client copy shows
           pricing only. Narratives are drafted and edited on the version before
           it's finalized.
@@ -409,21 +409,21 @@ function NotApproved({
   builderPath: string;
 }) {
   return (
-    <div className="rounded-lg border border-navy-800 bg-navy-900 px-6 py-10 sm:px-10">
-      <h1 className="text-lg font-semibold text-balance text-navy-50">
+    <div className="rounded-lg border border-border bg-card px-6 py-10 sm:px-10">
+      <h1 className="text-lg font-semibold text-balance text-foreground">
         Version {version.version_number} isn't approved yet
       </h1>
-      <p className="mt-2 max-w-prose text-sm leading-6 text-navy-300">
+      <p className="mt-2 max-w-prose text-sm leading-6 text-muted-foreground">
         Client previews open once a version is approved, so customers only see
         reviewed content. This version of {opportunity.title} is currently{" "}
-        <strong className="font-medium text-navy-50">
+        <strong className="font-medium text-foreground">
           {STATUS_LABELS[version.status].toLowerCase()}
         </strong>
         .
       </p>
       <Link
         to={builderPath}
-        className={`mt-6 inline-block rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 ${FOCUS}`}
+        className={`mt-6 inline-block rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:border-navy-400 ${FOCUS}`}
       >
         Back to version {version.version_number}
       </Link>
@@ -437,12 +437,12 @@ function LoadError({ onRetry }: { onRetry?: () => void }) {
   return (
     <div
       role="alert"
-      className="rounded-lg border border-navy-800 bg-navy-900 px-6 py-10 sm:px-10"
+      className="rounded-lg border border-border bg-card px-6 py-10 sm:px-10"
     >
-      <h1 className="text-lg font-semibold text-navy-50">
+      <h1 className="text-lg font-semibold text-foreground">
         This proposal couldn't be loaded
       </h1>
-      <p className="mt-2 max-w-prose text-sm leading-6 text-navy-300">
+      <p className="mt-2 max-w-prose text-sm leading-6 text-muted-foreground">
         {onRetry
           ? "The server didn't respond as expected. Try again in a moment."
           : "It may not exist, or it may belong to a different workspace. Check the link, or open the proposal from its opportunity."}
@@ -452,14 +452,14 @@ function LoadError({ onRetry }: { onRetry?: () => void }) {
           <button
             type="button"
             onClick={onRetry}
-            className={`min-h-10 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 ${FOCUS}`}
+            className={`min-h-10 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-lime-300 ${FOCUS}`}
           >
             Try again
           </button>
         )}
         <Link
           to="/opportunities"
-          className={`inline-flex min-h-10 items-center rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 ${FOCUS}`}
+          className={`inline-flex min-h-10 items-center rounded-md border border-navy-700 px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:border-navy-400 ${FOCUS}`}
         >
           Go to opportunities
         </Link>
@@ -473,7 +473,7 @@ function DocumentSkeleton() {
     <div
       role="status"
       aria-label="Loading proposal preview"
-      className="rounded-lg border border-navy-800 bg-navy-900 px-6 py-8 sm:px-10 sm:py-10"
+      className="rounded-lg border border-border bg-card px-6 py-8 sm:px-10 sm:py-10"
     >
       <div className="h-4 w-56 animate-pulse rounded bg-navy-800 motion-reduce:animate-none" />
       <div className="mt-3 h-8 w-3/4 animate-pulse rounded bg-navy-800 motion-reduce:animate-none" />

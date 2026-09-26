@@ -62,7 +62,9 @@ describe("DashboardPage", () => {
     renderAuthenticated();
 
     await waitFor(() =>
-      expect(screen.getByText("open · 2")).toBeInTheDocument(),
+      expect(
+        screen.getByRole("group", { name: "Open: 2" }),
+      ).toBeInTheDocument(),
     );
     await waitFor(() =>
       expect(screen.getByText("Proposal Manager")).toBeInTheDocument(),
@@ -91,7 +93,9 @@ describe("DashboardPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
-    expect(await screen.findByText("open · 1")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("group", { name: "Open: 1" }),
+    ).toBeInTheDocument();
   });
 
   it("shows guidance empty states when there is no data yet", async () => {

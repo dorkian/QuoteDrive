@@ -226,6 +226,21 @@ describe("ApprovalDetail", () => {
     });
   });
 
+  it("sends no decision when the approver cancels the confirmation", async () => {
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
+    expect(api.approveRequest).not.toHaveBeenCalled();
+    expect(api.requestChanges).not.toHaveBeenCalled();
+  });
+
   it("validates that comment is not blank before requesting changes", async () => {
     renderDetail();
 

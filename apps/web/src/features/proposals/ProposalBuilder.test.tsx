@@ -269,6 +269,11 @@ describe("ProposalBuilder", () => {
     await waitFor(() => expect(api.calculateEstimate).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    // Finalizing locks the version, so it asks for confirmation first.
+    expect(api.finalizeProposalVersion).not.toHaveBeenCalled();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Finalize version" }),
+    );
 
     await waitFor(() => expect(api.finalizeProposalVersion).toHaveBeenCalled());
     expect(api.updateProposalVersion).toHaveBeenCalledWith(
@@ -283,6 +288,27 @@ describe("ProposalBuilder", () => {
     const finalizeOrder = vi.mocked(api.finalizeProposalVersion).mock
       .invocationCallOrder[0];
     expect(updateOrder).toBeLessThan(finalizeOrder);
+  });
+
+  it("sends nothing when the finalize confirmation is cancelled", async () => {
+    vi.mocked(api.calculateEstimate).mockResolvedValue({
+      lines: [],
+      total_estimate: "0.00",
+      disclaimer: "Illustrative planning estimate only.",
+    });
+    renderBuilder(managerMe, draftVersion());
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add package line" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+    );
+    expect(api.updateProposalVersion).not.toHaveBeenCalled();
+    expect(api.finalizeProposalVersion).not.toHaveBeenCalled();
   });
 
   it("handles legacy proposal lines without add_on_item_ids without crashing", async () => {
