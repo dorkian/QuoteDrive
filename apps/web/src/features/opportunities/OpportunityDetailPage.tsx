@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -74,14 +75,15 @@ export function OpportunityDetailPage() {
     setActionError(null);
     try {
       const version = await createProposalVersion(token, id);
+      toast.success(`Draft version ${version.version_number} created`);
       navigate(`/opportunities/${id}/versions/${version.id}`);
     } catch (err) {
-      setActionError(
-        describeError(err, {
-          action: "create a draft version",
-          role: me?.role,
-        }).message,
-      );
+      const message = describeError(err, {
+        action: "create a draft version",
+        role: me?.role,
+      }).message;
+      setActionError(message);
+      toast.error(message);
       setCreating(false);
     }
   }

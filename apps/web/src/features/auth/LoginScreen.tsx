@@ -25,7 +25,7 @@ export function LoginScreen() {
         <div className="mb-8 text-center">
           <span
             aria-hidden="true"
-            className="mx-auto mb-4 grid size-10 place-items-center rounded-lg bg-primary text-base font-bold text-primary-foreground"
+            className="mx-auto mb-4 grid size-10 place-items-center rounded-lg border border-border bg-card text-base font-bold text-foreground"
           >
             Q
           </span>

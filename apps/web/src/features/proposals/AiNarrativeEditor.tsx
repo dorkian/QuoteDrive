@@ -146,6 +146,7 @@ export function AiNarrativeEditor({
         retryable: described.retryable,
       });
       setCanWriteManually(described.canWriteManually);
+      toast.error(described.message);
     } finally {
       setGenerating(false);
     }

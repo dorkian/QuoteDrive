@@ -29,7 +29,7 @@ As a Proposal Manager or Approver, I want QuoteDrive to look and behave like cre
 - [ ] No behaviour regressions: all existing Vitest suites pass (selectors updated only where markup changed, not assertions weakened).
 - [ ] Keyboard navigable with visible focus rings. Dialogs trap focus. Text contrast is WCAG AA on navy.
 - [ ] Unused template/demo code not imported. Bundle size increase noted in the work log.
-- [ ] Before/after screenshots of Dashboard, Opportunities, Builder and Approval detail attached.
+- [ ] Before/after screenshots of Dashboard, Opportunities, Builder and Approval detail committed under `docs/screenshots/qd-409/` and linked from the work log. (Amended 2026-09-26 by PO; was "attached".)
 
 ## Technical notes
 - Expected modules/files: apps/web/package.json, src/index.css, src/lib/utils.ts, src/components/ui/*, src/components/layout/*, src/components/states/*, src/features/**/*.tsx (+ tests), components.json, THIRD_PARTY_NOTICES.md.
@@ -62,4 +62,6 @@ Given an approver cancels the AlertDialog, Then no request is sent.
 ## Amendments
 - 2026-09-25: PO chose to start QD-409 while QD-402 is still in In Progress, accepting two cards over the WIP 1 limit. The QD-402 code was already committed on main (bb718ba) before the branch was created.
 - 2026-09-25: The API's `Opportunity` has no timestamp field, so the "sorting by Last updated" scenario can't be built without an API change (out of scope). The data table sorts by title, customer and status instead.
-- 2026-09-25 (Claude's decision in step 2, reported to the PO afterwards rather than asked first; review should flag it if the PO wants the dropdown): The Header keeps a visible "Log out" button (icon + accessible name) rather than a dropdown user menu, so the existing Header tests stay unchanged. Organisation and role show in the header on sm+ and in the mobile drawer below sm.
+- 2026-09-25 (Claude's decision in step 2; confirmed by PO on 2026-09-26): The Header keeps a visible "Log out" button (icon + accessible name) rather than a dropdown user menu, so the existing Header tests stay unchanged. Organisation and role show in the header on sm+ and in the mobile drawer below sm.
+- 2026-09-26: PO decided all listed primitives must be present, including tabs, select, dropdown-menu and tooltip, even though no current screen uses them.
+- 2026-09-26: PO changed the screenshot criterion from "attached" to "committed under docs/screenshots/qd-409/ and linked from the work log", because Claude's Trello tools can't upload attachments.

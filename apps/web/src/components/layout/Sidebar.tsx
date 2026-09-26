@@ -20,7 +20,7 @@ export function Sidebar({ active, onSelect, collapsed = false }: SidebarProps) {
       >
         <span
           aria-hidden="true"
-          className="grid size-7 shrink-0 place-items-center rounded-md bg-primary text-xs font-bold text-primary-foreground"
+          className="grid size-7 shrink-0 place-items-center rounded-md border border-border bg-background text-xs font-bold text-foreground"
         >
           Q
         </span>
