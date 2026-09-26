@@ -34,3 +34,6 @@ OLLAMA_MODEL=qwen2.5:7b AI_REQUEST_TIMEOUT_SECONDS=120 EVAL_PROVIDER=ollama uv r
 ```
 
 `OLLAMA_MODEL` must name a model you have pulled (`ollama list`); the default `llama3` returns 404 if absent. Local 7B models can exceed the default 30s timeout. `EVAL_PROVIDER=openrouter` also needs `OPENROUTER_API_KEY`. Failure cases are skipped in live mode.
+
+## Output guard (QD-410)
+`app/services/ai/output_guard.py` checks every parsed narrative before it is returned: figures must appear in the proposal data, and discount or percentage wording is allowed only when the priced lines contain it. A violation is a handled failure (502, existing draft untouched, `GenerationLog.error_detail` starts with `Output guard:`). The evaluation checks import the same rules. Cases marked `guard_may_reject` also pass in live runs when the guard rejects the output.

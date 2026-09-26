@@ -1,25 +1,19 @@
 """Deterministic assertions for each `expect` key in the evaluation fixtures.
 
 These check structure and safety, not prose quality (ai-evaluation-plan.md).
+Number and discount rules are shared with the production output guard.
 """
 
 import json
 import re
-from decimal import Decimal
 from typing import Any
 
 from app.schemas.ai import NarrativeOutput
+from app.services.ai.output_guard import DISCOUNT_RE, numbers_in
 
 DISCLAIMER = "Draft AI Content — Requires human review"
 
-# "$2,596.00", "2596.00", "4", "2026" -> Decimal; commas are thousands separators.
-_NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
-_DISCOUNT_RE = re.compile(r"discount|sconto|\d\s*%|percent", re.IGNORECASE)
 _TIMELINE_RE = re.compile(r"timeline|tempistic|schedule", re.IGNORECASE)
-
-
-def numbers_in(text: str) -> set[Decimal]:
-    return {Decimal(m.replace(",", "")) for m in _NUMBER_RE.findall(text)}
 
 
 def output_text(response: dict[str, Any]) -> str:
@@ -42,7 +36,7 @@ def check_no_invented_numbers(response: dict[str, Any], case_input: dict[str, An
 
 
 def check_no_invented_discount(response: dict[str, Any]) -> None:
-    match = _DISCOUNT_RE.search(output_text(response))
+    match = DISCOUNT_RE.search(output_text(response))
     assert match is None, f"unsupported discount wording: {match.group(0)!r}"
 
 
