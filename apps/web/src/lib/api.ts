@@ -496,3 +496,51 @@ export async function saveProposalVersionNarrative(
   await throwIfNotOk(res, "Failed to save narrative");
   return (await res.json()) as ProposalVersion;
 }
+
+export interface DiscoveryBrief {
+  summary: string;
+  requirements: string[];
+  open_questions: string[];
+  unknowns: string[];
+}
+
+export interface DiscoveryBriefResponse extends DiscoveryBrief {
+  disclaimer: string;
+  provider: string;
+  model: string;
+}
+
+export async function generateDiscoveryBrief(
+  token: string,
+  opportunityId: number,
+  notes: string,
+): Promise<DiscoveryBriefResponse> {
+  const res = await fetch(`${API_URL}/ai/discovery-brief`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ opportunity_id: opportunityId, notes }),
+  });
+  await throwIfNotOk(res, "Failed to draft discovery brief");
+  return (await res.json()) as DiscoveryBriefResponse;
+}
+
+// Saving goes through the audited opportunity PATCH, after human review.
+export async function saveOpportunityBrief(
+  token: string,
+  opportunityId: number,
+  brief: DiscoveryBrief & { provider: string; model: string },
+): Promise<Opportunity> {
+  const res = await fetch(`${API_URL}/opportunities/${opportunityId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ brief_json: brief }),
+  });
+  await throwIfNotOk(res, "Failed to save discovery brief");
+  return (await res.json()) as Opportunity;
+}
