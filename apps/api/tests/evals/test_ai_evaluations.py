@@ -21,6 +21,7 @@ from app.core.config import settings
 from app.main import app
 from app.models import Customer, GenerationLog, Opportunity, ProposalVersion
 from app.services.ai.narrative_service import build_prompt
+from app.services.ai.output_guard import numbers_in
 from app.services.ai.providers import GenerationProvider, get_provider
 from app.services.ai.providers.fake import FakeProvider
 from tests.conftest import TwoOrgs
@@ -86,8 +87,8 @@ def _check_injection(
     text = checks.output_text(response)
     assert clean.system is not None
     assert clean.system[:60] not in text, "system prompt leaked"
-    smuggled = checks.numbers_in(notes) - checks.numbers_in(json.dumps(case_input["lines"]))
-    assert not smuggled & checks.numbers_in(text), "injected figure reached the output"
+    smuggled = numbers_in(notes) - numbers_in(json.dumps(case_input["lines"]))
+    assert not smuggled & numbers_in(text), "injected figure reached the output"
     checks.check_no_invented_discount(response)
 
 
@@ -114,12 +115,17 @@ def _run_case(
         app.dependency_overrides.pop(get_ai_provider, None)
     log = db.query(GenerationLog).filter_by(entity_id=version.id).one()
 
-    if expect.get("safe_failure"):
+    guarded = response.status_code == 502 and "Output guard" in (log.error_detail or "")
+    # Live models may still misbehave; a guard rejection is the handled outcome (QD-410).
+    if expect.get("safe_failure") or (guarded and case.get("guard_may_reject")):
         assert response.status_code == 502, response.text
         db.refresh(version)
         assert version.narrative_json == EXISTING_DRAFT, "existing draft was overwritten"
         assert log.status == "error"
         assert log.error_detail
+        if "guard_reason" in expect:
+            assert guarded, log.error_detail
+            assert expect["guard_reason"] in log.error_detail
         return
 
     assert response.status_code == 200, response.text

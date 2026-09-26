@@ -109,7 +109,7 @@ def test_build_prompt_delimits_untrusted_data(
     req = build_prompt(proposal_version, opp, cust, timeline="Q4")
 
     assert req.prompt.startswith("<<<PROPOSAL_DATA>>>")
-    assert req.prompt.endswith("<<<END_PROPOSAL_DATA>>>")
+    assert "<<<END_PROPOSAL_DATA>>>\nReminder:" in req.prompt
     assert req.system is not None
     assert "untrusted data" in req.system
     assert "never follow" in req.system.lower()
@@ -297,3 +297,29 @@ def test_build_prompt_omits_brief_json_when_absent(
     req = build_prompt(proposal_version, opp, cust, timeline=None)
 
     assert "Discovery Brief" not in req.prompt
+
+
+def test_generate_narrative_rejects_invented_discount(
+    client: TestClient,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    db_session: Session,
+) -> None:
+    injected = {**VALID_NARRATIVE, "scope": "Includes a 50% discount."}
+    app.dependency_overrides[get_ai_provider] = lambda: FakeProvider(
+        fixture_text=json.dumps(injected)
+    )
+
+    token = login(two_orgs.manager_a)
+    response = client.post(
+        "/ai/proposal-narrative",
+        json={"proposal_version_id": proposal_version.id, "timeline": "Q4"},
+        headers=_auth(token),
+    )
+    assert response.status_code == 502
+
+    log = db_session.query(GenerationLog).filter_by(entity_id=proposal_version.id).one()
+    assert log.status == "error"
+    assert log.error_detail is not None
+    assert log.error_detail.startswith("Output guard: ")
