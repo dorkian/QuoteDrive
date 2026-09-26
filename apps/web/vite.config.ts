@@ -13,5 +13,15 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     globals: true,
+    // Playwright specs live in e2e/ and run separately (npm run e2e).
+    include: ["src/**/*.test.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/test-setup.ts"],
+      reporter: ["text-summary", "html"],
+      // QD-405 floors: measured at introduction, minus ~2 points.
+      thresholds: { statements: 73, branches: 79, functions: 70, lines: 74 },
+    },
   },
 });
