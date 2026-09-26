@@ -21,3 +21,16 @@ Evaluate structure and safety, not subjective prose beauty. Fixtures use synthet
 - Required disclaimer exists.
 - Unknown fields are explicit.
 - Generation records capture provider/model/status safely.
+
+## Automated suite (QD-403)
+`apps/api/tests/evals/` turns every case in `docs/evaluations/*.json` into a parametrized pytest case. Each case holds an `input` (customer, opportunity, lines, timeline, brief), a canned `model_output` and the `expect` keys. CI runs the canned output through `FakeProvider` as part of `pytest`; a case with an `expect` key that has no check fails. A `skip` reason (per file or per case) keeps an unrunnable case visible as skipped: the discovery-brief cases until QD-404 adds the endpoint, and `fallback` until provider fallback exists.
+
+Checks are deterministic heuristics: numbers (amounts stay in `$2596.00` form) and discount wording in the output must come from the input. Scenario scoring and a pass-percentage release threshold are planned later.
+
+Manual run against a real provider (never in CI), from `apps/api`:
+
+```bash
+EVAL_PROVIDER=ollama uv run pytest tests/evals -k live -v
+```
+
+`EVAL_PROVIDER=openrouter` also needs `OPENROUTER_API_KEY`. Failure cases are skipped in live mode.
