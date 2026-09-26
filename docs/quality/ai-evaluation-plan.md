@@ -30,7 +30,7 @@ Checks are deterministic heuristics: numbers (amounts stay in `$2596.00` form) a
 Manual run against a real provider (never in CI), from `apps/api`:
 
 ```bash
-EVAL_PROVIDER=ollama uv run pytest tests/evals -k live -v
+OLLAMA_MODEL=qwen2.5:7b AI_REQUEST_TIMEOUT_SECONDS=120 EVAL_PROVIDER=ollama uv run pytest tests/evals -k live -v
 ```
 
-`EVAL_PROVIDER=openrouter` also needs `OPENROUTER_API_KEY`. Failure cases are skipped in live mode.
+`OLLAMA_MODEL` must name a model you have pulled (`ollama list`); the default `llama3` returns 404 if absent. Local 7B models can exceed the default 30s timeout. `EVAL_PROVIDER=openrouter` also needs `OPENROUTER_API_KEY`. Failure cases are skipped in live mode.
