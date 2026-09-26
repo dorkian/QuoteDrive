@@ -42,7 +42,9 @@ Then log in as any demo user, e.g. `POST /auth/demo-login {"email": "admin@north
 
 `.github/workflows/ci.yml` runs on every push and pull request targeting `main`, with two independent jobs that must both pass before a PR can merge:
 
-- **backend** (`apps/api`): `ruff format --check`, `ruff check`, `mypy`, `alembic upgrade head --sql` (validates migrations offline, no live DB needed), `pytest`.
-- **frontend** (`apps/web`): `npm ci`, `prettier --check`, `oxlint`, `tsc -b`, `vitest run`, `vite build`.
+- **backend** (`apps/api`): `ruff format --check`, `ruff check`, `mypy`, `alembic upgrade head --sql` (validates migrations offline, no live DB needed), `pytest --cov` (floor 96%).
+- **frontend** (`apps/web`): `npm ci`, `prettier --check`, `oxlint`, `tsc -b`, `vitest run --coverage` (floors in `vite.config.ts`), `vite build`.
+- **secrets**: gitleaks over the full history.
+- **E2E** (Playwright, manual-only for now): see `docs/quality/quality-gates.md`.
 
 Each job runs its checks as sequential steps, so the first failing check stops that job immediately rather than masking later failures. Run the same commands locally before pushing to catch issues early.

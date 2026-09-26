@@ -22,7 +22,16 @@ jobs:
       - run: ruff check .
       - run: mypy app tests scripts migrations
       - run: alembic upgrade head --sql > /dev/null
-      - run: pytest -q
+      - name: pytest with coverage (floor in pyproject.toml)
+        run: |
+          pytest -q --cov --cov-report=term --cov-report=xml
+          echo "### API coverage" >> "$GITHUB_STEP_SUMMARY"
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage.xml
 
   frontend:
     runs-on: ubuntu-latest
@@ -40,5 +49,20 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run test
+      - name: vitest with coverage (floors in vite.config.ts)
+        run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
       - run: npm run build
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (full history)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --redact -v

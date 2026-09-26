@@ -42,3 +42,6 @@ htmlcov/
 # Temporary
 tmp/
 temp/
+# Playwright
+playwright-report/
+test-results/
