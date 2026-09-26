@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { fetchAuditEvents, type AuditEvent } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { describeError, type ErrorDescription } from "../lib/errors";
@@ -174,26 +175,28 @@ export function ActivityTimeline({
   return (
     <div className="space-y-4">
       {error && (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-sm text-destructive-foreground" role="alert">
           {error}
         </p>
       )}
-      <ol className="relative ml-2 border-l border-navy-800 space-y-6">
+      <ol className="relative ml-2 border-l border-border space-y-6">
         {events.map((event) => {
           const { actionDescription, entityReference } = describeEvent(event);
           return (
             <li key={event.id} className="relative pl-6">
               <span
-                className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-lime-400 ring-4 ring-navy-950"
+                className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-navy-400 ring-4 ring-card"
                 aria-hidden="true"
               />
               <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                <p className="min-w-0 text-sm text-navy-50">
-                  <span className="font-medium text-navy-50">
+                <p className="min-w-0 text-sm text-foreground">
+                  <span className="font-medium text-foreground">
                     {event.actor_name}
                   </span>{" "}
-                  <span className="text-navy-300">{actionDescription}</span>{" "}
-                  <span className="font-medium text-navy-50">
+                  <span className="text-muted-foreground">
+                    {actionDescription}
+                  </span>{" "}
+                  <span className="font-medium text-foreground">
                     {entityReference}
                   </span>
                 </p>
@@ -211,14 +214,14 @@ export function ActivityTimeline({
       </ol>
       {hasMore && (
         <div className="pl-6">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => void handleLoadMore()}
             disabled={loadingMore}
-            className="min-h-10 rounded-md border border-navy-700 px-3 py-1.5 text-xs font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loadingMore ? "Loading…" : "Load more"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

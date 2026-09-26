@@ -65,7 +65,9 @@ describe("OpportunitiesListPage", () => {
         screen.getByText("2026 Fleet Modernization & Mobility Services"),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByText("Lombarda Studio Group")).toBeInTheDocument();
+    expect(
+      screen.getByRole("cell", { name: "Lombarda Studio Group" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no opportunities", async () => {

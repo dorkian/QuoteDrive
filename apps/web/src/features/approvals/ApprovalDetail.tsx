@@ -1,5 +1,22 @@
+import { CircleCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { toast } from "sonner";
+
+import { StatusBadge } from "@/components/StatusBadge";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { CARD_CLASSES } from "@/components/ui/variants";
+import { cn } from "@/lib/utils";
 
 import {
   approveRequest,
@@ -27,9 +44,6 @@ const NOT_FOUND: ErrorDescription = {
   message: "This approval request doesn't exist or isn't in your organization.",
   retryable: false,
 };
-
-const SECONDARY_BUTTON =
-  "min-h-10 rounded-md px-4 py-2 text-sm font-medium text-navy-300 transition-colors duration-150 hover:text-navy-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60";
 
 type ConfirmMode = "idle" | "confirm_approve" | "confirm_request_changes";
 
@@ -138,10 +152,13 @@ export function ApprovalDetail() {
       );
       setRequest((prev) => (prev ? { ...prev, ...updated } : updated));
       setDecisionSuccess("Proposal version approved successfully.");
-      setConfirmMode("idle");
+      toast.success("Proposal version approved");
     } catch (err) {
-      setError(describeDecisionError(err, "approve this request"));
+      const message = describeDecisionError(err, "approve this request");
+      setError(message);
+      toast.error(message);
     } finally {
+      setConfirmMode("idle");
       setSubmitting(false);
     }
   }
@@ -164,10 +181,16 @@ export function ApprovalDetail() {
       setDecisionSuccess(
         "Changes requested. A new draft version has been forked.",
       );
-      setConfirmMode("idle");
+      toast.success("Changes requested");
     } catch (err) {
-      setError(describeDecisionError(err, "request changes on this version"));
+      const message = describeDecisionError(
+        err,
+        "request changes on this version",
+      );
+      setError(message);
+      toast.error(message);
     } finally {
+      setConfirmMode("idle");
       setSubmitting(false);
     }
   }
@@ -185,13 +208,13 @@ export function ApprovalDetail() {
     <div>
       <Link
         to="/approvals"
-        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-navy-300 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+        className="-my-2 inline-flex min-h-10 items-center rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         ← Approvals
       </Link>
 
       {error && (
-        <p className="mt-4 text-sm text-red-400" role="alert">
+        <p className="mt-4 text-sm text-destructive-foreground" role="alert">
           {error}
         </p>
       )}
@@ -199,8 +222,15 @@ export function ApprovalDetail() {
       {decisionSuccess && (
         <div
           role="status"
-          className="mt-4 rounded-md border border-lime-800 bg-lime-950 p-4 text-sm text-lime-300"
+          className={cn(
+            CARD_CLASSES,
+            "mt-4 flex items-center gap-2 p-4 text-sm text-foreground",
+          )}
         >
+          <CircleCheck
+            aria-hidden="true"
+            className="size-4 shrink-0 text-muted-foreground"
+          />
           {decisionSuccess}
         </div>
       )}
@@ -226,9 +256,9 @@ export function ApprovalDetail() {
         </LoadingRegion>
       ) : (
         <div className="mt-4 flex flex-col gap-6">
-          <header className="flex flex-col gap-2 border-b border-navy-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <header className="flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight text-balance text-navy-50">
+              <h1 className="text-xl font-semibold tracking-tight text-balance text-foreground">
                 {request.opportunity_title} · Version {request.version_number}
               </h1>
               <p className="mt-1 text-xs text-navy-400">
@@ -239,25 +269,17 @@ export function ApprovalDetail() {
                 · Assigned to {request.assigned_to_name}
               </p>
             </div>
-            <span
-              className={`self-start rounded-full px-3 py-1 text-xs font-medium sm:self-auto ${
-                request.status === "approved"
-                  ? "border border-lime-800 bg-lime-950 text-lime-400"
-                  : request.status === "changes_requested"
-                    ? "border border-red-800 bg-red-950 text-red-400"
-                    : "border border-amber-800 bg-amber-950 text-amber-300"
-              }`}
-            >
-              {request.status}
-            </span>
+            <div className="self-start sm:self-auto">
+              <StatusBadge status={request.status} />
+            </div>
           </header>
 
           {/* Proposal Content */}
           <section
             aria-label="Proposal details"
-            className="rounded-md border border-navy-800 bg-navy-900 p-4"
+            className={cn(CARD_CLASSES, "p-4")}
           >
-            <h2 className="text-sm font-semibold text-navy-50">
+            <h2 className="text-sm font-semibold text-foreground">
               Proposal content
             </h2>
             {version.content_json.lines.length === 0 ? (
@@ -267,13 +289,13 @@ export function ApprovalDetail() {
                 {version.content_json.lines.map((line, index) => (
                   <li
                     key={index}
-                    className="rounded-md border border-navy-800 bg-navy-950 p-3"
+                    className="rounded-md border border-border bg-navy-950 p-3"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                      <p className="text-sm font-medium text-navy-50">
+                      <p className="text-sm font-medium text-foreground">
                         {line.name} · qty {line.quantity}
                       </p>
-                      <p className="text-xs text-navy-300">
+                      <p className="text-xs text-muted-foreground">
                         ${line.unit_estimate}/mo · line total ${line.line_total}
                       </p>
                     </div>
@@ -287,9 +309,9 @@ export function ApprovalDetail() {
               </ul>
             )}
 
-            <div className="mt-4 flex items-center justify-between border-t border-navy-800 pt-3">
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
               <div>
-                <p className="text-sm font-medium text-navy-50">
+                <p className="text-sm font-medium text-foreground">
                   Total: ${version.total_estimate}
                 </p>
                 <p className="text-xs text-navy-400">
@@ -306,20 +328,22 @@ export function ApprovalDetail() {
           {showDecisionControls && (
             <section
               aria-label="Decision controls"
-              className="rounded-md border border-navy-800 bg-navy-900 p-4"
+              className={cn(CARD_CLASSES, "p-4")}
             >
-              <h2 className="text-sm font-semibold text-navy-50">Decision</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                Decision
+              </h2>
 
               {isOwner ? (
-                <p className="mt-2 text-sm text-amber-300">
+                <p className="mt-2 text-sm text-warning-foreground">
                   You submitted this version and cannot approve or request
                   changes on your own proposal.
                 </p>
               ) : (
                 <div className="mt-3 flex flex-col gap-3">
-                  <label className="flex flex-col gap-1 text-xs font-medium text-navy-50">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
                     Comment
-                    <textarea
+                    <Textarea
                       rows={3}
                       value={comment}
                       onChange={(e) => {
@@ -330,88 +354,91 @@ export function ApprovalDetail() {
                       }}
                       disabled={submitting}
                       placeholder="Add notes or reason for changes..."
-                      className="rounded-md border border-navy-700 bg-navy-950 p-2.5 text-sm text-navy-50 placeholder-navy-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime-400"
+                      aria-invalid={commentError ? true : undefined}
                     />
                   </label>
 
                   {commentError && (
-                    <p className="text-xs text-red-400" role="alert">
+                    <p
+                      className="text-xs text-destructive-foreground"
+                      role="alert"
+                    >
                       {commentError}
                     </p>
                   )}
 
-                  {confirmMode === "idle" ? (
-                    <div className="mt-2 flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setConfirmMode("confirm_approve")}
-                        disabled={submitting}
-                        className="min-h-10 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isBlank(comment)) {
-                            setCommentError(
-                              "A comment is required when requesting changes.",
-                            );
-                            return;
-                          }
-                          setConfirmMode("confirm_request_changes");
-                        }}
-                        disabled={submitting}
-                        className="min-h-10 rounded-md border border-red-700 bg-red-950 px-4 py-2 text-sm font-medium text-red-300 transition-colors duration-150 hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Request changes
-                      </button>
-                    </div>
-                  ) : confirmMode === "confirm_approve" ? (
-                    <div className="mt-2 flex flex-wrap items-center gap-3">
-                      <span className="text-sm text-navy-300">
-                        Confirm approval of this version?
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void handleApprove()}
-                        disabled={submitting}
-                        className="min-h-10 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {submitting ? "Approving…" : "Confirm approve"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmMode("idle")}
-                        disabled={submitting}
-                        className={SECONDARY_BUTTON}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mt-2 flex flex-wrap items-center gap-3">
-                      <span className="text-sm text-navy-300">
-                        Confirm request changes and fork draft?
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void handleRequestChanges()}
-                        disabled={submitting}
-                        className="min-h-10 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {submitting ? "Requesting…" : "Confirm request changes"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmMode("idle")}
-                        disabled={submitting}
-                        className={SECONDARY_BUTTON}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    <Button
+                      onClick={() => setConfirmMode("confirm_approve")}
+                      disabled={submitting}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (isBlank(comment)) {
+                          setCommentError(
+                            "A comment is required when requesting changes.",
+                          );
+                          return;
+                        }
+                        setConfirmMode("confirm_request_changes");
+                      }}
+                      disabled={submitting}
+                      className="border-red-500/40 text-destructive-foreground hover:bg-red-500/10"
+                    >
+                      Request changes
+                    </Button>
+                  </div>
+
+                  <AlertDialog
+                    open={confirmMode !== "idle"}
+                    onOpenChange={(open) => {
+                      // Keep the dialog up while the decision is in flight.
+                      if (!open && !submitting) {
+                        setConfirmMode("idle");
+                      }
+                    }}
+                  >
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {confirmMode === "confirm_request_changes"
+                            ? "Confirm request changes and fork draft?"
+                            : "Confirm approval of this version?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {confirmMode === "confirm_request_changes"
+                            ? "The submitter gets your comment and a new draft version is created for their changes."
+                            : `Version ${request.version_number} of ${request.opportunity_title} becomes approved and can be shared with the client.`}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={submitting}>
+                          Cancel
+                        </AlertDialogCancel>
+                        {confirmMode === "confirm_request_changes" ? (
+                          <Button
+                            variant="destructive"
+                            onClick={() => void handleRequestChanges()}
+                            disabled={submitting}
+                          >
+                            {submitting
+                              ? "Requesting…"
+                              : "Confirm request changes"}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => void handleApprove()}
+                            disabled={submitting}
+                          >
+                            {submitting ? "Approving…" : "Confirm approve"}
+                          </Button>
+                        )}
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
             </section>

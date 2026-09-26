@@ -1,4 +1,13 @@
+import { Sparkles, X } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CARD_CLASSES } from "@/components/ui/variants";
+import { cn } from "@/lib/utils";
 import * as api from "../../lib/api";
 import { ApiError, describeError } from "../../lib/errors";
 
@@ -23,11 +32,10 @@ const BLANK_MANUAL_DRAFT: NarrativeDraft = {
   model: "none",
 };
 
-const FOCUS =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400";
-const FIELD =
-  "w-full rounded-md border border-navy-700 bg-navy-950 p-3 text-navy-50 disabled:opacity-75";
-const LABEL = "mb-1 block text-sm text-navy-300";
+const LABEL = "mb-1 block text-sm text-muted-foreground";
+// AI actions use the cyan info colour, keeping lime for human decisions.
+const AI_BUTTON =
+  "border-cyan-400/40 bg-cyan-400/10 text-info-foreground hover:bg-cyan-400/20";
 
 // The API reports provider failures tersely ("Provider timeout"); say what
 // happened in the user's terms. Status codes from apps/api/app/api/ai.py.
@@ -127,6 +135,7 @@ export function AiNarrativeEditor({
         provider: res.provider,
         model: res.model,
       });
+      toast.success("AI draft ready. Review it before saving.");
     } catch (err) {
       // Whatever is already in the editor stays put; a failed draft never
       // clears existing content (runbook step 5).
@@ -137,6 +146,7 @@ export function AiNarrativeEditor({
         retryable: described.retryable,
       });
       setCanWriteManually(described.canWriteManually);
+      toast.error(described.message);
     } finally {
       setGenerating(false);
     }
@@ -154,11 +164,11 @@ export function AiNarrativeEditor({
       );
       setDraft(updated.narrative_json);
       onSaved(updated);
+      toast.success("Narrative saved");
     } catch (err) {
-      setError({
-        kind: "save",
-        ...describeError(err, { action: "save the narrative" }),
-      });
+      const described = describeError(err, { action: "save the narrative" });
+      setError({ kind: "save", ...described });
+      toast.error(described.message);
     } finally {
       setSaving(false);
     }
@@ -187,56 +197,60 @@ export function AiNarrativeEditor({
     editable && error?.kind === "generate" && canWriteManually && !draft;
 
   return (
-    <div className="mt-8 rounded-lg border border-navy-800 bg-navy-900 p-4 sm:p-6">
+    <section className={cn(CARD_CLASSES, "mt-8 p-4 sm:p-6")}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-navy-50">
-          AI proposal narrative
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground">
+            AI proposal narrative
+          </h2>
+          <Badge variant="info">
+            <Sparkles aria-hidden="true" />
+            AI
+          </Badge>
+        </div>
         {editable && (
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => void handleGenerate()}
             disabled={!hasLines || generating}
-            className={`min-h-10 rounded-md border border-lime-400/30 bg-navy-800 px-4 py-2 text-lime-400 transition-colors duration-150 hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS}`}
+            className={AI_BUTTON}
           >
+            <Sparkles aria-hidden="true" />
             {generating ? "Generating…" : "Generate draft"}
-          </button>
+          </Button>
         )}
       </div>
 
       {error && (
         <div
           role="alert"
-          className="mb-6 flex flex-col gap-3 rounded-md border border-red-900 bg-red-950/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+          className="mb-6 flex flex-col gap-3 rounded-md border border-red-500/30 bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <p className="text-sm text-red-200">{error.message}</p>
+            <p className="text-sm text-destructive-foreground">
+              {error.message}
+            </p>
             {showWriteManually && (
-              <p className="mt-1 text-sm text-navy-300">
+              <p className="mt-1 text-sm text-muted-foreground">
                 You can try again, or write the narrative yourself.
               </p>
             )}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {error.retryable && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
                 onClick={() =>
                   void (error.kind === "save" ? handleSave() : handleGenerate())
                 }
-                className={`min-h-10 rounded-md border border-navy-700 bg-navy-800 px-4 text-sm font-medium text-navy-50 transition-colors duration-150 hover:bg-navy-700 ${FOCUS}`}
               >
                 Retry
-              </button>
+              </Button>
             )}
             {showWriteManually && (
-              <button
-                type="button"
-                onClick={handleWriteManually}
-                className={`min-h-10 rounded-md border border-navy-700 px-4 text-sm font-medium text-navy-50 transition-colors duration-150 hover:border-lime-400 ${FOCUS}`}
-              >
+              <Button variant="outline" onClick={handleWriteManually}>
                 Write it yourself
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -244,12 +258,16 @@ export function AiNarrativeEditor({
 
       {draft && (
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-navy-950 p-3 text-sm text-navy-300">
-            <div>{providerLabel(draft.provider)}</div>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background p-3">
+            <Badge
+              variant={draft.provider === MANUAL_PROVIDER ? "outline" : "info"}
+            >
+              {providerLabel(draft.provider)}
+            </Badge>
             {draft.provider !== MANUAL_PROVIDER && (
-              <div className="text-amber-300">
+              <Badge variant="warning">
                 Draft AI Content — Requires human review
-              </div>
+              </Badge>
             )}
           </div>
 
@@ -258,40 +276,40 @@ export function AiNarrativeEditor({
               <label htmlFor="narrative-executive-summary" className={LABEL}>
                 Executive summary
               </label>
-              <textarea
+              <Textarea
                 id="narrative-executive-summary"
                 value={draft.executive_summary}
                 onChange={(e) =>
                   updateField("executive_summary", e.target.value)
                 }
                 disabled={!editable}
-                className={`${FIELD} min-h-[100px]`}
+                className="min-h-[100px] text-base sm:text-sm"
               />
             </div>
             <div>
               <label htmlFor="narrative-recommended-approach" className={LABEL}>
                 Recommended approach
               </label>
-              <textarea
+              <Textarea
                 id="narrative-recommended-approach"
                 value={draft.recommended_approach}
                 onChange={(e) =>
                   updateField("recommended_approach", e.target.value)
                 }
                 disabled={!editable}
-                className={`${FIELD} min-h-[100px]`}
+                className="min-h-[100px] text-base sm:text-sm"
               />
             </div>
             <div>
               <label htmlFor="narrative-scope" className={LABEL}>
                 Scope
               </label>
-              <textarea
+              <Textarea
                 id="narrative-scope"
                 value={draft.scope}
                 onChange={(e) => updateField("scope", e.target.value)}
                 disabled={!editable}
-                className={`${FIELD} min-h-[100px]`}
+                className="min-h-[100px] text-base sm:text-sm"
               />
             </div>
 
@@ -313,31 +331,30 @@ export function AiNarrativeEditor({
               <label htmlFor="narrative-email-draft" className={LABEL}>
                 Email draft
               </label>
-              <textarea
+              <Textarea
                 id="narrative-email-draft"
                 value={draft.email_draft}
                 onChange={(e) => updateField("email_draft", e.target.value)}
                 disabled={!editable}
-                className={`${FIELD} min-h-[150px] font-mono text-sm`}
+                className="min-h-[150px] font-mono"
               />
             </div>
           </div>
 
           {editable && (
             <div className="flex justify-end pt-4">
-              <button
-                type="button"
+              <Button
                 onClick={() => void handleSave()}
                 disabled={!isDirty || saving}
-                className={`min-h-10 rounded-md bg-lime-400 px-6 py-2 font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 disabled:bg-navy-700 disabled:text-navy-300 disabled:opacity-50 ${FOCUS}`}
+                className="px-6"
               >
                 {saving ? "Saving…" : "Save"}
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -354,11 +371,13 @@ function StringListEditor({
 }) {
   return (
     <fieldset>
-      <legend className="mb-2 block text-sm text-navy-300">{label}</legend>
+      <legend className="mb-2 block text-sm text-muted-foreground">
+        {label}
+      </legend>
       <div className="space-y-2">
         {items.map((item, idx) => (
           <div key={idx} className="flex gap-2">
-            <input
+            <Input
               type="text"
               value={item}
               aria-label={`${label}, item ${idx + 1}`}
@@ -368,32 +387,33 @@ function StringListEditor({
                 onChange(newItems);
               }}
               disabled={!editable}
-              className="min-w-0 flex-1 rounded-md border border-navy-700 bg-navy-950 p-2 text-navy-50 disabled:opacity-75"
+              className="flex-1"
             />
             {editable && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => {
                   const newItems = [...items];
                   newItems.splice(idx, 1);
                   onChange(newItems);
                 }}
-                className={`inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-md border border-navy-700 bg-navy-800 text-red-400 transition-colors duration-150 hover:bg-navy-700 ${FOCUS}`}
+                className="hover:text-destructive-foreground"
                 aria-label={`Remove ${label.toLowerCase()} item ${idx + 1}`}
               >
-                ×
-              </button>
+                <X />
+              </Button>
             )}
           </div>
         ))}
         {editable && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onChange([...items, ""])}
-            className={`min-h-10 rounded-md text-sm text-lime-400 hover:text-lime-300 ${FOCUS}`}
           >
             + Add item
-          </button>
+          </Button>
         )}
       </div>
     </fieldset>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import {
   ErrorState,
   LoadingRegion,
@@ -77,10 +78,10 @@ function LoadingSkeleton() {
 function PageHeading() {
   return (
     <>
-      <h1 className="text-xl font-semibold tracking-tight text-navy-50">
+      <h1 className="text-xl font-semibold tracking-tight text-foreground">
         Package comparison
       </h1>
-      <p className="mt-1 text-sm text-navy-300">
+      <p className="mt-1 text-sm text-muted-foreground">
         Compare three canonical fleet options side by side.
       </p>
     </>
@@ -153,11 +154,11 @@ export function PackageComparison() {
       <PageHeading />
 
       {!allThreePresent ? (
-        <div className="mt-6 rounded-lg border border-navy-800 bg-navy-900 p-6 text-center">
-          <p className="text-sm font-medium text-navy-50">
+        <div className="mt-6 rounded-lg border border-border bg-card p-6 text-center">
+          <p className="text-sm font-medium text-foreground">
             Package comparison unavailable
           </p>
-          <p className="mt-1 text-xs text-navy-300">
+          <p className="mt-1 text-xs text-muted-foreground">
             Not all three packages are configured yet. The comparison requires
             Electric City, Hybrid Account Manager, and Long Distance packages
             active in the catalogue.
@@ -176,27 +177,27 @@ export function PackageComparison() {
             return (
               <section
                 key={cat}
-                className="flex flex-col justify-between rounded-lg border border-navy-800 bg-navy-900 p-5 transition-colors duration-150 hover:border-navy-700"
+                className="flex flex-col justify-between rounded-lg border border-border bg-card p-5 transition-colors duration-150 hover:border-navy-700"
                 aria-labelledby={`package-title-${cat}`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <h2
                       id={`package-title-${cat}`}
-                      className="text-base font-semibold text-navy-50"
+                      className="text-base font-semibold text-foreground"
                     >
                       {item.name}
                     </h2>
-                    <span className="shrink-0 rounded-full bg-navy-800 px-2.5 py-0.5 text-xs font-medium text-lime-400">
+                    <Badge variant="outline">
                       {spec.vehicleCount} vehicles
-                    </span>
+                    </Badge>
                   </div>
 
-                  <div className="mt-4 border-b border-navy-800 pb-4">
+                  <div className="mt-4 border-b border-border pb-4">
                     <p className="text-xs text-navy-400">Monthly estimate</p>
-                    <p className="text-2xl font-bold tracking-tight text-navy-50">
+                    <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
                       ${lineTotal}
-                      <span className="text-sm font-normal text-navy-300">
+                      <span className="text-sm font-normal text-muted-foreground">
                         /mo
                       </span>
                     </p>
@@ -207,35 +208,35 @@ export function PackageComparison() {
 
                   <dl className="mt-4 flex flex-col gap-3">
                     <div>
-                      <dt className="text-xs font-medium text-navy-300">
+                      <dt className="text-xs font-medium text-muted-foreground">
                         Services included
                       </dt>
-                      <dd className="mt-0.5 text-xs text-navy-50">
+                      <dd className="mt-0.5 text-xs text-foreground">
                         {spec.services}
                       </dd>
                     </div>
 
                     <div>
-                      <dt className="text-xs font-medium text-navy-300">
+                      <dt className="text-xs font-medium text-muted-foreground">
                         Assumptions
                       </dt>
-                      <dd className="mt-0.5 text-xs text-navy-50">
+                      <dd className="mt-0.5 text-xs text-foreground">
                         {spec.assumptions}
                       </dd>
                     </div>
 
                     <div>
-                      <dt className="text-xs font-medium text-navy-300">
+                      <dt className="text-xs font-medium text-muted-foreground">
                         Timeline
                       </dt>
-                      <dd className="mt-0.5 text-xs text-navy-50">
+                      <dd className="mt-0.5 text-xs text-foreground">
                         {spec.timeline}
                       </dd>
                     </div>
                   </dl>
                 </div>
 
-                <div className="mt-6 border-t border-navy-800 pt-3">
+                <div className="mt-6 border-t border-border pt-3">
                   <p className="text-[11px] text-navy-400">
                     Illustrative planning estimate only.
                   </p>

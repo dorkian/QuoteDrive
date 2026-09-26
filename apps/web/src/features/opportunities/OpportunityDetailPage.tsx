@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
 import {
   EmptyState,
   ErrorState,
@@ -72,14 +75,15 @@ export function OpportunityDetailPage() {
     setActionError(null);
     try {
       const version = await createProposalVersion(token, id);
+      toast.success(`Draft version ${version.version_number} created`);
       navigate(`/opportunities/${id}/versions/${version.id}`);
     } catch (err) {
-      setActionError(
-        describeError(err, {
-          action: "create a draft version",
-          role: me?.role,
-        }).message,
-      );
+      const message = describeError(err, {
+        action: "create a draft version",
+        role: me?.role,
+      }).message;
+      setActionError(message);
+      toast.error(message);
       setCreating(false);
     }
   }
@@ -90,7 +94,7 @@ export function OpportunityDetailPage() {
     <div>
       <Link
         to="/opportunities"
-        className="-my-2 inline-flex items-center rounded-sm py-2 text-xs text-navy-300 hover:text-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+        className="-my-2 inline-flex min-h-10 items-center rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         ← Opportunities
       </Link>
@@ -108,28 +112,29 @@ export function OpportunityDetailPage() {
       ) : (
         <>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="min-w-0 text-xl font-semibold tracking-tight text-balance text-navy-50">
+            <h1 className="min-w-0 text-xl font-semibold tracking-tight text-balance text-foreground">
               {opportunity.title}
             </h1>
             {me && canEditProposals(me.role) && (
-              <button
-                type="button"
+              <Button
                 onClick={() => void handleCreateDraft()}
                 disabled={creating}
-                className="shrink-0 rounded-md bg-lime-400 px-4 py-2 text-sm font-medium text-navy-950 transition-colors duration-150 hover:bg-lime-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {creating ? "Creating…" : "Create draft version"}
-              </button>
+              </Button>
             )}
           </div>
 
           {actionError && (
-            <p className="mt-4 text-sm text-red-400" role="alert">
+            <p
+              className="mt-4 text-sm text-destructive-foreground"
+              role="alert"
+            >
               {actionError}
             </p>
           )}
 
-          <h2 className="mt-8 text-sm font-medium text-navy-50">
+          <h2 className="mt-8 text-sm font-medium text-foreground">
             Proposal versions
           </h2>
           {versions.length === 0 ? (
@@ -140,18 +145,16 @@ export function OpportunityDetailPage() {
                 <li key={version.id}>
                   <Link
                     to={`/opportunities/${id}/versions/${version.id}`}
-                    className="flex items-center justify-between gap-3 rounded-md border border-navy-800 bg-navy-900 px-4 py-3 transition-colors duration-150 hover:border-lime-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400"
+                    className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3 transition-colors duration-150 hover:border-navy-700 hover:bg-navy-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
-                    <span className="text-sm font-medium text-navy-50">
+                    <span className="text-sm font-medium text-foreground">
                       Version {version.version_number}
                     </span>
                     <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                      <span className="text-xs text-navy-300 tabular-nums">
+                      <span className="text-xs text-muted-foreground tabular-nums">
                         ${version.total_estimate}
                       </span>
-                      <span className="rounded-full bg-navy-800 px-3 py-1 text-xs font-medium text-navy-50">
-                        {version.status}
-                      </span>
+                      <StatusBadge status={version.status} />
                     </span>
                   </Link>
                 </li>
