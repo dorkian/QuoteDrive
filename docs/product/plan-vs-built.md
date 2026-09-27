@@ -8,9 +8,9 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | Req | Commitment | Status | Where / card |
 |---|---|---|---|
 | FR-01 | Demo sign-in for four roles; tenant from membership; scoped reads and writes | ✅ | QD-101, QD-102, QD-105 |
-| FR-02 | Create, list, search and update customers | 🟡 API only; the Customers page is a placeholder | ⏳ QD-413 |
-| FR-02 | Create an opportunity linked to a customer and owner | 🟡 API only | ⏳ QD-413 |
-| FR-02 | Store brief, status, activity history | 🟡 Brief (QD-404) and audit exist; no history shown on the opportunity page | ⏳ QD-413 |
+| FR-02 | Create, list, search and update customers | ✅ Customers page: search, create, edit, delete (QD-413) | — |
+| FR-02 | Create an opportunity linked to a customer and owner | ✅ "New opportunity" dialog; the owner is the creator (QD-413) | — |
+| FR-02 | Store brief, status, activity history | ✅ Brief (QD-404); title and status editing and an Activity section on the opportunity page (QD-413) | — |
 | FR-03 | Admin manages packages and add-ons | ⏳ Seed-only catalogue | ⏳ QD-415 |
 | FR-03 | Manager adds lines, quantities, assumptions; inactive items can't be selected | ✅ | QD-203, QD-204 |
 | FR-04 | Server-side estimate formula, totals, disclaimer, versioning | ✅ | QD-204, QD-205, QD-401 |
@@ -45,7 +45,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 |---|---|---|
 | Admin configures the workspace: catalogue, members, roles, feature settings | ⏳ The Settings page is a placeholder | ⏳ QD-415, QD-416, QD-417 (AI setting) |
 | Goal 3: AI provenance, **fallback behavior** and human review visible | 🟡 Provenance and review ✅; fallback ⏳ | ⏳ QD-417 |
-| Journey 1–8 end to end in the UI | 🟡 Steps 1 (create opportunity) and 5 (submit) need the API | ⏳ QD-413, QD-412 |
+| Journey 1–8 end to end in the UI | 🟡 Step 5 (submit for approval) needs the API | ⏳ QD-412 |
 | Viewer reads shared or approved proposals | 🟡 Approved ✅; shared needs QD-414 | ⏳ QD-414 |
 
 ## Roadmap ([mvp-scope-and-roadmap.md](mvp-scope-and-roadmap.md)) and quality plans

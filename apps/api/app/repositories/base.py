@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,9 +26,3 @@ def get_tenant_scoped_or_404[T: TenantOwnedMixin](
     if obj is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     return obj
-
-
-def list_tenant_scoped[T: TenantOwnedMixin](
-    db: Session, model: type[T], organization_id: int
-) -> Sequence[T]:
-    return db.execute(select(model).where(model.organization_id == organization_id)).scalars().all()

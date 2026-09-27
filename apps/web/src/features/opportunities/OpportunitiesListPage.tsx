@@ -1,6 +1,15 @@
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 
 import { OpportunitiesTable } from "./OpportunitiesTable";
+import {
+  OpportunityFormDialog,
+  type OpportunityFormValues,
+} from "./OpportunityFormDialog";
 import {
   EmptyState,
   ErrorState,
@@ -8,6 +17,7 @@ import {
   Skeleton,
 } from "../../components/states/StateViews";
 import {
+  createOpportunity,
   fetchCustomers,
   fetchOpportunities,
   type Customer,
@@ -15,6 +25,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { describeError, type ErrorDescription } from "../../lib/errors";
+import { canEditProposals } from "../../lib/roles";
 
 function LoadingSkeleton() {
   return (
@@ -36,6 +47,9 @@ export function OpportunitiesListPage() {
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<ErrorDescription | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
+  const editable = !!me && canEditProposals(me.role);
 
   useEffect(() => {
     if (!token) {
@@ -63,16 +77,50 @@ export function OpportunitiesListPage() {
     setAttempt((n) => n + 1);
   }
 
+  async function handleCreate(values: OpportunityFormValues): Promise<void> {
+    if (!token) {
+      return;
+    }
+    let created: Opportunity;
+    try {
+      created = await createOpportunity(token, {
+        customer_id: values.customer_id,
+        title: values.title,
+      });
+    } catch (err) {
+      throw new Error(
+        describeError(err, {
+          action: "create this opportunity",
+          subject: "customer",
+          role: me?.role,
+        }).message,
+      );
+    }
+    toast.success(`${created.title} created`);
+    navigate(`/opportunities/${created.id}`);
+  }
+
   const isLoading = opportunities === null || customers === null;
+  const hasCustomers = !!customers && customers.length > 0;
 
   return (
     <div>
-      <h1 className="text-xl font-semibold tracking-tight text-foreground">
-        Opportunities
-      </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Every opportunity in the Northstar workspace.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Opportunities
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every opportunity in your organization.
+          </p>
+        </div>
+        {editable && hasCustomers && (
+          <Button onClick={() => setCreating(true)}>
+            <Plus aria-hidden="true" className="size-4" />
+            New opportunity
+          </Button>
+        )}
+      </div>
 
       {error ? (
         <ErrorState
@@ -82,11 +130,38 @@ export function OpportunitiesListPage() {
       ) : isLoading ? (
         <LoadingSkeleton />
       ) : opportunities.length === 0 ? (
-        <EmptyState message="No opportunities yet." />
+        <EmptyState
+          message={
+            editable && !hasCustomers
+              ? "No opportunities yet. Add a customer first, then create an opportunity for them."
+              : "No opportunities yet."
+          }
+          action={
+            editable && !hasCustomers ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/customers")}
+              >
+                Go to customers
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <OpportunitiesTable
           opportunities={opportunities}
           customers={customers}
+        />
+      )}
+
+      {editable && customers && (
+        <OpportunityFormDialog
+          mode="create"
+          customers={customers}
+          open={creating}
+          onOpenChange={setCreating}
+          onSubmit={handleCreate}
         />
       )}
     </div>

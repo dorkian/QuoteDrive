@@ -9,7 +9,9 @@ import {
   logout,
 } from "./helpers.ts";
 
-const OPPORTUNITY = "2026 Fleet Modernization & Mobility Services";
+const CUSTOMER = "Lombarda Studio Group";
+// Unique per run so the approval list link is unambiguous across reruns.
+const OPPORTUNITY = `E2E Fleet Renewal ${Date.now()}`;
 const LINES = [
   { option: "Electric City · $649.00/mo", quantity: "4" },
   { option: "Hybrid Account Manager · $549.00/mo", quantity: "5" },
@@ -20,10 +22,16 @@ test("manager builds and submits a proposal, approver approves, client preview r
   page,
   request,
 }) => {
-  // Manager: open the canonical opportunity and create a draft version.
+  // Manager: create a fresh opportunity for a seeded customer, then a draft.
   await loginViaUi(page, MANAGER);
   await page.goto("/opportunities");
-  await page.getByRole("link", { name: OPPORTUNITY }).first().click();
+  await page.getByRole("button", { name: "New opportunity" }).click();
+  const dialog = page.getByRole("dialog", { name: "New opportunity" });
+  await dialog.getByLabel("Customer").selectOption({ label: CUSTOMER });
+  await dialog.getByLabel("Title").fill(OPPORTUNITY);
+  await dialog.getByRole("button", { name: "Create opportunity" }).click();
+  await expect(page.getByRole("heading", { name: OPPORTUNITY })).toBeVisible();
+  await expect(page.getByText(CUSTOMER)).toBeVisible();
   await page.getByRole("button", { name: "Create draft version" }).click();
   await expect(page).toHaveURL(/\/opportunities\/\d+\/versions\/\d+$/);
   const versionId = Number(page.url().split("/").pop());

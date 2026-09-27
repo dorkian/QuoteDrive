@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +13,11 @@ import {
 } from "../../components/states/StateViews";
 import {
   createProposalVersion,
+  fetchCustomer,
   fetchOpportunity,
   fetchProposalVersions,
+  updateOpportunity,
+  type Customer,
   type Opportunity,
   type ProposalVersion,
 } from "../../lib/api";
@@ -21,6 +25,10 @@ import { useAuth } from "../../lib/auth-context";
 import { describeError, type ErrorDescription } from "../../lib/errors";
 import { canEditProposals } from "../../lib/roles";
 import { DiscoveryBriefPanel } from "./DiscoveryBriefPanel";
+import {
+  OpportunityFormDialog,
+  type OpportunityFormValues,
+} from "./OpportunityFormDialog";
 
 const NOT_FOUND: ErrorDescription = {
   message: "This opportunity doesn't exist or isn't in your organization.",
@@ -40,6 +48,10 @@ export function OpportunityDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [editing, setEditing] = useState(false);
+  // Bumped after an edit so the activity history refetches.
+  const [activityKey, setActivityKey] = useState(0);
 
   useEffect(() => {
     if (!token || isInvalidId) {
@@ -49,6 +61,10 @@ export function OpportunityDetailPage() {
       .then(([fetchedOpportunity, fetchedVersions]) => {
         setOpportunity(fetchedOpportunity);
         setVersions(fetchedVersions);
+        // The customer name is context, not essential: a failure leaves it out.
+        fetchCustomer(token, fetchedOpportunity.customer_id)
+          .then(setCustomer)
+          .catch(() => setCustomer(null));
       })
       .catch((err: unknown) =>
         setLoadError(
@@ -89,6 +105,32 @@ export function OpportunityDetailPage() {
     }
   }
 
+  async function handleEdit(values: OpportunityFormValues): Promise<void> {
+    if (!token) {
+      return;
+    }
+    let updated: Opportunity;
+    try {
+      updated = await updateOpportunity(token, id, {
+        title: values.title,
+        status: values.status,
+      });
+    } catch (err) {
+      throw new Error(
+        describeError(err, {
+          action: "save this opportunity",
+          subject: "opportunity",
+          role: me?.role,
+        }).message,
+      );
+    }
+    setOpportunity(updated);
+    setEditing(false);
+    setActivityKey((n) => n + 1);
+    toast.success("Opportunity saved");
+  }
+
+  const editable = !!me && canEditProposals(me.role);
   const error = isInvalidId ? NOT_FOUND : loadError;
 
   return (
@@ -113,16 +155,27 @@ export function OpportunityDetailPage() {
       ) : (
         <>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="min-w-0 text-xl font-semibold tracking-tight text-balance text-foreground">
-              {opportunity.title}
-            </h1>
-            {me && canEditProposals(me.role) && (
-              <Button
-                onClick={() => void handleCreateDraft()}
-                disabled={creating}
-              >
-                {creating ? "Creating…" : "Create draft version"}
-              </Button>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight text-balance text-foreground">
+                {opportunity.title}
+              </h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                {customer && <span>{customer.name}</span>}
+                <StatusBadge status={opportunity.status} />
+              </p>
+            </div>
+            {editable && (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  Edit details
+                </Button>
+                <Button
+                  onClick={() => void handleCreateDraft()}
+                  disabled={creating}
+                >
+                  {creating ? "Creating…" : "Create draft version"}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -139,7 +192,7 @@ export function OpportunityDetailPage() {
             <DiscoveryBriefPanel
               token={token}
               opportunity={opportunity}
-              editable={!!me && canEditProposals(me.role)}
+              editable={editable}
               onSaved={setOpportunity}
             />
           )}
@@ -170,6 +223,29 @@ export function OpportunityDetailPage() {
                 </li>
               ))}
             </ul>
+          )}
+
+          <section className="mt-10 border-t border-border pt-6">
+            <h2 className="mb-4 text-sm font-medium text-foreground">
+              Activity
+            </h2>
+            <ActivityTimeline
+              key={activityKey}
+              entityType="opportunity"
+              entityId={opportunity.id}
+              emptyMessage="No activity on this opportunity yet."
+            />
+          </section>
+
+          {editable && (
+            <OpportunityFormDialog
+              mode="edit"
+              opportunity={opportunity}
+              customerName={customer?.name ?? "this customer"}
+              open={editing}
+              onOpenChange={setEditing}
+              onSubmit={handleEdit}
+            />
           )}
         </>
       )}

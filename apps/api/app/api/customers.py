@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentMembership, get_current_membership, require_role
 from app.core.database import get_db
 from app.models import Customer, Opportunity, Role
-from app.repositories.base import get_tenant_scoped_or_404, list_tenant_scoped
+from app.repositories.base import get_tenant_scoped_or_404
 from app.schemas.customer import CustomerCreate, CustomerOut, CustomerUpdate
 from app.services.audit import record_audit_event
 
@@ -48,10 +48,17 @@ def create_customer(
 
 @router.get("", response_model=list[CustomerOut])
 def list_customers(
+    q: str | None = Query(default=None, max_length=200),
     current: CurrentMembership = Depends(get_current_membership),
     db: Session = Depends(get_db),
 ) -> list[Customer]:
-    return list(list_tenant_scoped(db, Customer, current.organization.id))
+    stmt = select(Customer).where(Customer.organization_id == current.organization.id)
+    if q is not None and q.strip():
+        # Case-insensitive substring match; escape LIKE wildcards so "%" and "_"
+        # in the search box match literally.
+        needle = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Customer.name.ilike(f"%{needle}%", escape="\\"))
+    return list(db.execute(stmt.order_by(Customer.name, Customer.id)).scalars().all())
 
 
 @router.get("/{customer_id}", response_model=CustomerOut)

@@ -9,7 +9,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 ### Added
 - **Tenancy and access**: demo sign-in with four roles (Admin, Proposal Manager, Approver, Viewer). Every query is scoped to the caller's organization, and cross-tenant access returns 404 (QD-101, QD-102, QD-105).
 - **Dashboard** with pipeline counts, pending approvals and an activity timeline (QD-103, QD-104, QD-304).
-- **Customers and opportunities** API with search and filters (QD-201).
+- **Customers and opportunities** API with search and filters (QD-201), and UI to search, create, edit and delete customers, create opportunities, edit their title and status, and see each opportunity's activity history (QD-413).
 - **Catalogue** of synthetic packages and add-ons (QD-202).
 - **Proposal builder** with live, server-calculated illustrative estimates (QD-203, QD-204) and a three-option package comparison (QD-206).
 - **Immutable proposal versions**: finalize freezes a version, and edits fork a new one (QD-205).
