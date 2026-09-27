@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class DashboardSummary(BaseModel):
     opportunities_by_status: dict[str, int]
+    proposal_versions_by_status: dict[str, int]
 
 
 class AuditEventOut(BaseModel):

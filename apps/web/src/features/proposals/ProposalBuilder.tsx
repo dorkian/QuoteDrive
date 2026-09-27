@@ -43,6 +43,7 @@ import {
   Skeleton,
 } from "../../components/states/StateViews";
 import { AiNarrativeEditor } from "./AiNarrativeEditor";
+import { VersionLifecycleActions } from "./VersionLifecycleActions";
 
 const ESTIMATE_DEBOUNCE_MS = 400;
 
@@ -315,6 +316,14 @@ export function ProposalBuilder() {
             </Button>
           )}
           <StatusBadge status={version.status} />
+          {token && me && canEditProposals(me.role) && (
+            <VersionLifecycleActions
+              token={token}
+              role={me.role}
+              version={version}
+              onChanged={setVersion}
+            />
+          )}
         </div>
       </div>
 

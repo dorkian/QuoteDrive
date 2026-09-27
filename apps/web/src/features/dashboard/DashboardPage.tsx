@@ -39,6 +39,10 @@ function LoadingSkeleton() {
   );
 }
 
+// Where approved versions end up; the other version statuses are work in
+// progress and already surface through Approvals.
+const OUTCOME_STATUSES = ["shared", "won", "lost", "expired"] as const;
+
 export function DashboardPage() {
   const { token, me } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -91,28 +95,45 @@ export function DashboardPage() {
       ) : summary === null ? (
         <LoadingSkeleton />
       ) : (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <section>
-            <h2 className="text-sm font-medium text-foreground">
-              Opportunities by status
-            </h2>
-            {statusEntries.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                No opportunities yet. Create one to see it here.
-              </p>
-            ) : (
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <KpiCard label="Total" value={total} />
-                {statusEntries.map(([status, count]) => (
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
+          <div className="flex flex-col gap-8">
+            <section>
+              <h2 className="text-sm font-medium text-foreground">
+                Opportunities by status
+              </h2>
+              {statusEntries.length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No opportunities yet. Create one to see it here.
+                </p>
+              ) : (
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <KpiCard label="Total" value={total} />
+                  {statusEntries.map(([status, count]) => (
+                    <KpiCard
+                      key={status}
+                      label={formatStatus(status)}
+                      value={count}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <h2 className="text-sm font-medium text-foreground">
+                Proposal outcomes
+              </h2>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {OUTCOME_STATUSES.map((status) => (
                   <KpiCard
                     key={status}
                     label={formatStatus(status)}
-                    value={count}
+                    value={summary.proposal_versions_by_status[status] ?? 0}
                   />
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          </div>
 
           <section className="rounded-lg border border-border bg-card p-4">
             <h2 className="mb-4 text-sm font-medium text-foreground">

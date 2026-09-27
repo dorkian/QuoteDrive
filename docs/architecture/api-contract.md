@@ -16,7 +16,7 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `POST /auth/demo-login` | public | `{email}` → `{access_token}`. Demo sign-in, local use only. |
 | `GET /me` | all | User, organization and role. |
 | `GET /health` | public | Liveness check. |
-| `GET /dashboard/summary` | all | Pipeline counts and pending approvals. |
+| `GET /dashboard/summary` | all | `opportunities_by_status` and `proposal_versions_by_status` counts. |
 | `GET\|POST /customers` | read: all · write: A, PM | Filter `q`: case-insensitive name search. Sorted by name. |
 | `GET\|PATCH\|DELETE /customers/{id}` | read: all · write: A, PM | DELETE returns 409 while opportunities reference the customer. |
 | `GET\|POST /opportunities` | read: all · write: A, PM | Filters: `customer_id`, `owner_id`, `status`. |
@@ -31,6 +31,8 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `PATCH /proposal-versions/{id}/narrative` | A, PM | Saves a human-reviewed narrative. |
 | `POST /proposal-versions/{id}/submit` | A, PM | `proposal_drafted` → `awaiting_approval`. No UI yet (QD-412). |
 | `POST /proposal-versions/{id}/approval-request` | A, PM | `{assigned_to}`: an Admin or Approver who is not the version's creator. No UI yet (QD-412). |
+| `POST /proposal-versions/{id}/share` | A, PM | `approved` → `shared`. Records the hand-off; nothing is sent. 400 from any other status. |
+| `POST /proposal-versions/{id}/outcome` | A, PM | `{outcome: won\|lost\|expired}`, `shared` → outcome (terminal). Won/Lost also set the opportunity status. 400 from any other status. |
 | `GET /approval-requests` | A, Ap | Filter `status`. |
 | `GET /approval-requests/{id}` | A, Ap | |
 | `POST /approval-requests/{id}/approve` | A, Ap | Optional comment. The creator of the version cannot approve it. |

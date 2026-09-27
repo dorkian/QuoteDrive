@@ -28,6 +28,7 @@ QuoteDrive is an educational portfolio case study. It demonstrates product think
 | 4. Finalize | Proposal Manager | The version is frozen. Any later change forks a new version. |
 | 5. Approve | Approver | Reviews the version and its diff against the previous one, then approves or requests changes (with a comment). You cannot approve your own work. |
 | 6. Share | Anyone in the tenant | An approved version renders as a print-friendly client preview. |
+| 7. Outcome | Proposal Manager | Mark the version as shared with the customer, then record Won, Lost or Expired. Won and Lost close the opportunity; the dashboard counts outcomes. |
 
 Four roles per tenant: **Admin**, **Proposal Manager**, **Approver**, **Viewer**. Every read and write is scoped to the signed-in user's organization.
 
@@ -153,7 +154,6 @@ Details, and how to run everything locally: [docs/quality/quality-gates.md](docs
 
 Known gaps in v1.0.0. Each planned item that isn't built yet has a card; the full audit is in [plan-vs-built.md](docs/product/plan-vs-built.md).
 - **No "submit for approval" button.** The API supports it (QD-412).
-- **No share or won/lost/expired outcome steps** after approval (QD-414).
 - Members can change roles, but there are no invitations: new members come from the seed.
 - **No automatic provider fallback or retry.** One provider is configured at a time (QD-417, [ADR-005](docs/adr/ADR-005-provider-abstraction.md)).
 - **The output guard is heuristic.** It can reject harmless text such as "no discount is offered"; scoring and a pass-percentage threshold are planned (QD-418).

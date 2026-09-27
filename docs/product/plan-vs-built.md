@@ -23,7 +23,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | Commitment | Status | Where / card |
 |---|---|---|
 | Draft → Configured → Proposal Drafted → Awaiting Approval → Approved / Changes Requested | ✅ (submit has no UI yet) | QD-205, QD-301; ⏳ QD-412 |
-| Approved → Shared → Won / Lost / Expired; "Share" and "Record outcome" permissions | ⏳ Statuses exist, no transitions | ⏳ QD-414 |
+| Approved → Shared → Won / Lost / Expired; "Share" and "Record outcome" permissions | ✅ Share and outcome actions on the version page, dashboard outcome counts (QD-414) | — |
 | "Manage catalogue items" (Admin) | ✅ | QD-415 |
 | Release-blocking tests: cross-tenant, viewer mutation, self-approval, illegal transition, provider failure without state change | ✅ | QD-105, QD-301, QD-403 |
 
@@ -46,7 +46,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | Admin configures the workspace: catalogue, members, roles, feature settings | 🟡 Settings › Members (QD-416) and Settings › Catalogue (QD-415). AI settings still to come | ⏳ QD-417 (AI setting) |
 | Goal 3: AI provenance, **fallback behavior** and human review visible | 🟡 Provenance and review ✅; fallback ⏳ | ⏳ QD-417 |
 | Journey 1–8 end to end in the UI | 🟡 Step 5 (submit for approval) needs the API | ⏳ QD-412 |
-| Viewer reads shared or approved proposals | 🟡 Approved ✅; shared needs QD-414 | ⏳ QD-414 |
+| Viewer reads shared or approved proposals | ✅ Client preview covers approved, shared and closed versions | QD-401, QD-414 |
 
 ## Roadmap ([mvp-scope-and-roadmap.md](mvp-scope-and-roadmap.md)) and quality plans
 | Commitment | Status | Where / card |

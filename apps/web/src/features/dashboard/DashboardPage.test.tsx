@@ -41,6 +41,7 @@ describe("DashboardPage", () => {
   it("renders status chips and the activity timeline once data loads", async () => {
     vi.mocked(api.fetchDashboardSummary).mockResolvedValue({
       opportunities_by_status: { open: 2 },
+      proposal_versions_by_status: { shared: 1, won: 3 },
     });
     vi.mocked(api.fetchAuditEvents).mockResolvedValue([
       {
@@ -66,6 +67,15 @@ describe("DashboardPage", () => {
         screen.getByRole("group", { name: "Open: 2" }),
       ).toBeInTheDocument(),
     );
+    expect(
+      screen.getByRole("group", { name: "Shared: 1" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Won: 3" })).toBeInTheDocument();
+    // Outcomes with no versions still show, as zero.
+    expect(screen.getByRole("group", { name: "Lost: 0" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Expired: 0" }),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByText("Proposal Manager")).toBeInTheDocument(),
     );
@@ -78,7 +88,10 @@ describe("DashboardPage", () => {
   it("shows an error with a working retry when the summary fails to load", async () => {
     vi.mocked(api.fetchDashboardSummary)
       .mockRejectedValueOnce(new ApiError(500, "Failed", null))
-      .mockResolvedValueOnce({ opportunities_by_status: { open: 1 } });
+      .mockResolvedValueOnce({
+        opportunities_by_status: { open: 1 },
+        proposal_versions_by_status: {},
+      });
     vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
 
     renderAuthenticated();
@@ -101,6 +114,7 @@ describe("DashboardPage", () => {
   it("shows guidance empty states when there is no data yet", async () => {
     vi.mocked(api.fetchDashboardSummary).mockResolvedValue({
       opportunities_by_status: {},
+      proposal_versions_by_status: {},
     });
     vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
 
