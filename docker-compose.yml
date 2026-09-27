@@ -22,6 +22,16 @@ services:
       POSTGRES_SERVER: db
       POSTGRES_PORT: "5432"
       POSTGRES_DB: quotedrive
+      # AI drafting: FakeProvider unless configured (see README "Turn on AI drafting").
+      AI_PROVIDER: ${AI_PROVIDER:-fake}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-4o-mini}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3}
+      AI_REQUEST_TIMEOUT_SECONDS: ${AI_REQUEST_TIMEOUT_SECONDS:-30}
+    extra_hosts:
+      # Lets the container reach Ollama on the host (needed on Linux).
+      - "host.docker.internal:host-gateway"
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:

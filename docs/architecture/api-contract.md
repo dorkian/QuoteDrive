@@ -1,28 +1,50 @@
-# API Contract (MVP)
+# API Contract (v1.0.0)
+
+Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The interactive, always-current version is at `http://localhost:8000/docs`.
 
 ## Conventions
-- REST JSON under `/api/v1`.
-- Authenticated context identifies the active organization.
-- Errors use `{ "code": "...", "message": "...", "details": [] }`.
+- REST JSON at the root path (no `/api/v1` prefix).
+- Authentication: `Authorization: Bearer <token>` from `POST /auth/demo-login`. The token identifies the user; the active organization comes from their membership, never from the request body.
+- Errors use FastAPI's shape: `{ "detail": "<message>" }` (validation errors: `{ "detail": [ ... ] }`).
+- Cross-tenant access returns **404**, not 403, so a caller cannot learn that another tenant's record exists.
+- Roles: A = Admin, PM = Proposal Manager, Ap = Approver, V = Viewer.
 
-## Core endpoints
-- `POST /auth/demo-login`
-- `GET /me`
-- `GET|POST /customers`
-- `GET|PATCH /customers/{id}`
-- `GET|POST /opportunities`
-- `GET|PATCH /opportunities/{id}`
-- `GET /catalogue/items`
-- `POST /opportunities/{id}/versions`
-- `GET /proposal-versions/{id}`
-- `POST /proposal-versions/{id}/submit`
-- `POST /proposal-versions/{id}/approval-request`
-- `GET /approval-requests`
-- `GET /approval-requests/{id}`
-- `POST /approval-requests/{id}/approve`
-- `POST /approval-requests/{id}/request-changes`
-- `POST /ai/proposal-narrative`
-- `POST /ai/discovery-brief` — `{opportunity_id, notes}` → draft `{summary, requirements[], open_questions[], unknowns[], disclaimer, provider, model}`. Never persisted; the reviewed brief is saved via `PATCH /opportunities/{id}` (`brief_json`), which records the audit event. Admin/Proposal Manager only; failures 502/504 like the narrative endpoint.
-- `GET /audit-events?entity_type=&entity_id=&limit=&before_id=` (includes `actor_name`, snapshotted at write time)
+## Endpoints
 
-No endpoint accepts a client-trusted tenant ID for authorization.
+| Method and path | Roles | Notes |
+|---|---|---|
+| `POST /auth/demo-login` | public | `{email}` → `{access_token}`. Demo sign-in, local use only. |
+| `GET /me` | all | User, organization and role. |
+| `GET /health` | public | Liveness check. |
+| `GET /dashboard/summary` | all | Pipeline counts and pending approvals. |
+| `GET\|POST /customers` | read: all · write: A, PM | |
+| `GET\|PATCH\|DELETE /customers/{id}` | read: all · write: A, PM | DELETE returns 409 while opportunities reference the customer. |
+| `GET\|POST /opportunities` | read: all · write: A, PM | Filters: `customer_id`, `owner_id`, `status`. |
+| `GET\|PATCH\|DELETE /opportunities/{id}` | read: all · write: A, PM | PATCH `brief_json` saves a reviewed discovery brief and records an audit event. |
+| `GET /catalogue/items` | all | Packages and add-ons for the tenant. |
+| `POST /estimates/calculate` | A, PM | Stateless illustrative estimate for a set of lines, with disclaimer. |
+| `GET\|POST /opportunities/{id}/versions` | read: all · write: A, PM | POST with optional `from_version_id` forks a new draft from any version. |
+| `GET\|PATCH /proposal-versions/{id}` | read: all · write: A, PM | PATCH lines only while `draft`/`configured`; otherwise 400 (immutable). |
+| `POST /proposal-versions/{id}/finalize` | A, PM | `configured` → `proposal_drafted`. |
+| `PATCH /proposal-versions/{id}/narrative` | A, PM | Saves a human-reviewed narrative. |
+| `POST /proposal-versions/{id}/submit` | A, PM | `proposal_drafted` → `awaiting_approval`. No UI yet (QD-412). |
+| `POST /proposal-versions/{id}/approval-request` | A, PM | `{assigned_to}`: an Admin or Approver who is not the version's creator. No UI yet (QD-412). |
+| `GET /approval-requests` | A, Ap | Filter `status`. |
+| `GET /approval-requests/{id}` | A, Ap | |
+| `POST /approval-requests/{id}/approve` | A, Ap | Optional comment. The creator of the version cannot approve it. |
+| `POST /approval-requests/{id}/request-changes` | A, Ap | Comment required; forks a new draft version. |
+| `POST /ai/proposal-narrative` | A, PM | `{proposal_version_id, timeline?}` → draft narrative with `disclaimer`, `provider`, `model`. Not persisted. |
+| `POST /ai/discovery-brief` | A, PM | `{opportunity_id, notes}` → draft `{summary, requirements[], open_questions[], unknowns[], disclaimer, provider, model}`. Not persisted. |
+| `GET /audit-events` | all | `entity_type`, `entity_id`, `limit`, `before_id`. Includes `actor_name` captured at write time. |
+
+## AI endpoint failures
+Both AI endpoints behave the same way on failure. A failed attempt is logged in `generation_logs` and nothing is saved.
+
+| Status | Cause |
+|---|---|
+| 400 | Proposal has no lines (narrative only). |
+| 500 | Provider misconfigured (e.g. missing API key). |
+| 502 | Provider error, output that fails the schema, or output rejected by the output guard. |
+| 504 | Provider timeout. |
+
+No endpoint accepts a client-supplied tenant ID for authorization.

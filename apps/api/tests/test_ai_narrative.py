@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable, Generator
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -323,3 +324,28 @@ def test_generate_narrative_rejects_invented_discount(
     assert log.status == "error"
     assert log.error_detail is not None
     assert log.error_detail.startswith("Output guard: ")
+
+
+def test_generate_narrative_may_state_the_proposal_total(
+    client: TestClient,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    db_session: Session,
+) -> None:
+    # Regression (QD-406): the total was missing from the prompt data, so the
+    # output guard rejected correct drafts that quoted it.
+    proposal_version.total_estimate = Decimal("6799.00")
+    db_session.commit()
+    stating_total = {**VALID_NARRATIVE, "executive_summary": "Estimated at $6,799.00 per month."}
+    app.dependency_overrides[get_ai_provider] = lambda: FakeProvider(
+        fixture_text=json.dumps(stating_total)
+    )
+
+    response = client.post(
+        "/ai/proposal-narrative",
+        json={"proposal_version_id": proposal_version.id, "timeline": "Q4"},
+        headers=_auth(login(two_orgs.manager_a)),
+    )
+
+    assert response.status_code == 200, response.text
