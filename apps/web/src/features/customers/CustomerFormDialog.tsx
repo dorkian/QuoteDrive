@@ -88,7 +88,7 @@ function CustomerForm({
         </DialogDescription>
       </DialogHeader>
       <form
-        className="mt-2 flex flex-col gap-4"
+        className="flex flex-col gap-4"
         onSubmit={(event) => void handleSubmit(event)}
         noValidate
       >

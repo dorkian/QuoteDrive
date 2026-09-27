@@ -228,60 +228,62 @@ export function CustomersPage() {
           }
         />
       ) : (
-        <Table className="mt-4">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead>Customer</TableHead>
-              <TableHead className="hidden sm:table-cell">Industry</TableHead>
-              <TableHead className="w-28">Status</TableHead>
-              {editable && (
-                <TableHead className="w-24">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell className="font-medium text-foreground">
-                  {customer.name}
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground sm:table-cell">
-                  {customer.industry ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={customer.status} />
-                </TableCell>
+        <div className="mt-4">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Customer</TableHead>
+                <TableHead className="hidden sm:table-cell">Industry</TableHead>
+                <TableHead className="w-28">Status</TableHead>
                 {editable && (
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Edit ${customer.name}`}
-                        onClick={() => setForm({ mode: "edit", customer })}
-                      >
-                        <Pencil aria-hidden="true" className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Delete ${customer.name}`}
-                        onClick={() => {
-                          setDeleteError(null);
-                          setPendingDelete(customer);
-                        }}
-                      >
-                        <Trash2 aria-hidden="true" className="size-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  <TableHead className="w-24">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 )}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {customers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell className="font-medium text-foreground">
+                    {customer.name}
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    {customer.industry ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={customer.status} />
+                  </TableCell>
+                  {editable && (
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Edit ${customer.name}`}
+                          onClick={() => setForm({ mode: "edit", customer })}
+                        >
+                          <Pencil aria-hidden="true" className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Delete ${customer.name}`}
+                          onClick={() => {
+                            setDeleteError(null);
+                            setPendingDelete(customer);
+                          }}
+                        >
+                          <Trash2 aria-hidden="true" className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {editable && (
