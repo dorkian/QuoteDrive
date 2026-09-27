@@ -58,6 +58,9 @@ def build_prompt(
         f"Opportunity: {opportunity.title}\n"
         f"{brief_line}"
         f"Proposal Version Content:\n{json.dumps(version.content_json, indent=2)}\n"
+        # The total is server-calculated (ADR-003); include it so the model may state it
+        # and the output guard accepts it.
+        f"Total illustrative monthly estimate: ${version.total_estimate}\n"
         f"{timeline_line}"
     )
     # Restated after the data so it is the last thing the model reads (QD-410).
