@@ -20,6 +20,8 @@ interface AuthContextValue {
   error: string | null;
   login: (email: string) => Promise<void>;
   logout: () => void;
+  /** Re-reads /me, e.g. after the user's own role changed. */
+  refreshMe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -79,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshMe(): Promise<void> {
+    if (!token) {
+      return;
+    }
+    setMe(await fetchMe(token));
+  }
+
   function logout(): void {
     setError(null);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -88,7 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ status, me, token, error, login, logout }}>
+    <AuthContext.Provider
+      value={{ status, me, token, error, login, logout, refreshMe }}
+    >
       {children}
     </AuthContext.Provider>
   );

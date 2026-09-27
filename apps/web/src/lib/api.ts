@@ -325,6 +325,38 @@ export async function updateOpportunity(
   return (await res.json()) as Opportunity;
 }
 
+export interface Member {
+  user_id: number;
+  email: string;
+  display_name: string;
+  role: Role;
+}
+
+export async function fetchMembers(token: string): Promise<Member[]> {
+  const res = await fetch(`${API_URL}/organization/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to load members");
+  return (await res.json()) as Member[];
+}
+
+export async function updateMemberRole(
+  token: string,
+  userId: number,
+  role: Role,
+): Promise<Member> {
+  const res = await fetch(`${API_URL}/organization/members/${userId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+  await throwIfNotOk(res, "Failed to change role");
+  return (await res.json()) as Member;
+}
+
 export async function fetchCatalogueItems(
   token: string,
 ): Promise<CatalogueItem[]> {

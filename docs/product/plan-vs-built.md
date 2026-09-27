@@ -43,7 +43,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 ## Product vision and journeys ([product-vision.md](product-vision.md), [personas-and-user-journeys.md](personas-and-user-journeys.md))
 | Commitment | Status | Where / card |
 |---|---|---|
-| Admin configures the workspace: catalogue, members, roles, feature settings | ⏳ The Settings page is a placeholder | ⏳ QD-415, QD-416, QD-417 (AI setting) |
+| Admin configures the workspace: catalogue, members, roles, feature settings | 🟡 Settings › Members: list members and change roles, with a last-Admin guard (QD-416). Catalogue and AI settings still to come | ⏳ QD-415, QD-417 (AI setting) |
 | Goal 3: AI provenance, **fallback behavior** and human review visible | 🟡 Provenance and review ✅; fallback ⏳ | ⏳ QD-417 |
 | Journey 1–8 end to end in the UI | 🟡 Step 5 (submit for approval) needs the API | ⏳ QD-412 |
 | Viewer reads shared or approved proposals | 🟡 Approved ✅; shared needs QD-414 | ⏳ QD-414 |
