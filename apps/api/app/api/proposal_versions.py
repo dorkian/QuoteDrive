@@ -20,6 +20,7 @@ from app.models import (
 from app.repositories.base import get_tenant_scoped_or_404
 from app.schemas.approval_request import ApprovalRequestCreate, ApprovalRequestOut
 from app.schemas.proposal_version import (
+    ProposalOutcomeCreate,
     ProposalVersionCreate,
     ProposalVersionNarrativeUpdate,
     ProposalVersionOut,
@@ -355,6 +356,94 @@ def update_proposal_version_narrative(
         before={"has_narrative": not was_none},
         after={"has_narrative": True, "provider": body.provider, "model": body.model},
     )
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+@router.post("/proposal-versions/{version_id}/share", response_model=ProposalVersionOut)
+def share_proposal_version(
+    version_id: int,
+    current: CurrentMembership = Depends(_can_edit),
+    db: Session = Depends(get_db),
+) -> ProposalVersion:
+    """Record that an approved version went to the customer. Nothing is sent."""
+    version = get_tenant_scoped_or_404(
+        db, ProposalVersion, version_id, current.organization.id, for_update=True
+    )
+    if version.status != ProposalVersionStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only an approved version can be shared",
+        )
+
+    version.status = ProposalVersionStatus.SHARED
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        actor_name=current.user.display_name,
+        entity_type="proposal_version",
+        entity_id=version.id,
+        action="share",
+        before={"status": ProposalVersionStatus.APPROVED.value},
+        after={"status": version.status.value},
+    )
+    db.commit()
+    db.refresh(version)
+    return version
+
+
+@router.post("/proposal-versions/{version_id}/outcome", response_model=ProposalVersionOut)
+def record_proposal_outcome(
+    version_id: int,
+    body: ProposalOutcomeCreate,
+    current: CurrentMembership = Depends(_can_edit),
+    db: Session = Depends(get_db),
+) -> ProposalVersion:
+    version = get_tenant_scoped_or_404(
+        db, ProposalVersion, version_id, current.organization.id, for_update=True
+    )
+    if version.status != ProposalVersionStatus.SHARED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An outcome can only be recorded for a shared version",
+        )
+
+    version.status = ProposalVersionStatus(body.outcome)
+    record_audit_event(
+        db,
+        organization_id=current.organization.id,
+        actor_id=current.user.id,
+        actor_name=current.user.display_name,
+        entity_type="proposal_version",
+        entity_id=version.id,
+        action="outcome",
+        before={"status": ProposalVersionStatus.SHARED.value},
+        after={"status": version.status.value},
+    )
+
+    # Won and lost settle the deal, so the opportunity follows. An expired
+    # proposal leaves the opportunity open for a new version.
+    if body.outcome in ("won", "lost"):
+        opportunity = get_tenant_scoped_or_404(
+            db, Opportunity, version.opportunity_id, current.organization.id
+        )
+        if opportunity.status != body.outcome:
+            before_status = opportunity.status
+            opportunity.status = body.outcome
+            record_audit_event(
+                db,
+                organization_id=current.organization.id,
+                actor_id=current.user.id,
+                actor_name=current.user.display_name,
+                entity_type="opportunity",
+                entity_id=opportunity.id,
+                action="update",
+                before={"title": opportunity.title, "status": before_status},
+                after={"title": opportunity.title, "status": opportunity.status},
+            )
+
     db.commit()
     db.refresh(version)
     return version

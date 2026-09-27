@@ -19,6 +19,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 - **Output guard** that rejects drafts containing figures not in the proposal data, or unsupported discount wording (QD-410).
 - **Workspace settings › Members**: Admins list members and change roles; the last Admin can't be demoted, and every change is audited (QD-416).
 - **Workspace settings › Catalogue**: Admins add, edit, deactivate and reactivate packages and add-ons. Inactive items can't be quoted; saved versions keep their prices (QD-415).
+- **Share and outcome**: mark an approved version as shared, then record Won, Lost or Expired; Won and Lost close the opportunity, and the dashboard counts outcomes (QD-414).
 - **Client-ready proposal preview** for approved versions, print-friendly (QD-401).
 - **Loading, empty, error and forbidden states** across the app (QD-402).
 - **UI foundation**: shadcn/ui components on Radix, a collapsible sidebar, breadcrumbs, a ⌘K command menu, confirmation dialogs and toasts (QD-409, ADR-008).

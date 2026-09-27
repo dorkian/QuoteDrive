@@ -47,3 +47,7 @@ class ProposalVersionOut(BaseModel):
     narrative_json: dict[str, Any] | None = None
     total_estimate: Decimal
     created_by: int
+
+
+class ProposalOutcomeCreate(BaseModel):
+    outcome: Literal["won", "lost", "expired"]

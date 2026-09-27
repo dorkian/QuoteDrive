@@ -24,6 +24,7 @@ export interface Me {
 
 export interface DashboardSummary {
   opportunities_by_status: Record<string, number>;
+  proposal_versions_by_status: Partial<Record<ProposalVersionStatus, number>>;
 }
 
 export interface AuditEvent {
@@ -489,6 +490,37 @@ export async function finalizeProposalVersion(
     },
   );
   await throwIfNotOk(res, "Failed to finalize proposal version");
+  return (await res.json()) as ProposalVersion;
+}
+
+export async function shareProposalVersion(
+  token: string,
+  versionId: number,
+): Promise<ProposalVersion> {
+  const res = await fetch(`${API_URL}/proposal-versions/${versionId}/share`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to mark the version as shared");
+  return (await res.json()) as ProposalVersion;
+}
+
+export type ProposalOutcome = "won" | "lost" | "expired";
+
+export async function recordProposalOutcome(
+  token: string,
+  versionId: number,
+  outcome: ProposalOutcome,
+): Promise<ProposalVersion> {
+  const res = await fetch(`${API_URL}/proposal-versions/${versionId}/outcome`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ outcome }),
+  });
+  await throwIfNotOk(res, "Failed to record the outcome");
   return (await res.json()) as ProposalVersion;
 }
 

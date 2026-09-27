@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentMembership, get_current_membership
 from app.core.database import get_db
-from app.models import AuditEvent, Opportunity
+from app.models import AuditEvent, Opportunity, ProposalVersion
 from app.schemas.dashboard import AuditEventOut, DashboardSummary
 
 router = APIRouter(tags=["dashboard"])
@@ -20,7 +20,15 @@ def get_dashboard_summary(
         .where(Opportunity.organization_id == current.organization.id)
         .group_by(Opportunity.status)
     ).all()
-    return DashboardSummary(opportunities_by_status={status: count for status, count in rows})
+    version_rows = db.execute(
+        select(ProposalVersion.status, func.count())
+        .where(ProposalVersion.organization_id == current.organization.id)
+        .group_by(ProposalVersion.status)
+    ).all()
+    return DashboardSummary(
+        opportunities_by_status={status: count for status, count in rows},
+        proposal_versions_by_status={status.value: count for status, count in version_rows},
+    )
 
 
 @router.get("/audit-events", response_model=list[AuditEventOut])

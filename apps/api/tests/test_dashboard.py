@@ -17,7 +17,7 @@ def test_summary_is_empty_for_an_org_with_no_opportunities(
     response = client.get("/dashboard/summary", headers=_auth(token))
 
     assert response.status_code == 200
-    assert response.json() == {"opportunities_by_status": {}}
+    assert response.json() == {"opportunities_by_status": {}, "proposal_versions_by_status": {}}
 
 
 def test_summary_counts_are_scoped_to_the_caller_org(
@@ -44,7 +44,10 @@ def test_summary_counts_are_scoped_to_the_caller_org(
     response = client.get("/dashboard/summary", headers=_auth(manager_a_token))
 
     assert response.status_code == 200
-    assert response.json() == {"opportunities_by_status": {"open": 2}}
+    assert response.json() == {
+        "opportunities_by_status": {"open": 2},
+        "proposal_versions_by_status": {},
+    }
 
 
 def test_audit_events_appear_after_create_and_update_most_recent_first(

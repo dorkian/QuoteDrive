@@ -34,7 +34,8 @@ test("manager builds and submits a proposal, approver approves, client preview r
   await expect(page.getByText(CUSTOMER)).toBeVisible();
   await page.getByRole("button", { name: "Create draft version" }).click();
   await expect(page).toHaveURL(/\/opportunities\/\d+\/versions\/\d+$/);
-  const versionId = Number(page.url().split("/").pop());
+  const [, opportunityId, versionId] =
+    /\/opportunities\/(\d+)\/versions\/(\d+)$/.exec(page.url())!.map(Number);
 
   // Build the three options from the demo scenario.
   for (const [index, line] of LINES.entries()) {
@@ -90,7 +91,23 @@ test("manager builds and submits a proposal, approver approves, client preview r
     page.getByText("Proposal version approved successfully."),
   ).toBeVisible();
 
-  // Client preview of the approved version.
+  await logout(page);
+
+  // Manager: mark the approved version as shared, then record the win.
+  await loginViaUi(page, MANAGER);
+  await page.goto(`/opportunities/${opportunityId}/versions/${versionId}`);
+  await page.getByRole("button", { name: "Mark as shared" }).click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Mark as shared" })
+    .click();
+  await page.getByRole("button", { name: "Record outcome" }).click();
+  const outcomeDialog = page.getByRole("alertdialog");
+  await outcomeDialog.getByRole("radio", { name: /^Won/ }).check();
+  await outcomeDialog.getByRole("button", { name: "Record outcome" }).click();
+  await expect(page.getByText("Won", { exact: true })).toBeVisible();
+
+  // Client preview of the shared, won version.
   await page.goto(`/proposal-versions/${versionId}/preview`);
   await expect(
     page.getByRole("row", { name: "Estimated monthly total $7,528.00" }),

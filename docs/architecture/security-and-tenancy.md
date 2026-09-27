@@ -47,8 +47,8 @@ Rejection branch: `Awaiting Approval → Changes Requested` (terminal for that v
 | Proposal Drafted | Submit for approval | Awaiting Approval | Admin, Proposal Manager | version snapshot becomes stable (ADR-006) |
 | Awaiting Approval | Approve | Approved | Admin, Approver | actor ≠ `created_by` |
 | Awaiting Approval | Request changes | this version → Changes Requested (terminal); new version created in Draft | Admin, Approver | actor ≠ `created_by`; the requested-changes version stays immutable, same as any other closed version (ADR-006) |
-| Approved | Share with customer | Shared | Admin, Proposal Manager | — |
-| Shared | Outcome recorded | Won / Lost / Expired | Admin, Proposal Manager | terminal states |
+| Approved | Share with customer (`POST …/share`) | Shared | Admin, Proposal Manager | records the hand-off only; nothing is sent |
+| Shared | Outcome recorded (`POST …/outcome`) | Won / Lost / Expired | Admin, Proposal Manager | terminal states. Won and Lost also set the opportunity status; Expired leaves the opportunity open |
 | Approved, Shared | Edit | new Draft version | Admin, Proposal Manager | prior version immutable (ADR-006); editing creates a new version (FR-04) |
 
 Every transition is server-side only and must emit an `audit_events` row (FR-05). Queue/approval-queue queries must scope to `awaiting_approval` only — a version moved to `changes_requested` is no longer pending review.

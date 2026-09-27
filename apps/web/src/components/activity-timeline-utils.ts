@@ -120,6 +120,27 @@ export function describeEvent(event: AuditEvent): EventDescription {
         entityReference: ref,
       };
     }
+    if (action === "save_narrative") {
+      return {
+        actionDescription: "saved the narrative of proposal version",
+        entityReference: ref,
+      };
+    }
+    if (action === "share") {
+      return {
+        actionDescription: "marked as shared proposal version",
+        entityReference: ref,
+      };
+    }
+    if (action === "outcome") {
+      const outcome = typeof json.status === "string" ? json.status : null;
+      return {
+        actionDescription: outcome
+          ? `recorded ${outcome} for proposal version`
+          : "recorded the outcome of proposal version",
+        entityReference: ref,
+      };
+    }
     if (action === "archive") {
       return {
         actionDescription: "archived proposal version",
@@ -146,6 +167,42 @@ export function describeEvent(event: AuditEvent): EventDescription {
       return {
         actionDescription: "requested changes on request",
         entityReference: ref,
+      };
+    }
+  }
+
+  if (entity_type === "membership" && action === "role_change") {
+    const name =
+      typeof json.display_name === "string" ? json.display_name : null;
+    const role = typeof json.role === "string" ? json.role : null;
+    return {
+      actionDescription: role
+        ? `changed the role to ${role.replace(/_/g, " ")} for`
+        : "changed the role of",
+      entityReference: name ?? `member #${entity_id}`,
+    };
+  }
+
+  if (entity_type === "catalogue_item") {
+    const name = typeof json.name === "string" ? json.name : `#${entity_id}`;
+    if (action === "create") {
+      return {
+        actionDescription: "added catalogue item",
+        entityReference: name,
+      };
+    }
+    if (action === "update") {
+      const deactivated =
+        before_json?.active === true && after_json?.active === false;
+      const reactivated =
+        before_json?.active === false && after_json?.active === true;
+      return {
+        actionDescription: deactivated
+          ? "deactivated catalogue item"
+          : reactivated
+            ? "reactivated catalogue item"
+            : "updated catalogue item",
+        entityReference: name,
       };
     }
   }
