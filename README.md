@@ -151,13 +151,16 @@ Details, and how to run everything locally: [docs/quality/quality-gates.md](docs
 
 ## Known limitations and deferred scope
 
-Known limitations in v1.0.0:
-- **No "submit for approval" button.** The API supports it; the UI step is [QD-412](docs/product/backlog.md).
-- **No automatic provider fallback.** One provider is configured at a time. [ADR-005](docs/adr/ADR-005-provider-abstraction.md) plans OpenRouter → Ollama fallback, but it is not built.
+Known gaps in v1.0.0. Each planned item that isn't built yet has a card; the full audit is in [plan-vs-built.md](docs/product/plan-vs-built.md).
+- **Customers and opportunities are created through the API only.** The Customers page is a placeholder (QD-413).
+- **No "submit for approval" button.** The API supports it (QD-412).
+- **No share or won/lost/expired outcome steps** after approval (QD-414).
+- **The catalogue is seed-only**, with no Admin editing (QD-415). **No member or role management**: the Settings page is a placeholder (QD-416).
+- **No automatic provider fallback or retry.** One provider is configured at a time (QD-417, [ADR-005](docs/adr/ADR-005-provider-abstraction.md)).
+- **The output guard is heuristic.** It can reject harmless text such as "no discount is offered"; scoring and a pass-percentage threshold are planned (QD-418).
 - **FakeProvider is the default**, so AI drafting shows an error until a provider is configured.
-- **The output guard is heuristic.** It uses pattern matching, so it can reject harmless text such as "no discount is offered".
-- **Demo sign-in only.** No passwords or SSO. Sign-in is for local use and must not be exposed publicly.
-- **E2E runs manually in CI** until the end of the current sprint ([QD-411](docs/product/backlog.md)).
+- **Demo sign-in only.** No passwords or SSO. For local use only, and never to be exposed publicly. The sign-in buttons also have an accessibility defect (QD-419).
+- **E2E runs manually in CI** until the end of the current sprint (QD-411).
 - **Dark theme only.**
 
 Deliberately out of scope: billing, sending email, PDF rendering (the preview is print-friendly HTML), SSO, third-party integrations, real marketplace data, public deployment, and autonomous agents. See [MVP scope and roadmap](docs/product/mvp-scope-and-roadmap.md).
@@ -170,7 +173,7 @@ QuoteDrive is not a financial institution, lender, credit-scoring system, bindin
 
 | Area | Start here |
 |---|---|
-| Product | [Vision](docs/product/product-vision.md) · [Requirements](docs/product/functional-requirements.md) · [Backlog](docs/product/backlog.md) · [Demo scenario](docs/product/demo-scenario.md) |
+| Product | [Vision](docs/product/product-vision.md) · [Requirements](docs/product/functional-requirements.md) · [Backlog](docs/product/backlog.md) · [Plan vs built](docs/product/plan-vs-built.md) · [Demo scenario](docs/product/demo-scenario.md) |
 | Architecture | [Decisions (ADR index)](docs/adr/README.md) · [API contract](docs/architecture/api-contract.md) · [Data model](docs/architecture/data-model.md) |
 | Quality | [Quality gates](docs/quality/quality-gates.md) · [Test strategy](docs/quality/test-strategy.md) · [AI evaluation plan](docs/quality/ai-evaluation-plan.md) |
 | Operations | [Local development](docs/runbooks/local-development.md) · [AI provider failure](docs/runbooks/ai-provider-failure.md) · [Release checklist](docs/runbooks/release-checklist.md) |

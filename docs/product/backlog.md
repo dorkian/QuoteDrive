@@ -1,6 +1,6 @@
 # Backlog
 
-Mirrors the **QuoteDrive — MVP Delivery** Trello board (the source of truth for status) as of 2026-09-26. IDs match the board; earlier drafts of this file numbered some Sprint 3–4 items differently.
+Mirrors the **QuoteDrive — MVP Delivery** Trello board (the source of truth for status) as of 2026-09-27. Gaps against the original plan are tracked in [plan-vs-built.md](plan-vs-built.md). IDs match the board; earlier drafts of this file numbered some Sprint 3–4 items differently.
 
 | ID | Outcome | Sprint | Status |
 |---|---|---|---|
@@ -41,6 +41,13 @@ Mirrors the **QuoteDrive — MVP Delivery** Trello board (the source of truth fo
 | QD-410 | Harden AI narrative against injected instructions and invented commercial terms | 4 | Done |
 | QD-411 | Enable E2E in CI at sprint end (make Playwright a merge gate) | 4 | Inbox |
 | QD-412 | UI: submit a finalized version for approval (pick approver) | 4 | Inbox |
+| QD-413 | Customers & opportunities UI: create, edit, search, activity history | 4 | Inbox |
+| QD-414 | Share with customer and record outcome (Approved → Shared → Won/Lost/Expired) | 4 | Inbox |
+| QD-415 | Admin catalogue management (packages and add-ons) | 4 | Inbox |
+| QD-416 | Workspace settings: members and roles | 4 | Inbox |
+| QD-417 | AI provider fallback and retry (ADR-005): OpenRouter → Ollama, visible provenance | 4 | Inbox |
+| QD-418 | AI eval scenario scoring and pass-percentage release threshold | 4 | Inbox |
+| QD-419 | Accessibility fix: demo sign-in buttons exposed as list items | 4 | Inbox |
 
 Sprint 0 is foundation, 1 is tenancy and the dashboard, 2 is configurable proposals, 3 is approvals and controlled AI, and 4 is hardening and release. See [mvp-scope-and-roadmap.md](mvp-scope-and-roadmap.md).
 
