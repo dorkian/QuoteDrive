@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ForbiddenState } from "../../components/states/StateViews";
 import { useAuth } from "../../lib/auth-context";
+import { CataloguePanel } from "./CataloguePanel";
 import { MembersPanel } from "./MembersPanel";
 
 export function SettingsPage() {
@@ -26,9 +27,13 @@ export function SettingsPage() {
         <Tabs defaultValue="members" className="mt-6">
           <TabsList>
             <TabsTrigger value="members">Members</TabsTrigger>
+            <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
           </TabsList>
           <TabsContent value="members">
             <MembersPanel />
+          </TabsContent>
+          <TabsContent value="catalogue">
+            <CataloguePanel />
           </TabsContent>
         </Tabs>
       )}

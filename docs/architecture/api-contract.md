@@ -21,7 +21,9 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `GET\|PATCH\|DELETE /customers/{id}` | read: all · write: A, PM | DELETE returns 409 while opportunities reference the customer. |
 | `GET\|POST /opportunities` | read: all · write: A, PM | Filters: `customer_id`, `owner_id`, `status`. |
 | `GET\|PATCH\|DELETE /opportunities/{id}` | read: all · write: A, PM | PATCH `brief_json` saves a reviewed discovery brief and records an audit event. |
-| `GET /catalogue/items` | all | Packages and add-ons for the tenant. |
+| `GET /catalogue/items` | all | Active packages and add-ons for the tenant. `include_inactive=true` also returns inactive items (A only; 403 otherwise). |
+| `POST /catalogue/items` | A | `{type: package\|add_on, name, category, base_monthly_estimate ≥ 0 (2 decimals), active?}`. Audited. |
+| `PATCH /catalogue/items/{id}` | A | Name, category, price, `active`. `type` can't change. No delete: deactivate instead; saved versions keep their snapshot. Audited. |
 | `POST /estimates/calculate` | A, PM | Stateless illustrative estimate for a set of lines, with disclaimer. |
 | `GET\|POST /opportunities/{id}/versions` | read: all · write: A, PM | POST with optional `from_version_id` forks a new draft from any version. |
 | `GET\|PATCH /proposal-versions/{id}` | read: all · write: A, PM | PATCH lines only while `draft`/`configured`; otherwise 400 (immutable). |

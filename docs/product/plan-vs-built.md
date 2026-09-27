@@ -11,7 +11,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | FR-02 | Create, list, search and update customers | ✅ Customers page: search, create, edit, delete (QD-413) | — |
 | FR-02 | Create an opportunity linked to a customer and owner | ✅ "New opportunity" dialog; the owner is the creator (QD-413) | — |
 | FR-02 | Store brief, status, activity history | ✅ Brief (QD-404); title and status editing and an Activity section on the opportunity page (QD-413) | — |
-| FR-03 | Admin manages packages and add-ons | ⏳ Seed-only catalogue | ⏳ QD-415 |
+| FR-03 | Admin manages packages and add-ons | ✅ Settings › Catalogue: create, edit, deactivate (QD-415) | — |
 | FR-03 | Manager adds lines, quantities, assumptions; inactive items can't be selected | ✅ | QD-203, QD-204 |
 | FR-04 | Server-side estimate formula, totals, disclaimer, versioning | ✅ | QD-204, QD-205, QD-401 |
 | FR-05 | Manager submits a version for review | 🟡 API only | ⏳ QD-412 |
@@ -24,7 +24,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 |---|---|---|
 | Draft → Configured → Proposal Drafted → Awaiting Approval → Approved / Changes Requested | ✅ (submit has no UI yet) | QD-205, QD-301; ⏳ QD-412 |
 | Approved → Shared → Won / Lost / Expired; "Share" and "Record outcome" permissions | ⏳ Statuses exist, no transitions | ⏳ QD-414 |
-| "Manage catalogue items" (Admin) | ⏳ | ⏳ QD-415 |
+| "Manage catalogue items" (Admin) | ✅ | QD-415 |
 | Release-blocking tests: cross-tenant, viewer mutation, self-approval, illegal transition, provider failure without state change | ✅ | QD-105, QD-301, QD-403 |
 
 ## Non-functional requirements ([non-functional-requirements.md](non-functional-requirements.md))
@@ -43,7 +43,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 ## Product vision and journeys ([product-vision.md](product-vision.md), [personas-and-user-journeys.md](personas-and-user-journeys.md))
 | Commitment | Status | Where / card |
 |---|---|---|
-| Admin configures the workspace: catalogue, members, roles, feature settings | 🟡 Settings › Members: list members and change roles, with a last-Admin guard (QD-416). Catalogue and AI settings still to come | ⏳ QD-415, QD-417 (AI setting) |
+| Admin configures the workspace: catalogue, members, roles, feature settings | 🟡 Settings › Members (QD-416) and Settings › Catalogue (QD-415). AI settings still to come | ⏳ QD-417 (AI setting) |
 | Goal 3: AI provenance, **fallback behavior** and human review visible | 🟡 Provenance and review ✅; fallback ⏳ | ⏳ QD-417 |
 | Journey 1–8 end to end in the UI | 🟡 Step 5 (submit for approval) needs the API | ⏳ QD-412 |
 | Viewer reads shared or approved proposals | 🟡 Approved ✅; shared needs QD-414 | ⏳ QD-414 |
