@@ -10,6 +10,7 @@ import {
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { NAV_PATHS, navItemForPath } from "./components/layout/nav-items";
 import { CustomersPage } from "./features/customers/CustomersPage";
+import { SettingsPage } from "./features/settings/SettingsPage";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { ComingSoonPanel } from "./features/dashboard/ComingSoonPanel";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
@@ -66,10 +67,7 @@ function AppShell() {
         <Route path="/proposals" element={<PackageComparison />} />
         <Route path="/approvals" element={<ApprovalDashboard />} />
         <Route path="/approvals/:requestId" element={<ApprovalDetail />} />
-        <Route
-          path="/settings"
-          element={<ComingSoonPanel title="Settings" />}
-        />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<ComingSoonPanel title="Not found" />} />
       </Routes>
     </DashboardLayout>

@@ -35,6 +35,8 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `POST /approval-requests/{id}/request-changes` | A, Ap | Comment required; forks a new draft version. |
 | `POST /ai/proposal-narrative` | A, PM | `{proposal_version_id, timeline?}` → draft narrative with `disclaimer`, `provider`, `model`. Not persisted. |
 | `POST /ai/discovery-brief` | A, PM | `{opportunity_id, notes}` → draft `{summary, requirements[], open_questions[], unknowns[], disclaimer, provider, model}`. Not persisted. |
+| `GET /organization/members` | A | Members of the caller's organization: `user_id`, `email`, `display_name`, `role`. |
+| `PATCH /organization/members/{user_id}` | A | `{role}`. 400 if it would leave the organization without an Admin; 404 for a user outside the organization. Audited as `membership` / `role_change`. |
 | `GET /audit-events` | all | `entity_type`, `entity_id`, `limit`, `before_id`. Includes `actor_name` captured at write time. |
 
 ## AI endpoint failures

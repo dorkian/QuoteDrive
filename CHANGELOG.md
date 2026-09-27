@@ -17,6 +17,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 - **Audit events** for every state change, with the actor's name captured at write time (QD-303).
 - **AI drafting** behind a provider interface (OpenRouter, Ollama, FakeProvider): proposal narrative (QD-305–QD-308) and discovery brief (QD-404). Drafts are schema-validated, labelled for human review and never auto-saved.
 - **Output guard** that rejects drafts containing figures not in the proposal data, or unsupported discount wording (QD-410).
+- **Workspace settings › Members**: Admins list members and change roles; the last Admin can't be demoted, and every change is audited (QD-416).
 - **Client-ready proposal preview** for approved versions, print-friendly (QD-401).
 - **Loading, empty, error and forbidden states** across the app (QD-402).
 - **UI foundation**: shadcn/ui components on Radix, a collapsible sidebar, breadcrumbs, a ⌘K command menu, confirmation dialogs and toasts (QD-409, ADR-008).
