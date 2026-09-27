@@ -17,7 +17,7 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `GET /me` | all | User, organization and role. |
 | `GET /health` | public | Liveness check. |
 | `GET /dashboard/summary` | all | Pipeline counts and pending approvals. |
-| `GET\|POST /customers` | read: all · write: A, PM | |
+| `GET\|POST /customers` | read: all · write: A, PM | Filter `q`: case-insensitive name search. Sorted by name. |
 | `GET\|PATCH\|DELETE /customers/{id}` | read: all · write: A, PM | DELETE returns 409 while opportunities reference the customer. |
 | `GET\|POST /opportunities` | read: all · write: A, PM | Filters: `customer_id`, `owner_id`, `status`. |
 | `GET\|PATCH\|DELETE /opportunities/{id}` | read: all · write: A, PM | PATCH `brief_json` saves a reviewed discovery brief and records an audit event. |

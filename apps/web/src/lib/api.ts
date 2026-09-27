@@ -217,8 +217,15 @@ export async function fetchOpportunity(
   return (await res.json()) as Opportunity;
 }
 
-export async function fetchCustomers(token: string): Promise<Customer[]> {
-  const res = await fetch(`${API_URL}/customers`, {
+export async function fetchCustomers(
+  token: string,
+  query?: string,
+): Promise<Customer[]> {
+  const url = new URL(`${API_URL}/customers`);
+  if (query && query.trim()) {
+    url.searchParams.set("q", query.trim());
+  }
+  const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
   await throwIfNotOk(res, "Failed to load customers");
@@ -234,6 +241,88 @@ export async function fetchCustomer(
   });
   await throwIfNotOk(res, "Failed to load customer");
   return (await res.json()) as Customer;
+}
+
+export interface CustomerInput {
+  name: string;
+  industry: string | null;
+}
+
+export async function createCustomer(
+  token: string,
+  input: CustomerInput,
+): Promise<Customer> {
+  const res = await fetch(`${API_URL}/customers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to create customer");
+  return (await res.json()) as Customer;
+}
+
+export async function updateCustomer(
+  token: string,
+  customerId: number,
+  input: Partial<CustomerInput> & { status?: string },
+): Promise<Customer> {
+  const res = await fetch(`${API_URL}/customers/${customerId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to update customer");
+  return (await res.json()) as Customer;
+}
+
+export async function deleteCustomer(
+  token: string,
+  customerId: number,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/customers/${customerId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to delete customer");
+}
+
+export async function createOpportunity(
+  token: string,
+  input: { customer_id: number; title: string },
+): Promise<Opportunity> {
+  const res = await fetch(`${API_URL}/opportunities`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to create opportunity");
+  return (await res.json()) as Opportunity;
+}
+
+export async function updateOpportunity(
+  token: string,
+  opportunityId: number,
+  input: { title?: string; status?: string },
+): Promise<Opportunity> {
+  const res = await fetch(`${API_URL}/opportunities/${opportunityId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to update opportunity");
+  return (await res.json()) as Opportunity;
 }
 
 export async function fetchCatalogueItems(

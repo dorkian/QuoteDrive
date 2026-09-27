@@ -9,6 +9,7 @@ import {
 
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { NAV_PATHS, navItemForPath } from "./components/layout/nav-items";
+import { CustomersPage } from "./features/customers/CustomersPage";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { ComingSoonPanel } from "./features/dashboard/ComingSoonPanel";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
@@ -61,10 +62,7 @@ function AppShell() {
           path="/opportunities/:opportunityId/versions/:versionId"
           element={<ProposalBuilder />}
         />
-        <Route
-          path="/customers"
-          element={<ComingSoonPanel title="Customers" />}
-        />
+        <Route path="/customers" element={<CustomersPage />} />
         <Route path="/proposals" element={<PackageComparison />} />
         <Route path="/approvals" element={<ApprovalDashboard />} />
         <Route path="/approvals/:requestId" element={<ApprovalDetail />} />

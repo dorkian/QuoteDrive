@@ -162,3 +162,38 @@ def test_customer_crud_emits_audit_events(
         "industry": "Logistics",
         "status": "active",
     }
+
+
+def test_list_customers_filters_by_name_case_insensitively(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.manager_a)
+    for name in ("Zeta Freight", "Alpha Freight Lines", "Omega Rail"):
+        client.post("/customers", json={"name": name}, headers=_auth(token))
+
+    response = client.get("/customers", params={"q": "  freight "}, headers=_auth(token))
+
+    assert response.status_code == 200
+    assert [c["name"] for c in response.json()] == ["Alpha Freight Lines", "Zeta Freight"]
+
+
+def test_list_customers_search_treats_wildcards_literally(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.manager_a)
+    client.post("/customers", json={"name": "100% Mobility"}, headers=_auth(token))
+
+    percent = client.get("/customers", params={"q": "%"}, headers=_auth(token)).json()
+    underscore = client.get("/customers", params={"q": "_"}, headers=_auth(token)).json()
+
+    assert [c["name"] for c in percent] == ["100% Mobility"]
+    assert underscore == []
+
+
+def test_list_customers_search_is_tenant_scoped(
+    client: TestClient, two_orgs: TwoOrgs, login: Callable[[str], str]
+) -> None:
+    token = login(two_orgs.manager_a)
+    response = client.get("/customers", params={"q": "Customer"}, headers=_auth(token))
+
+    assert [c["name"] for c in response.json()] == ["Customer A"]

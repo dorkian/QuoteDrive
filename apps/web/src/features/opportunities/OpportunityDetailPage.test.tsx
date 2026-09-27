@@ -1,4 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -55,6 +61,14 @@ function renderAuthenticated(me: api.Me, path = "/opportunities/1") {
 beforeEach(() => {
   localStorage.clear();
   vi.resetAllMocks();
+  vi.mocked(api.fetchCustomer).mockResolvedValue({
+    id: 10,
+    organization_id: 1,
+    name: "Lombarda Studio Group",
+    industry: null,
+    status: "active",
+  });
+  vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
 });
 
 describe("OpportunityDetailPage", () => {
@@ -125,5 +139,135 @@ describe("OpportunityDetailPage", () => {
     expect(
       screen.queryByRole("button", { name: "Create draft version" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the customer, status and the opportunity's activity history", async () => {
+    vi.mocked(api.fetchOpportunity).mockResolvedValue(opportunity);
+    vi.mocked(api.fetchProposalVersions).mockResolvedValue([]);
+    vi.mocked(api.fetchAuditEvents).mockResolvedValue([
+      {
+        id: 7,
+        actor_id: 1,
+        actor_name: "Morgan Manager",
+        entity_type: "opportunity",
+        entity_id: 1,
+        action: "create",
+        before_json: null,
+        after_json: { title: opportunity.title, status: "open" },
+        created_at: "2026-09-27T09:00:00Z",
+      },
+    ]);
+
+    renderAuthenticated(viewerMe);
+
+    expect(
+      await screen.findByText("Lombarda Studio Group"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(await screen.findByText(/Morgan Manager/)).toBeInTheDocument();
+    expect(api.fetchAuditEvents).toHaveBeenCalledWith(
+      "stored-token",
+      expect.objectContaining({ entityType: "opportunity", entityId: 1 }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Edit details" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("lets a manager edit the title and status", async () => {
+    vi.mocked(api.fetchOpportunity).mockResolvedValue(opportunity);
+    vi.mocked(api.fetchProposalVersions).mockResolvedValue([]);
+    vi.mocked(api.updateOpportunity).mockResolvedValue({
+      ...opportunity,
+      title: "Fleet Renewal 2027",
+      status: "won",
+    });
+
+    renderAuthenticated(managerMe);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Edit details" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Edit opportunity" });
+    const title = within(dialog).getByLabelText("Title");
+    fireEvent.change(title, { target: { value: "" } });
+    fireEvent.change(title, { target: { value: "  Fleet Renewal 2027 " } });
+    fireEvent.change(within(dialog).getByLabelText("Status"), {
+      target: { value: "won" },
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Save changes" }),
+    );
+
+    await waitFor(() =>
+      expect(api.updateOpportunity).toHaveBeenCalledWith("stored-token", 1, {
+        title: "Fleet Renewal 2027",
+        status: "won",
+      }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Fleet Renewal 2027" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The history refetches so the edit shows up.
+    await waitFor(() => expect(api.fetchAuditEvents).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps the dialog open with a message when saving fails", async () => {
+    vi.mocked(api.fetchOpportunity).mockResolvedValue(opportunity);
+    vi.mocked(api.fetchProposalVersions).mockResolvedValue([]);
+    vi.mocked(api.updateOpportunity).mockRejectedValue(
+      new ApiError(500, "Failed", null),
+    );
+
+    renderAuthenticated(managerMe);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Edit details" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Edit opportunity" });
+    fireEvent.change(within(dialog).getByLabelText("Title"), {
+      target: { value: "" },
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Save changes" }),
+    );
+    expect(
+      within(dialog).getByText("Enter an opportunity title."),
+    ).toBeInTheDocument();
+    expect(api.updateOpportunity).not.toHaveBeenCalled();
+
+    fireEvent.change(within(dialog).getByLabelText("Title"), {
+      target: { value: "New title" },
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Save changes" }),
+    );
+    expect(
+      await within(dialog).findByText("Couldn't save this opportunity."),
+    ).toBeInTheDocument();
+  });
+
+  it("offers a legacy status value that isn't in the standard list", async () => {
+    vi.mocked(api.fetchOpportunity).mockResolvedValue({
+      ...opportunity,
+      status: "on_hold",
+    });
+    vi.mocked(api.fetchProposalVersions).mockResolvedValue([]);
+
+    renderAuthenticated(managerMe);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Edit details" }),
+    );
+    const status = within(
+      screen.getByRole("dialog", { name: "Edit opportunity" }),
+    ).getByLabelText("Status");
+    expect(status).toHaveValue("on_hold");
+    expect(
+      within(status)
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(["Open", "Won", "Lost", "On hold"]);
   });
 });

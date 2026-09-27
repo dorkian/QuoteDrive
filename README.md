@@ -152,7 +152,6 @@ Details, and how to run everything locally: [docs/quality/quality-gates.md](docs
 ## Known limitations and deferred scope
 
 Known gaps in v1.0.0. Each planned item that isn't built yet has a card; the full audit is in [plan-vs-built.md](docs/product/plan-vs-built.md).
-- **Customers and opportunities are created through the API only.** The Customers page is a placeholder (QD-413).
 - **No "submit for approval" button.** The API supports it (QD-412).
 - **No share or won/lost/expired outcome steps** after approval (QD-414).
 - **The catalogue is seed-only**, with no Admin editing (QD-415). **No member or role management**: the Settings page is a placeholder (QD-416).
