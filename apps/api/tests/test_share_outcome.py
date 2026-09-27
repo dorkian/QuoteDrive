@@ -53,7 +53,7 @@ def _approved_via_workflow(
     manager = login(two_orgs.manager_a)
     approver = login(two_orgs.approver_a)
     approver_id = client.get("/me", headers=_auth(approver)).json()["user"]["id"]
-    version = client.post(
+    version: dict[str, Any] = client.post(
         f"/opportunities/{opportunity_id}/versions", json={}, headers=_auth(manager)
     ).json()
     client.post(f"/proposal-versions/{version['id']}/finalize", headers=_auth(manager))
