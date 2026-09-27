@@ -31,4 +31,4 @@
 - Narrative generator produces draft executive summary, scope, assumptions, exclusions, next steps, and email draft.
 - Discovery-note extractor produces typed draft requirements and open questions.
 - Generated content is editable, labelled as draft, and never changes workflow state automatically.
-- Provider/model/prompt version/latency/fallback reason are recorded.
+- Provider/model/prompt version/latency/fallback reason are recorded. *(v1.0.0 records provider, model, prompt version, status, latency and error; no fallback exists yet.)*

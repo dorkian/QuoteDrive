@@ -9,7 +9,7 @@
 ## Reliability
 - Explicit, tested workflow transitions.
 - OpenRouter may retry one transient technical failure.
-- Ollama fallback is optional, tenant-permitted, and visible in the UI.
+- Ollama fallback is optional, tenant-permitted, and visible in the UI. *(Deferred in v1.0.0: one provider is configured at a time.)*
 - Provider failure does not mutate proposal state.
 
 ## Quality
