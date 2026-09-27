@@ -359,12 +359,58 @@ export async function updateMemberRole(
 
 export async function fetchCatalogueItems(
   token: string,
+  opts?: { includeInactive?: boolean },
 ): Promise<CatalogueItem[]> {
-  const res = await fetch(`${API_URL}/catalogue/items`, {
+  const url = new URL(`${API_URL}/catalogue/items`);
+  if (opts?.includeInactive) {
+    url.searchParams.set("include_inactive", "true");
+  }
+  const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
   await throwIfNotOk(res, "Failed to load catalogue");
   return (await res.json()) as CatalogueItem[];
+}
+
+export interface CatalogueItemInput {
+  type: CatalogueItem["type"];
+  name: string;
+  category: string;
+  base_monthly_estimate: string;
+  active: boolean;
+}
+
+export async function createCatalogueItem(
+  token: string,
+  input: CatalogueItemInput,
+): Promise<CatalogueItem> {
+  const res = await fetch(`${API_URL}/catalogue/items`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to create catalogue item");
+  return (await res.json()) as CatalogueItem;
+}
+
+export async function updateCatalogueItem(
+  token: string,
+  itemId: number,
+  input: Partial<Omit<CatalogueItemInput, "type">>,
+): Promise<CatalogueItem> {
+  const res = await fetch(`${API_URL}/catalogue/items/${itemId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to save catalogue item");
+  return (await res.json()) as CatalogueItem;
 }
 
 export async function fetchProposalVersions(
