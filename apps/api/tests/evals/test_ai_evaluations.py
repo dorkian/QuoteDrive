@@ -130,6 +130,12 @@ def _run_case(
     log = db.query(GenerationLog).filter_by(entity_id=version.id).one()
     db.refresh(version)
 
+    def draft_untouched() -> None:
+        # Drafting never saves, success or failure: only the reviewed PATCH does.
+        assert version.narrative_json == EXISTING_DRAFT, "existing draft was overwritten"
+
+    card.check("draft_untouched", draft_untouched)
+
     guarded = response.status_code == 502 and "Output guard" in (log.error_detail or "")
     # Live models may still misbehave; a guard rejection is the handled outcome (QD-410).
     if expect.get("safe_failure") or (guarded and case.get("guard_may_reject")):
@@ -139,11 +145,7 @@ def _run_case(
             assert log.status == "error"
             assert log.error_detail
 
-        def draft_untouched() -> None:
-            assert version.narrative_json == EXISTING_DRAFT, "existing draft was overwritten"
-
         card.check("safe_failure", handled)
-        card.check("draft_untouched", draft_untouched)
         if "guard_reason" in expect:
 
             def guard_reason() -> None:
@@ -346,6 +348,30 @@ def test_discovery_brief_case(
     _run_discovery_case(
         case, FakeProvider(fixture_text=text), client, db_session, two_orgs, login
     ).raise_if_failed()
+
+
+def test_both_suites_always_check_the_saved_draft(
+    client: TestClient,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+) -> None:
+    narrative = next(
+        c.values[0] for c in load_cases(NARRATIVE_FILE) if c.id == "narrative-complete-en"
+    )
+    discovery = next(c.values[0] for c in load_cases(DISCOVERY_FILE) if c.id == "english-note")
+    broken = FakeProvider(raise_error=ProviderTransientError("down"))
+
+    cards = [
+        _run_case(narrative, broken, client, db_session, two_orgs, login),
+        _run_discovery_case(discovery, broken, client, db_session, two_orgs, login),
+    ]
+
+    for card in cards:
+        assert [(c.name, c.passed) for c in card.checks] == [
+            ("draft_untouched", True),
+            ("response", False),
+        ]
 
 
 def test_every_fixture_file_is_wired() -> None:
