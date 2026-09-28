@@ -10,6 +10,8 @@ deterministically. To run the same inputs and checks against a real model:
 import json
 import os
 from collections.abc import Callable
+from decimal import Decimal
+from functools import partial
 from typing import Any
 
 import pytest
@@ -28,8 +30,9 @@ from app.services.ai.providers.base import ProviderTimeoutError, ProviderTransie
 from app.services.ai.providers.fake import FakeProvider
 from app.services.ai.providers.fallback import FallbackProvider
 from tests.conftest import TwoOrgs
-from tests.evals import checks
+from tests.evals import checks, scoring
 from tests.evals.cases import NARRATIVE_FILE, all_fixture_files, load_cases
+from tests.evals.scoring import Scorecard
 
 DISCOVERY_FILE = "discovery-brief-cases.json"
 WIRED_FILES = {NARRATIVE_FILE, DISCOVERY_FILE}
@@ -57,6 +60,12 @@ def _seed(db: Session, orgs: TwoOrgs, case_input: dict[str, Any]) -> ProposalVer
         version_number=1,
         status="draft",
         content_json={"lines": case_input["lines"]},
+        # The prompt states this total (QD-406); seed the real sum, or the
+        # model is told "$0.00" and correctly repeats a wrong figure.
+        total_estimate=sum(
+            (Decimal(line["line_total"]) for line in case_input["lines"] if "line_total" in line),
+            Decimal(0),
+        ),
         narrative_json=EXISTING_DRAFT,
     )
     db.add(version)
@@ -102,9 +111,11 @@ def _run_case(
     db: Session,
     orgs: TwoOrgs,
     login: Callable[[str], str],
-) -> None:
+    run: int = 0,
+) -> Scorecard:
     case_input = case["input"]
     expect = case["expect"]
+    card = Scorecard(suite="narrative", case_id=case["id"], run=run)
     version = _seed(db, orgs, case_input)
 
     app.dependency_overrides[get_ai_provider] = lambda: provider
@@ -117,52 +128,81 @@ def _run_case(
     finally:
         app.dependency_overrides.pop(get_ai_provider, None)
     log = db.query(GenerationLog).filter_by(entity_id=version.id).one()
+    db.refresh(version)
 
     guarded = response.status_code == 502 and "Output guard" in (log.error_detail or "")
     # Live models may still misbehave; a guard rejection is the handled outcome (QD-410).
     if expect.get("safe_failure") or (guarded and case.get("guard_may_reject")):
-        assert response.status_code == expect.get("status", 502), response.text
-        db.refresh(version)
-        assert version.narrative_json == EXISTING_DRAFT, "existing draft was overwritten"
-        assert log.status == "error"
-        assert log.error_detail
-        if "guard_reason" in expect:
-            assert guarded, log.error_detail
-            assert expect["guard_reason"] in log.error_detail
-        return
 
-    assert response.status_code == 200, response.text
+        def handled() -> None:
+            assert response.status_code == expect.get("status", 502), response.text
+            assert log.status == "error"
+            assert log.error_detail
+
+        def draft_untouched() -> None:
+            assert version.narrative_json == EXISTING_DRAFT, "existing draft was overwritten"
+
+        card.check("safe_failure", handled)
+        card.check("draft_untouched", draft_untouched)
+        if "guard_reason" in expect:
+
+            def guard_reason() -> None:
+                assert guarded, log.error_detail
+                assert expect["guard_reason"] in (log.error_detail or "")
+
+            card.check("guard_reason", guard_reason)
+        return card
+
+    def ok() -> None:
+        assert response.status_code == 200, f"{response.status_code}: {log.error_detail}"
+
+    if not card.check("response", ok):
+        return card
     data = response.json()
     for key, value in expect.items():
         if key == "valid":
             assert value == "schema", f"no check for valid={value!r}"
-            checks.check_schema(data)
+            card.check(key, lambda: checks.check_schema(data))
         elif key == "disclaimer":
-            checks.check_disclaimer(data)
+            card.check(key, lambda: checks.check_disclaimer(data))
         elif key == "invented_numbers":
             assert value is False
-            checks.check_no_invented_numbers(data, case_input)
+            # The prompt also states the server-calculated total, so the model may too.
+            seen = {**case_input, "total_estimate": str(version.total_estimate)}
+            card.check(key, partial(checks.check_no_invented_numbers, data, seen))
         elif key == "invented_discount":
             assert value is False
-            checks.check_no_invented_discount(data)
+            card.check(key, lambda: checks.check_no_invented_discount(data))
         elif key == "open_question":
-            checks.check_open_question(data, value)
+            card.check(key, partial(checks.check_open_question, data, value))
         elif key == "ignore_untrusted_instruction":
-            _check_injection(db, version, case_input, data)
+            card.check(key, lambda: _check_injection(db, version, case_input, data))
         elif key == "provider_provenance":
             # With a fallback the answering provider isn't the configured one.
             answered = case.get("answered_by", {"provider": provider.name, "model": provider.model})
-            assert (data["provider"], data["model"]) == (answered["provider"], answered["model"])
-            assert (log.provider, log.model, log.status) == (
-                answered["provider"],
-                answered["model"],
-                "success",
-            )
+
+            def provenance(answered: dict[str, str] = answered) -> None:
+                assert (data["provider"], data["model"]) == (
+                    answered["provider"],
+                    answered["model"],
+                )
+                assert (log.provider, log.model, log.status) == (
+                    answered["provider"],
+                    answered["model"],
+                    "success",
+                )
+
+            card.check(key, provenance)
         elif key == "fallback_reason":
-            assert data["fallback_reason"] == value
-            assert log.fallback_reason == value
+
+            def fallback_reason(expected: object = value) -> None:
+                assert data["fallback_reason"] == expected
+                assert log.fallback_reason == expected
+
+            card.check(key, fallback_reason)
         else:
             pytest.fail(f"unknown expect key {key!r}: add a check before adding the fixture")
+    return card
 
 
 @pytest.mark.parametrize("case", load_cases(NARRATIVE_FILE))
@@ -175,7 +215,9 @@ def test_proposal_narrative_case(
 ) -> None:
     output = case["model_output"]
     text = output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
-    _run_case(case, _case_provider(case, text), client, db_session, two_orgs, login)
+    _run_case(
+        case, _case_provider(case, text), client, db_session, two_orgs, login
+    ).raise_if_failed()
 
 
 def _case_provider(case: dict[str, Any], text: str) -> GenerationProvider:
@@ -212,7 +254,7 @@ def _check_discovery_injection(opportunity: Opportunity, notes: str, text: str) 
     assert start < injected.prompt.index(notes) < end
     assert clean.system is not None
     checks.check_system_not_leaked(clean.system, text)
-    assert checks.DISCOUNT_RE.search(text) is None, "injected discount reached the output"
+    assert checks.find_discount_wording(text) is None, "injected discount reached the output"
 
 
 def _run_discovery_case(
@@ -222,9 +264,11 @@ def _run_discovery_case(
     db: Session,
     orgs: TwoOrgs,
     login: Callable[[str], str],
-) -> None:
+    run: int = 0,
+) -> Scorecard:
     case_input = case["input"]
     expect = case["expect"]
+    card = Scorecard(suite="discovery", case_id=case["id"], run=run)
     opportunity = Opportunity(
         organization_id=orgs.org_a_id,
         customer_id=orgs.customer_a_id,
@@ -246,29 +290,47 @@ def _run_discovery_case(
         app.dependency_overrides.pop(get_ai_provider, None)
     log = db.query(GenerationLog).filter_by(entity_id=opportunity.id).one()
     db.refresh(opportunity)
-    # Drafting never saves: only the human-reviewed PATCH changes the brief.
-    assert opportunity.brief_json == EXISTING_BRIEF
+
+    def draft_untouched() -> None:
+        # Drafting never saves: only the human-reviewed PATCH changes the brief.
+        assert opportunity.brief_json == EXISTING_BRIEF
+
+    card.check("draft_untouched", draft_untouched)
 
     guarded = response.status_code == 502 and "Output guard" in (log.error_detail or "")
     if expect.get("safe_failure") or (guarded and case.get("guard_may_reject")):
-        assert response.status_code == 502, response.text
-        assert log.status == "error"
-        assert log.error_detail
-        return
 
-    assert response.status_code == 200, response.text
+        def handled() -> None:
+            assert response.status_code == 502, response.text
+            assert log.status == "error"
+            assert log.error_detail
+
+        card.check("safe_failure", handled)
+        return card
+
+    def ok() -> None:
+        assert response.status_code == 200, f"{response.status_code}: {log.error_detail}"
+
+    if not card.check("response", ok):
+        return card
     data = response.json()
-    assert data["disclaimer"] == checks.DISCLAIMER
+    card.check("disclaimer", lambda: checks.check_disclaimer(data))
     for key, value in expect.items():
         if key == "valid":
             assert value == "schema", f"no check for valid={value!r}"
-            checks.check_brief_schema(data)
+            card.check(key, lambda: checks.check_brief_schema(data))
         elif key == "unknowns":
-            checks.check_unknowns(data, value)
+            card.check(key, partial(checks.check_unknowns, data, value))
         elif key == "ignore_untrusted_instruction":
-            _check_discovery_injection(opportunity, case_input["notes"], json.dumps(data))
+            card.check(
+                key,
+                lambda: _check_discovery_injection(
+                    opportunity, case_input["notes"], json.dumps(data)
+                ),
+            )
         else:
             pytest.fail(f"unknown expect key {key!r}: add a check before adding the fixture")
+    return card
 
 
 @pytest.mark.parametrize("case", load_cases(DISCOVERY_FILE))
@@ -281,7 +343,9 @@ def test_discovery_brief_case(
 ) -> None:
     output = case["model_output"]
     text = output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
-    _run_discovery_case(case, FakeProvider(fixture_text=text), client, db_session, two_orgs, login)
+    _run_discovery_case(
+        case, FakeProvider(fixture_text=text), client, db_session, two_orgs, login
+    ).raise_if_failed()
 
 
 def test_every_fixture_file_is_wired() -> None:
@@ -289,9 +353,11 @@ def test_every_fixture_file_is_wired() -> None:
 
 
 @pytest.mark.skipif(not os.environ.get("EVAL_PROVIDER"), reason="set EVAL_PROVIDER to run live")
+@pytest.mark.parametrize("run", range(scoring.runs()), ids=lambda r: f"run{r + 1}")
 @pytest.mark.parametrize("case", load_cases(NARRATIVE_FILE))
 def test_live_proposal_narrative_case(
     case: dict[str, Any],
+    run: int,
     client: TestClient,
     db_session: Session,
     two_orgs: TwoOrgs,
@@ -302,13 +368,17 @@ def test_live_proposal_narrative_case(
     if "primary_failure" in case:
         pytest.skip("fallback cases script the primary's failure; they run with fakes only")
     live = settings.model_copy(update={"AI_PROVIDER": os.environ["EVAL_PROVIDER"]})
-    _run_case(case, get_provider(live), client, db_session, two_orgs, login)
+    # Recorded, not asserted: the session passes or fails on the threshold.
+    card = _run_case(case, get_provider(live), client, db_session, two_orgs, login, run)
+    scoring.LIVE_RESULTS.append(card)
 
 
 @pytest.mark.skipif(not os.environ.get("EVAL_PROVIDER"), reason="set EVAL_PROVIDER to run live")
+@pytest.mark.parametrize("run", range(scoring.runs()), ids=lambda r: f"run{r + 1}")
 @pytest.mark.parametrize("case", load_cases(DISCOVERY_FILE))
 def test_live_discovery_brief_case(
     case: dict[str, Any],
+    run: int,
     client: TestClient,
     db_session: Session,
     two_orgs: TwoOrgs,
@@ -317,4 +387,5 @@ def test_live_discovery_brief_case(
     if case["expect"].get("safe_failure"):
         pytest.skip("failure cases need a canned bad output")
     live = settings.model_copy(update={"AI_PROVIDER": os.environ["EVAL_PROVIDER"]})
-    _run_discovery_case(case, get_provider(live), client, db_session, two_orgs, login)
+    card = _run_discovery_case(case, get_provider(live), client, db_session, two_orgs, login, run)
+    scoring.LIVE_RESULTS.append(card)

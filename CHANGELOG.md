@@ -21,6 +21,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 - **Workspace settings › Catalogue**: Admins add, edit, deactivate and reactivate packages and add-ons. Inactive items can't be quoted; saved versions keep their prices (QD-415).
 - **Share and outcome**: mark an approved version as shared, then record Won, Lost or Expired; Won and Lost close the opportunity, and the dashboard counts outcomes (QD-414).
 - **AI retry and fallback** (ADR-005): one retry on a transient provider failure, then an opt-in (Settings › AI) fallback to local Ollama. Drafts and `generation_logs` record the fallback reason; eval cases 8 and 9 run in CI (QD-417).
+- **AI eval scoring** (QD-418): live runs score every check, repeat each scenario 3 times, write a report to `docs/evaluations/reports/` and fail below a 90% pass percentage or on any safety failure. The output guard accepts negated discount wording such as "No discount is offered".
 - **Client-ready proposal preview** for approved versions, print-friendly (QD-401).
 - **Loading, empty, error and forbidden states** across the app (QD-402).
 - **UI foundation**: shadcn/ui components on Radix, a collapsible sidebar, breadcrumbs, a ⌘K command menu, confirmation dialogs and toasts (QD-409, ADR-008).

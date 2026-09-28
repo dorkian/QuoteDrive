@@ -57,7 +57,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | Release sign-off and human E2E pass | ⏳ | ⏳ QD-408 |
 | AI eval plan cases 1–7 and 10 | ✅ | QD-403, QD-404, QD-410 |
 | AI eval plan cases 8–9 (fallback / no fallback) | ✅ Run in CI with fakes | QD-417 |
-| Scenario scoring and pass-percentage approval (PO request during QD-403) | ⏳ | ⏳ QD-418 |
+| Scenario scoring and pass-percentage approval (PO request during QD-403) | ✅ Live runs score every check, write a report to `docs/evaluations/reports/` and fail below 90% or on any safety failure | QD-418 |
 | ADR-005 fallback | ✅ | QD-417 |
 | ADR-008 approval | Proposed | PO decision |
 

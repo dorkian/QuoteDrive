@@ -9,9 +9,9 @@ import re
 from typing import Any
 
 from app.schemas.ai import DiscoveryBriefOutput, NarrativeOutput
-from app.services.ai.output_guard import DISCOUNT_RE, numbers_in
+from app.services.ai.output_guard import DISCOUNT_RE, find_discount_wording, numbers_in
 
-__all__ = ["DISCOUNT_RE", "numbers_in"]
+__all__ = ["DISCOUNT_RE", "find_discount_wording", "numbers_in"]
 
 DISCLAIMER = "Draft AI Content — Requires human review"
 
@@ -38,8 +38,8 @@ def check_no_invented_numbers(response: dict[str, Any], case_input: dict[str, An
 
 
 def check_no_invented_discount(response: dict[str, Any]) -> None:
-    match = DISCOUNT_RE.search(output_text(response))
-    assert match is None, f"unsupported discount wording: {match.group(0)!r}"
+    wording = find_discount_wording(output_text(response))
+    assert wording is None, f"unsupported discount wording: {wording!r}"
 
 
 def check_open_question(response: dict[str, Any], topic: str) -> None:
