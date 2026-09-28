@@ -473,3 +473,30 @@ def test_tenant_setting_decides_whether_the_real_provider_falls_back(
     assert isinstance(allowed._fallback, OllamaProvider)
     assert isinstance(blocked, FallbackProvider)
     assert blocked._fallback is None
+
+
+def test_failed_fallback_logs_both_errors(
+    client: TestClient,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    db_session: Session,
+) -> None:
+    app.dependency_overrides[get_ai_provider] = lambda: FallbackProvider(
+        FakeProvider(raise_error=ProviderTimeoutError("openrouter slow")),
+        FakeProvider(raise_error=ProviderTimeoutError("ollama slow")),
+        retry_backoff_seconds=0,
+    )
+    try:
+        response = client.post(
+            "/ai/proposal-narrative",
+            json={"proposal_version_id": proposal_version.id, "timeline": "Q4"},
+            headers=_auth(login(two_orgs.manager_a)),
+        )
+    finally:
+        app.dependency_overrides.pop(get_ai_provider, None)
+
+    assert response.status_code == 504
+    log = db_session.query(GenerationLog).filter_by(entity_id=proposal_version.id).one()
+    assert log.error_detail == "openrouter slow (fallback also failed: ollama slow)"
+    assert log.fallback_reason == "fake timeout"

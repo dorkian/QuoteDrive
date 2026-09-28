@@ -73,7 +73,8 @@ class FallbackProvider(GenerationProvider):
                 result = self._fallback.generate(request)
             except ProviderError as fallback_error:
                 # Report the primary's failure: that's what the operator must
-                # fix. The fallback's own error is chained for the log.
+                # fix. The fallback's own error is chained, and the AI services add it
+                # to generation_logs.error_detail.
                 raise retry_error from fallback_error
             return replace(result, fallback_reason=reason)
 

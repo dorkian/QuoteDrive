@@ -128,6 +128,31 @@ describe("DiscoveryBriefPanel", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows who wrote a saved brief, including a fallback", () => {
+    render(
+      <DiscoveryBriefPanel
+        token="t"
+        opportunity={{
+          ...opportunity,
+          brief_json: {
+            summary: "Saved",
+            provider: "ollama",
+            model: "qwen",
+            fallback_reason: "openrouter timeout",
+          },
+        }}
+        editable={false}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Generated locally with Ollama (fallback: OpenRouter timeout)",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("disables drafting until notes are entered", () => {
     renderPanel();
     expect(screen.getByRole("button", { name: "Draft brief" })).toBeDisabled();

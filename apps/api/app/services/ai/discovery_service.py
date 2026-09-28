@@ -101,6 +101,10 @@ def generate_discovery_brief(
             raise NarrativeGuardError("Output guard: " + "; ".join(violations))
     except Exception as exc:
         log_entry.error_detail = str(exc)
+        if res is None and provider.fallback_reason and exc.__cause__ is not None:
+            # FallbackProvider re-raises the primary's error with the fallback's
+            # own failure chained; keep both, or the log hides why Ollama failed.
+            log_entry.error_detail += f" (fallback also failed: {exc.__cause__})"
         log_entry.latency_ms = int((time.monotonic() - started) * 1000)
         if res is not None:
             # The provider answered but the output was rejected: attribute the

@@ -53,8 +53,16 @@ function asStringList(value: unknown): string[] {
 
 function SavedBrief({ brief }: { brief: Record<string, unknown> }) {
   const summary = typeof brief.summary === "string" ? brief.summary : null;
+  const provider = typeof brief.provider === "string" ? brief.provider : null;
+  const fallbackReason =
+    typeof brief.fallback_reason === "string" ? brief.fallback_reason : null;
   return (
     <div className="space-y-4">
+      {provider && (
+        <Badge variant="info">
+          {provenanceLabel(provider, fallbackReason)}
+        </Badge>
+      )}
       {summary && <p className="text-sm text-foreground">{summary}</p>}
       {LIST_FIELDS.map(({ key, label }) => {
         const items = asStringList(brief[key]);
