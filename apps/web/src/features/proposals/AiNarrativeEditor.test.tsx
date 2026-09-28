@@ -268,6 +268,39 @@ describe("AiNarrativeEditor", () => {
     expect(onSaved).toHaveBeenCalled();
   });
 
+  it("labels a fallback draft and saves its reason", async () => {
+    vi.mocked(api.generateProposalNarrative).mockResolvedValue({
+      ...mockGeneratedResponse,
+      provider: "ollama",
+      fallback_reason: "openrouter timeout",
+    });
+    vi.mocked(api.saveProposalVersionNarrative).mockResolvedValue(draftVersion);
+    render(
+      <AiNarrativeEditor
+        version={draftVersion}
+        editable={true}
+        token="tok"
+        onSaved={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("Generate draft"));
+
+    expect(
+      await screen.findByText(
+        "Generated locally with Ollama (fallback: OpenRouter timeout)",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Save"));
+    await waitFor(() =>
+      expect(api.saveProposalVersionNarrative).toHaveBeenCalledWith(
+        "tok",
+        draftVersion.id,
+        expect.objectContaining({ fallback_reason: "openrouter timeout" }),
+      ),
+    );
+  });
+
   it("previously-saved narrative renders without generating", () => {
     render(
       <AiNarrativeEditor

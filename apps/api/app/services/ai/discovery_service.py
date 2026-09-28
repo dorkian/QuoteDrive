@@ -20,7 +20,11 @@ from app.services.ai.narrative_service import (
     NarrativeParsingError,
 )
 from app.services.ai.output_guard import find_violations
-from app.services.ai.providers.base import GenerationProvider, GenerationRequest
+from app.services.ai.providers.base import (
+    GenerationProvider,
+    GenerationRequest,
+    GenerationResult,
+)
 
 DISCLAIMER = "Draft AI Content — Requires human review"
 
@@ -83,6 +87,7 @@ def generate_discovery_brief(
     db.add(log_entry)
 
     started = time.monotonic()
+    res: GenerationResult | None = None
     try:
         res = provider.generate(req)
         output = parse_brief_output(res.text)
@@ -97,15 +102,26 @@ def generate_discovery_brief(
     except Exception as exc:
         log_entry.error_detail = str(exc)
         log_entry.latency_ms = int((time.monotonic() - started) * 1000)
+        if res is not None:
+            # The provider answered but the output was rejected: attribute the
+            # failure to whoever produced it, which may be the fallback.
+            log_entry.provider = res.provider
+            log_entry.model = res.model
         raise
     else:
+        assert res is not None
         log_entry.provider = res.provider
         log_entry.model = res.model
         log_entry.latency_ms = res.latency_ms
         log_entry.status = "success"
     finally:
+        log_entry.fallback_reason = provider.fallback_reason
         db.commit()
 
     return DiscoveryBriefResponse(
-        **output.model_dump(), disclaimer=DISCLAIMER, provider=res.provider, model=res.model
+        **output.model_dump(),
+        disclaimer=DISCLAIMER,
+        provider=res.provider,
+        model=res.model,
+        fallback_reason=res.fallback_reason,
     )

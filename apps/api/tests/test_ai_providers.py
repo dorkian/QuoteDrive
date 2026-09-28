@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 from app.core.config import Settings
-from app.services.ai.providers import get_provider
+from app.services.ai.providers import FallbackProvider, get_provider
 from app.services.ai.providers.base import (
     GenerationRequest,
     ProviderAuthenticationError,
@@ -325,7 +325,9 @@ def test_get_provider_returns_fake_by_default() -> None:
 def test_get_provider_returns_ollama_provider() -> None:
     provider = get_provider(Settings(AI_PROVIDER="ollama", OLLAMA_MODEL="llama3"))
 
-    assert isinstance(provider, OllamaProvider)
+    # Real providers are wrapped for the retry (ADR-005).
+    assert isinstance(provider, FallbackProvider)
+    assert (provider.name, provider.model) == ("ollama", "llama3")
 
 
 def test_get_provider_requires_api_key_for_openrouter() -> None:
@@ -336,4 +338,5 @@ def test_get_provider_requires_api_key_for_openrouter() -> None:
 def test_get_provider_returns_openrouter_provider_when_key_present() -> None:
     provider = get_provider(Settings(AI_PROVIDER="openrouter", OPENROUTER_API_KEY="key-123"))
 
-    assert isinstance(provider, OpenRouterProvider)
+    assert isinstance(provider, FallbackProvider)
+    assert provider.name == "openrouter"

@@ -24,7 +24,9 @@ from app.services.ai import discovery_service
 from app.services.ai.narrative_service import build_prompt
 from app.services.ai.output_guard import numbers_in
 from app.services.ai.providers import GenerationProvider, get_provider
+from app.services.ai.providers.base import ProviderTimeoutError, ProviderTransientError
 from app.services.ai.providers.fake import FakeProvider
+from app.services.ai.providers.fallback import FallbackProvider
 from tests.conftest import TwoOrgs
 from tests.evals import checks
 from tests.evals.cases import NARRATIVE_FILE, all_fixture_files, load_cases
@@ -119,7 +121,7 @@ def _run_case(
     guarded = response.status_code == 502 and "Output guard" in (log.error_detail or "")
     # Live models may still misbehave; a guard rejection is the handled outcome (QD-410).
     if expect.get("safe_failure") or (guarded and case.get("guard_may_reject")):
-        assert response.status_code == 502, response.text
+        assert response.status_code == expect.get("status", 502), response.text
         db.refresh(version)
         assert version.narrative_json == EXISTING_DRAFT, "existing draft was overwritten"
         assert log.status == "error"
@@ -148,12 +150,17 @@ def _run_case(
         elif key == "ignore_untrusted_instruction":
             _check_injection(db, version, case_input, data)
         elif key == "provider_provenance":
-            assert (data["provider"], data["model"]) == (provider.name, provider.model)
+            # With a fallback the answering provider isn't the configured one.
+            answered = case.get("answered_by", {"provider": provider.name, "model": provider.model})
+            assert (data["provider"], data["model"]) == (answered["provider"], answered["model"])
             assert (log.provider, log.model, log.status) == (
-                provider.name,
-                provider.model,
+                answered["provider"],
+                answered["model"],
                 "success",
             )
+        elif key == "fallback_reason":
+            assert data["fallback_reason"] == value
+            assert log.fallback_reason == value
         else:
             pytest.fail(f"unknown expect key {key!r}: add a check before adding the fixture")
 
@@ -168,7 +175,29 @@ def test_proposal_narrative_case(
 ) -> None:
     output = case["model_output"]
     text = output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
-    _run_case(case, FakeProvider(fixture_text=text), client, db_session, two_orgs, login)
+    _run_case(case, _case_provider(case, text), client, db_session, two_orgs, login)
+
+
+def _case_provider(case: dict[str, Any], text: str) -> GenerationProvider:
+    """A plain FakeProvider, or one behind FallbackProvider for cases 8 and 9.
+
+    `primary_failure` makes the primary fail transiently on every try;
+    `fallback_allowed` says whether the tenant allows the fallback (ADR-005).
+    """
+    answer = FakeProvider(fixture_text=text, model="fallback-model")
+    failure = case.get("primary_failure")
+    if failure is None:
+        return FakeProvider(fixture_text=text)
+    error = (
+        ProviderTimeoutError("primary timed out")
+        if failure == "timeout"
+        else ProviderTransientError("primary returned 503")
+    )
+    return FallbackProvider(
+        FakeProvider(raise_error=error),
+        answer if case.get("fallback_allowed") else None,
+        retry_backoff_seconds=0,
+    )
 
 
 EXISTING_BRIEF = {"summary": "Previously saved brief"}
@@ -270,6 +299,8 @@ def test_live_proposal_narrative_case(
 ) -> None:
     if case["expect"].get("safe_failure"):
         pytest.skip("failure cases need a canned bad output")
+    if "primary_failure" in case:
+        pytest.skip("fallback cases script the primary's failure; they run with fakes only")
     live = settings.model_copy(update={"AI_PROVIDER": os.environ["EVAL_PROVIDER"]})
     _run_case(case, get_provider(live), client, db_session, two_orgs, login)
 

@@ -6,13 +6,23 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_ai_provider
+from app.api.deps import CurrentMembership, get_ai_provider
 from app.core.config import settings
 from app.main import app
-from app.models import Customer, GenerationLog, Opportunity, ProposalVersion
+from app.models import (
+    Customer,
+    GenerationLog,
+    Opportunity,
+    Organization,
+    ProposalVersion,
+    Role,
+    User,
+)
 from app.services.ai.narrative_service import build_prompt
-from app.services.ai.providers.base import ProviderTimeoutError
+from app.services.ai.providers import FallbackProvider
+from app.services.ai.providers.base import GenerationProvider, ProviderTimeoutError
 from app.services.ai.providers.fake import FakeProvider
+from app.services.ai.providers.ollama import OllamaProvider
 from tests.conftest import TwoOrgs
 
 VALID_NARRATIVE = {
@@ -349,3 +359,117 @@ def test_generate_narrative_may_state_the_proposal_total(
     )
 
     assert response.status_code == 200, response.text
+
+
+# --- Provider fallback (QD-417) -----------------------------------------------
+
+
+def _fallback_to_fake(fixture_text: str) -> FallbackProvider:
+    return FallbackProvider(
+        FakeProvider(raise_error=ProviderTimeoutError("openrouter slow")),
+        FakeProvider(fixture_text=fixture_text, model="local-model"),
+        retry_backoff_seconds=0,
+    )
+
+
+def test_fallback_draft_carries_its_provenance(
+    client: TestClient,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    db_session: Session,
+) -> None:
+    app.dependency_overrides[get_ai_provider] = lambda: _fallback_to_fake(
+        json.dumps(VALID_NARRATIVE)
+    )
+    try:
+        response = client.post(
+            "/ai/proposal-narrative",
+            json={"proposal_version_id": proposal_version.id, "timeline": "Q4"},
+            headers=_auth(login(two_orgs.manager_a)),
+        )
+    finally:
+        app.dependency_overrides.pop(get_ai_provider, None)
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert (data["provider"], data["model"]) == ("fake", "local-model")
+    assert data["fallback_reason"] == "fake timeout"
+    log = db_session.query(GenerationLog).filter_by(entity_id=proposal_version.id).one()
+    assert (log.status, log.provider, log.model) == ("success", "fake", "local-model")
+    assert log.fallback_reason == "fake timeout"
+
+
+def test_rejected_fallback_draft_is_logged_against_the_fallback(
+    client: TestClient,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+    db_session: Session,
+) -> None:
+    app.dependency_overrides[get_ai_provider] = lambda: _fallback_to_fake("not json")
+    try:
+        response = client.post(
+            "/ai/proposal-narrative",
+            json={"proposal_version_id": proposal_version.id, "timeline": "Q4"},
+            headers=_auth(login(two_orgs.manager_a)),
+        )
+    finally:
+        app.dependency_overrides.pop(get_ai_provider, None)
+
+    # Bad output from the fallback is a schema failure, never another retry.
+    assert response.status_code == 502
+    log = db_session.query(GenerationLog).filter_by(entity_id=proposal_version.id).one()
+    assert (log.status, log.model, log.fallback_reason) == ("error", "local-model", "fake timeout")
+
+
+def test_saved_narrative_keeps_fallback_reason(
+    client: TestClient,
+    proposal_version: ProposalVersion,
+    two_orgs: TwoOrgs,
+    login: Callable[[str], str],
+) -> None:
+    body = {
+        **VALID_NARRATIVE,
+        "provider": "ollama",
+        "model": "qwen",
+        "fallback_reason": "openrouter timeout",
+    }
+
+    response = client.patch(
+        f"/proposal-versions/{proposal_version.id}/narrative",
+        json=body,
+        headers=_auth(login(two_orgs.manager_a)),
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["narrative_json"]["fallback_reason"] == "openrouter timeout"
+
+
+def test_tenant_setting_decides_whether_the_real_provider_falls_back(
+    monkeypatch: pytest.MonkeyPatch,
+    db_session: Session,
+    two_orgs: TwoOrgs,
+) -> None:
+    monkeypatch.setattr(settings, "AI_PROVIDER", "openrouter")
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "k")
+    monkeypatch.setattr(settings, "AI_FALLBACK_PROVIDER", "ollama")
+    organization = db_session.get(Organization, two_orgs.org_a_id)
+    assert organization is not None
+    user = db_session.query(User).first()
+    assert user is not None
+
+    def built(enabled: bool) -> GenerationProvider:
+        organization.ai_fallback_enabled = enabled
+        current = CurrentMembership(user=user, organization=organization, role=Role.ADMIN)
+        dependency = get_ai_provider(current)
+        provider = next(dependency)
+        dependency.close()
+        return provider
+
+    allowed = built(True)
+    blocked = built(False)
+    assert isinstance(allowed, FallbackProvider)
+    assert isinstance(allowed._fallback, OllamaProvider)
+    assert isinstance(blocked, FallbackProvider)
+    assert blocked._fallback is None

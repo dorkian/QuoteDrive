@@ -17,7 +17,7 @@ erDiagram
 ```
 
 ## Tables
-- `organizations(id, name, slug, created_at)`
+- `organizations(id, name, slug, ai_fallback_enabled, created_at)`. `ai_fallback_enabled` is the tenant's opt-in to the local AI fallback (ADR-005), off by default.
 - `users(id, email, display_name, created_at)`
 - `organization_memberships(user_id, organization_id, role)`. `role`: `admin`, `proposal_manager`, `approver`, `viewer`.
 - `customers(id, organization_id, name, industry, status, created_at)`
@@ -30,11 +30,11 @@ erDiagram
 - `approval_requests(id, organization_id, proposal_version_id, requested_by, assigned_to, status, decision_at, created_at)`. `status`: `pending`, `approved`, `changes_requested`.
 - `approval_comments(id, approval_request_id, author_id, body, created_at)`
 - `audit_events(id, organization_id, actor_id, actor_name, entity_type, entity_id, action, before_json, after_json, created_at)`. `actor_name` is captured at write time so the history survives renames.
-- `generation_logs(id, organization_id, actor_id, actor_name, entity_type, entity_id, provider, model, prompt_version, status, error_detail, latency_ms, created_at)`. One row per AI generation attempt, success or failure. `entity_type` is `proposal_version` (narrative) or `opportunity` (discovery brief). No prompts or outputs are stored.
+- `generation_logs(id, organization_id, actor_id, actor_name, entity_type, entity_id, provider, model, prompt_version, status, error_detail, latency_ms, fallback_reason, created_at)`. One row per AI generation request, success or failure; `provider`/`model` name whoever answered, and `fallback_reason` (e.g. `openrouter timeout`) is set when the fallback was tried. `entity_type` is `proposal_version` (narrative) or `opportunity` (discovery brief). No prompts or outputs are stored.
 
 ## Not built (planned in earlier drafts)
 - `organizations.settings_json`: no per-tenant settings yet.
-- `ai_generations` with `input_hash`, `output_json` and `fallback_reason`: replaced by the leaner `generation_logs`. There is no fallback to record ([ADR-005](../adr/ADR-005-provider-abstraction.md)).
+- `ai_generations` with `input_hash` and `output_json`: replaced by the leaner `generation_logs`, which carries `fallback_reason` ([ADR-005](../adr/ADR-005-provider-abstraction.md)).
 
 ## Tenant rule
 Every tenant-owned table has `organization_id` directly, or is reachable only through an already tenant-scoped parent (`approval_comments` through `approval_requests`). Services authorize and scope every query by the caller's organization; see [ADR-002](../adr/ADR-002-shared-database-tenancy.md).

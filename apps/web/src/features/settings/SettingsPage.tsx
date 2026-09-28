@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ForbiddenState } from "../../components/states/StateViews";
 import { useAuth } from "../../lib/auth-context";
+import { AiSettingsPanel } from "./AiSettingsPanel";
 import { CataloguePanel } from "./CataloguePanel";
 import { MembersPanel } from "./MembersPanel";
 
@@ -28,12 +29,16 @@ export function SettingsPage() {
           <TabsList>
             <TabsTrigger value="members">Members</TabsTrigger>
             <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
+            <TabsTrigger value="ai">AI</TabsTrigger>
           </TabsList>
           <TabsContent value="members">
             <MembersPanel />
           </TabsContent>
           <TabsContent value="catalogue">
             <CataloguePanel />
+          </TabsContent>
+          <TabsContent value="ai">
+            <AiSettingsPanel />
           </TabsContent>
         </Tabs>
       )}

@@ -298,9 +298,80 @@
     },
     {
       "id": "fallback",
-      "skip": "No provider fallback exists yet (get_provider returns a single provider); see ai-evaluation-plan.md case 8.",
+      "description": "Plan case 8: OpenRouter fails transiently twice (timeout), the tenant allows the local fallback, and the fallback's draft comes back with its provenance and the reason.",
+      "primary_failure": "timeout",
+      "fallback_allowed": true,
+      "answered_by": {
+        "provider": "fake",
+        "model": "fallback-model"
+      },
+      "input": {
+        "customer": "Lombarda Studio Group",
+        "opportunity": "Rinnovo flotta 2026",
+        "lines": [
+          {
+            "name": "Electric City",
+            "quantity": 4,
+            "unit_estimate": "649.00",
+            "line_total": "2596.00"
+          }
+        ],
+        "timeline": "Q4 2026",
+        "brief": null
+      },
+      "model_output": {
+        "executive_summary": "Proponiamo 4 veicoli Electric City per Lombarda Studio Group, con una stima illustrativa di $2596.00 al mese.",
+        "recommended_approach": "Introduzione graduale della flotta elettrica a partire dal Q4 2026.",
+        "scope": "4 veicoli Electric City a noleggio.",
+        "assumptions_exclusions": [
+          "La stima è illustrativa e non costituisce un'offerta vincolante."
+        ],
+        "next_steps": [
+          "Confermare il numero di veicoli e la data di consegna."
+        ],
+        "email_draft": "Gentile cliente, in allegato la proposta per il rinnovo della flotta."
+      },
       "expect": {
-        "provider_provenance": true
+        "valid": "schema",
+        "disclaimer": true,
+        "provider_provenance": true,
+        "fallback_reason": "fake timeout"
+      }
+    },
+    {
+      "id": "no_fallback",
+      "description": "Plan case 9: the same transient failure when the tenant hasn't allowed the fallback. One retry, then a safe failure: 504, the existing draft is untouched and the attempt is logged.",
+      "primary_failure": "timeout",
+      "fallback_allowed": false,
+      "input": {
+        "customer": "Lombarda Studio Group",
+        "opportunity": "Rinnovo flotta 2026",
+        "lines": [
+          {
+            "name": "Electric City",
+            "quantity": 4,
+            "unit_estimate": "649.00",
+            "line_total": "2596.00"
+          }
+        ],
+        "timeline": "Q4 2026",
+        "brief": null
+      },
+      "model_output": {
+        "executive_summary": "Proponiamo 4 veicoli Electric City per Lombarda Studio Group, con una stima illustrativa di $2596.00 al mese.",
+        "recommended_approach": "Introduzione graduale della flotta elettrica a partire dal Q4 2026.",
+        "scope": "4 veicoli Electric City a noleggio.",
+        "assumptions_exclusions": [
+          "La stima è illustrativa e non costituisce un'offerta vincolante."
+        ],
+        "next_steps": [
+          "Confermare il numero di veicoli e la data di consegna."
+        ],
+        "email_draft": "Gentile cliente, in allegato la proposta per il rinnovo della flotta."
+      },
+      "expect": {
+        "safe_failure": true,
+        "status": 504
       }
     }
   ]

@@ -30,6 +30,9 @@ Every failure shows the same message, "Couldn't draft …", with a **Retry** but
 4. After changing `.env`, apply it with `docker compose up -d api`.
 
 ## Rules
-- Retry manually. There is no automatic retry and no automatic fallback between providers: one provider is configured at a time ([ADR-005](../adr/ADR-005-provider-abstraction.md) plans fallback, but it is not built).
+- Automatic handling ([ADR-005](../adr/ADR-005-provider-abstraction.md), QD-417): every real provider retries a timeout, connection error, 5xx or 429 **once** (`AI_RETRY_BACKOFF_SECONDS`, default 1s). If the retry also fails, and the deployment sets `AI_FALLBACK_PROVIDER=ollama` behind `AI_PROVIDER=openrouter`, and the tenant turned on **Settings › AI › Allow local fallback**, the request goes to Ollama.
+- A fallback draft is labelled, e.g. "Generated locally with Ollama (fallback: OpenRouter timeout)", and `generation_logs.fallback_reason` records the reason. Query recent fallbacks with `SELECT created_at, provider, fallback_reason, status FROM generation_logs WHERE fallback_reason IS NOT NULL ORDER BY created_at DESC LIMIT 20;`.
+- No retry or fallback for a rejected key, other 4xx, unparseable output, schema failures or output-guard rejections: another attempt wouldn't fix them. If the fallback also fails, the user sees the primary's error.
+- Otherwise retry manually.
 - Never log or paste prompts, outputs or API keys into tickets. `generation_logs` stores metadata only.
 - A failed generation must not change proposal workflow state.

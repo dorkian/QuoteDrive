@@ -41,6 +41,8 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `POST /ai/discovery-brief` | A, PM | `{opportunity_id, notes}` → draft `{summary, requirements[], open_questions[], unknowns[], disclaimer, provider, model}`. Not persisted. |
 | `GET /organization/members` | A | Members of the caller's organization: `user_id`, `email`, `display_name`, `role`. |
 | `PATCH /organization/members/{user_id}` | A | `{role}`. 400 if it would leave the organization without an Admin; 404 for a user outside the organization. Audited as `membership` / `role_change`. |
+| `GET /organization/settings` | all | `{ai_fallback_enabled, ai_fallback_available}`. `available` is false unless the deployment sets `AI_FALLBACK_PROVIDER`. |
+| `PATCH /organization/settings` | A | `{ai_fallback_enabled}`. Audited as `organization` / `update_settings`. |
 | `GET /audit-events` | all | `entity_type`, `entity_id`, `limit`, `before_id`. Includes `actor_name` captured at write time. |
 
 ## AI endpoint failures
@@ -52,5 +54,7 @@ Both AI endpoints behave the same way on failure. A failed attempt is logged in 
 | 500 | Provider misconfigured (e.g. missing API key). |
 | 502 | Provider error, output that fails the schema, or output rejected by the output guard. |
 | 504 | Provider timeout. |
+
+Before any of these, a timeout, connection error, 5xx or 429 is retried once, then sent to the fallback if the tenant allows it ([ADR-005](../adr/ADR-005-provider-abstraction.md)). Successful responses carry `fallback_reason` (null unless the fallback answered).
 
 No endpoint accepts a client-supplied tenant ID for authorization.

@@ -142,6 +142,7 @@ describe("describeEvent", () => {
     ["proposal_version", "share"],
     ["proposal_version", "outcome"],
     ["membership", "role_change"],
+    ["organization", "update_settings"],
     ["catalogue_item", "create"],
     ["catalogue_item", "update"],
     ["approval_request", "create"],

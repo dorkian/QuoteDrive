@@ -2,10 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentMembership, require_role
+from app.api.deps import CurrentMembership, get_current_membership, require_role
+from app.core.config import settings
 from app.core.database import get_db
 from app.models import OrganizationMembership, Role, User
-from app.schemas.organization import MemberOut, MemberRoleUpdate
+from app.schemas.organization import (
+    MemberOut,
+    MemberRoleUpdate,
+    OrganizationSettingsOut,
+    OrganizationSettingsUpdate,
+)
+from app.services.ai.providers import fallback_available
 from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/organization", tags=["organization"])
@@ -93,3 +100,42 @@ def update_member_role(
     )
     db.commit()
     return _member_out(membership, user)
+
+
+@router.get("/settings", response_model=OrganizationSettingsOut)
+def get_organization_settings(
+    current: CurrentMembership = Depends(get_current_membership),
+) -> OrganizationSettingsOut:
+    # Readable by every role, so the provenance badge makes sense to all.
+    return OrganizationSettingsOut(
+        ai_fallback_enabled=current.organization.ai_fallback_enabled,
+        ai_fallback_available=fallback_available(settings),
+    )
+
+
+@router.patch("/settings", response_model=OrganizationSettingsOut)
+def update_organization_settings(
+    body: OrganizationSettingsUpdate,
+    current: CurrentMembership = Depends(_admin_only),
+    db: Session = Depends(get_db),
+) -> OrganizationSettingsOut:
+    organization = current.organization
+    before = organization.ai_fallback_enabled
+    if before != body.ai_fallback_enabled:
+        organization.ai_fallback_enabled = body.ai_fallback_enabled
+        record_audit_event(
+            db,
+            organization_id=organization.id,
+            actor_id=current.user.id,
+            actor_name=current.user.display_name,
+            entity_type="organization",
+            entity_id=organization.id,
+            action="update_settings",
+            before={"ai_fallback_enabled": before},
+            after={"ai_fallback_enabled": body.ai_fallback_enabled},
+        )
+        db.commit()
+    return OrganizationSettingsOut(
+        ai_fallback_enabled=organization.ai_fallback_enabled,
+        ai_fallback_available=fallback_available(settings),
+    )

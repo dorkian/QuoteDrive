@@ -12,3 +12,14 @@ class MemberOut(BaseModel):
 
 class MemberRoleUpdate(BaseModel):
     role: Role
+
+
+class OrganizationSettingsOut(BaseModel):
+    ai_fallback_enabled: bool
+    # Whether this deployment has a fallback provider configured at all; the
+    # tenant switch does nothing without one.
+    ai_fallback_available: bool
+
+
+class OrganizationSettingsUpdate(BaseModel):
+    ai_fallback_enabled: bool

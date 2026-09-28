@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { provenanceLabel } from "../../lib/provenance";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CARD_CLASSES } from "@/components/ui/variants";
@@ -10,7 +11,6 @@ import { cn } from "@/lib/utils";
 import {
   generateDiscoveryBrief,
   saveOpportunityBrief,
-  type DiscoveryBrief,
   type Opportunity,
 } from "../../lib/api";
 import { describeError } from "../../lib/errors";
@@ -35,6 +35,7 @@ interface Draft {
   unknowns: string;
   provider: string;
   model: string;
+  fallback_reason?: string | null;
 }
 
 function toLines(text: string): string[] {
@@ -103,6 +104,9 @@ export function DiscoveryBriefPanel({
         unknowns: res.unknowns.join("\n"),
         provider: res.provider,
         model: res.model,
+        ...(res.fallback_reason
+          ? { fallback_reason: res.fallback_reason }
+          : {}),
       });
       toast.success("AI brief ready. Review it before saving.");
     } catch (err) {
@@ -122,13 +126,16 @@ export function DiscoveryBriefPanel({
     }
     setSaving(true);
     setError(null);
-    const brief: DiscoveryBrief & { provider: string; model: string } = {
+    const brief: Parameters<typeof saveOpportunityBrief>[2] = {
       summary: draft.summary.trim(),
       requirements: toLines(draft.requirements),
       open_questions: toLines(draft.open_questions),
       unknowns: toLines(draft.unknowns),
       provider: draft.provider,
       model: draft.model,
+      ...(draft.fallback_reason
+        ? { fallback_reason: draft.fallback_reason }
+        : {}),
     };
     try {
       const saved = await saveOpportunityBrief(token, opportunity.id, brief);
@@ -204,6 +211,9 @@ export function DiscoveryBriefPanel({
       {draft && (
         <div className="mt-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-background p-3">
+            <Badge variant="info">
+              {provenanceLabel(draft.provider, draft.fallback_reason)}
+            </Badge>
             <Badge variant="warning">
               Draft AI Content — Requires human review
             </Badge>

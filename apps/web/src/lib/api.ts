@@ -123,6 +123,7 @@ export interface ProposalVersion {
     | (NarrativeOutput & {
         provider: string;
         model: string;
+        fallback_reason?: string | null;
         generated_at: string;
       })
     | null;
@@ -356,6 +357,37 @@ export async function updateMemberRole(
   });
   await throwIfNotOk(res, "Failed to change role");
   return (await res.json()) as Member;
+}
+
+export interface OrganizationSettings {
+  ai_fallback_enabled: boolean;
+  ai_fallback_available: boolean;
+}
+
+export async function fetchOrganizationSettings(
+  token: string,
+): Promise<OrganizationSettings> {
+  const res = await fetch(`${API_URL}/organization/settings`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to load settings");
+  return (await res.json()) as OrganizationSettings;
+}
+
+export async function updateOrganizationSettings(
+  token: string,
+  input: { ai_fallback_enabled: boolean },
+): Promise<OrganizationSettings> {
+  const res = await fetch(`${API_URL}/organization/settings`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  await throwIfNotOk(res, "Failed to save settings");
+  return (await res.json()) as OrganizationSettings;
 }
 
 export async function fetchCatalogueItems(
@@ -657,6 +689,8 @@ export interface ProposalNarrativeResponse extends NarrativeOutput {
   disclaimer: string;
   provider: string;
   model: string;
+  // Set when the primary provider failed and the fallback wrote this draft.
+  fallback_reason?: string | null;
 }
 
 export async function generateProposalNarrative(
@@ -679,7 +713,11 @@ export async function generateProposalNarrative(
 export async function saveProposalVersionNarrative(
   token: string,
   versionId: number,
-  narrative: NarrativeOutput & { provider: string; model: string },
+  narrative: NarrativeOutput & {
+    provider: string;
+    model: string;
+    fallback_reason?: string | null;
+  },
 ): Promise<ProposalVersion> {
   const res = await fetch(
     `${API_URL}/proposal-versions/${versionId}/narrative`,
@@ -707,6 +745,8 @@ export interface DiscoveryBriefResponse extends DiscoveryBrief {
   disclaimer: string;
   provider: string;
   model: string;
+  // Set when the primary provider failed and the fallback wrote this draft.
+  fallback_reason?: string | null;
 }
 
 export async function generateDiscoveryBrief(
@@ -730,7 +770,11 @@ export async function generateDiscoveryBrief(
 export async function saveOpportunityBrief(
   token: string,
   opportunityId: number,
-  brief: DiscoveryBrief & { provider: string; model: string },
+  brief: DiscoveryBrief & {
+    provider: string;
+    model: string;
+    fallback_reason?: string | null;
+  },
 ): Promise<Opportunity> {
   const res = await fetch(`${API_URL}/opportunities/${opportunityId}`, {
     method: "PATCH",
