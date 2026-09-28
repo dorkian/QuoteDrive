@@ -9,6 +9,7 @@ from app.services.ai.providers.base import (
     ProviderAuthenticationError,
     ProviderResponseError,
     ProviderTimeoutError,
+    ProviderTransientError,
 )
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -56,11 +57,15 @@ class OpenRouterProvider(GenerationProvider):
         except httpx.TimeoutException as exc:
             raise ProviderTimeoutError("OpenRouter request timed out") from exc
         except httpx.HTTPError as exc:
-            raise ProviderResponseError(f"OpenRouter request failed: {exc}") from exc
+            raise ProviderTransientError(f"OpenRouter request failed: {exc}") from exc
         latency_ms = int((time.monotonic() - started) * 1000)
 
         if response.status_code in (401, 403):
             raise ProviderAuthenticationError("OpenRouter rejected the configured API key")
+        if response.status_code >= 500 or response.status_code == 429:
+            raise ProviderTransientError(
+                f"OpenRouter returned status {response.status_code}: {response.text[:250]}"
+            )
         if response.status_code >= 400:
             raise ProviderResponseError(
                 f"OpenRouter returned status {response.status_code}: {response.text[:250]}"

@@ -15,24 +15,6 @@ from app.services.ai.providers import GenerationProvider, get_provider
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_ai_provider() -> Generator[GenerationProvider, None, None]:
-    try:
-        provider = get_provider(settings)
-    except ValueError as exc:
-        # A misconfigured AI_PROVIDER (e.g. openrouter with no API key) is a
-        # deployment error, not a per-request attempt — surface it as a clean
-        # 500 here rather than letting it propagate as an opaque, unhandled
-        # error from dependency resolution.
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="AI provider misconfigured",
-        ) from exc
-    try:
-        yield provider
-    finally:
-        provider.close()
-
-
 @dataclass
 class CurrentMembership:
     user: User
@@ -90,3 +72,23 @@ def require_role(*allowed: Role) -> Callable[[CurrentMembership], CurrentMembers
         return current
 
     return checker
+
+
+def get_ai_provider(
+    current: CurrentMembership = Depends(get_current_membership),
+) -> Generator[GenerationProvider, None, None]:
+    try:
+        provider = get_provider(settings, allow_fallback=current.organization.ai_fallback_enabled)
+    except ValueError as exc:
+        # A misconfigured AI_PROVIDER (e.g. openrouter with no API key) is a
+        # deployment error, not a per-request attempt — surface it as a clean
+        # 500 here rather than letting it propagate as an opaque, unhandled
+        # error from dependency resolution.
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="AI provider misconfigured",
+        ) from exc
+    try:
+        yield provider
+    finally:
+        provider.close()

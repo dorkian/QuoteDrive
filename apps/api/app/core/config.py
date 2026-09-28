@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3"
     AI_REQUEST_TIMEOUT_SECONDS: float = 30.0
+    # ADR-005: one retry on a transient failure, then (if the tenant allows it)
+    # the fallback. Only "ollama" behind "openrouter" is supported.
+    AI_FALLBACK_PROVIDER: Literal["", "ollama"] = ""
+    AI_RETRY_BACKOFF_SECONDS: float = 1.0
 
     @property
     def DATABASE_URL(self) -> str:

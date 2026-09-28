@@ -8,6 +8,7 @@ from app.services.ai.providers.base import (
     GenerationResult,
     ProviderResponseError,
     ProviderTimeoutError,
+    ProviderTransientError,
 )
 
 
@@ -53,9 +54,13 @@ class OllamaProvider(GenerationProvider):
         except httpx.TimeoutException as exc:
             raise ProviderTimeoutError("Ollama request timed out") from exc
         except httpx.HTTPError as exc:
-            raise ProviderResponseError(f"Ollama request failed: {exc}") from exc
+            raise ProviderTransientError(f"Ollama request failed: {exc}") from exc
         latency_ms = int((time.monotonic() - started) * 1000)
 
+        if response.status_code >= 500 or response.status_code == 429:
+            raise ProviderTransientError(
+                f"Ollama returned status {response.status_code}: {response.text[:250]}"
+            )
         if response.status_code >= 400:
             raise ProviderResponseError(
                 f"Ollama returned status {response.status_code}: {response.text[:250]}"

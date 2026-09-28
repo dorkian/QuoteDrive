@@ -183,6 +183,19 @@ export function describeEvent(event: AuditEvent): EventDescription {
     };
   }
 
+  if (entity_type === "organization" && action === "update_settings") {
+    const enabled = after_json?.ai_fallback_enabled;
+    return {
+      actionDescription:
+        enabled === true
+          ? "turned on the local AI fallback for"
+          : enabled === false
+            ? "turned off the local AI fallback for"
+            : "changed the settings of",
+      entityReference: "the workspace",
+    };
+  }
+
   if (entity_type === "catalogue_item") {
     const name = typeof json.name === "string" ? json.name : `#${entity_id}`;
     if (action === "create") {

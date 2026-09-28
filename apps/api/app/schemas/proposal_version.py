@@ -35,6 +35,9 @@ class ProposalVersionNarrativeUpdate(BaseModel):
     # (docs/runbooks/ai-provider-failure.md).
     provider: Literal["openrouter", "ollama", "fake", "manual"]
     model: str
+    # Kept with the saved draft so its provenance badge still explains a
+    # fallback later (ADR-005), e.g. "openrouter timeout".
+    fallback_reason: str | None = Field(default=None, max_length=255)
 
 
 class ProposalVersionOut(BaseModel):

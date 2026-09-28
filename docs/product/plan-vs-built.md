@@ -17,7 +17,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | FR-05 | Manager submits a version for review | 🟡 API only | ⏳ QD-412 |
 | FR-05 | Approve or request changes with a comment; no self-approval; audit events | ✅ | QD-301, QD-302, QD-303 |
 | FR-06 | Narrative and discovery drafts, editable, labelled, never change state | ✅ | QD-305–QD-308, QD-404, QD-410 |
-| FR-06 | Fallback reason recorded | ⏳ No fallback exists | ⏳ QD-417 |
+| FR-06 | Fallback reason recorded | ✅ `generation_logs.fallback_reason`, response and saved draft | QD-417 |
 
 ## Lifecycle and permissions ([security-and-tenancy.md](../architecture/security-and-tenancy.md))
 | Commitment | Status | Where / card |
@@ -32,8 +32,8 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 |---|---|---|
 | Synthetic data, server-side tenancy and roles, no secrets in logs | ✅ | QD-004, QD-102, QD-405 (gitleaks) |
 | Explicit, tested workflow transitions | ✅ | QD-205, QD-301 |
-| OpenRouter retries one transient failure | ⏳ | ⏳ QD-417 |
-| Optional, tenant-permitted, visible Ollama fallback | ⏳ | ⏳ QD-417 |
+| OpenRouter retries one transient failure | ✅ | QD-417 |
+| Optional, tenant-permitted, visible Ollama fallback | ✅ Settings › AI opt-in; provenance badge shows the reason | QD-417 |
 | Provider failure doesn't change proposal state | ✅ | QD-306, QD-403 |
 | Unit, API and UI tests; CI format/lint/typecheck/tests/build | ✅ | QD-005, QD-405 |
 | Playwright smoke of the demo journey | 🟡 Built; runs manually in CI | ⏳ QD-411 |
@@ -43,8 +43,8 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 ## Product vision and journeys ([product-vision.md](product-vision.md), [personas-and-user-journeys.md](personas-and-user-journeys.md))
 | Commitment | Status | Where / card |
 |---|---|---|
-| Admin configures the workspace: catalogue, members, roles, feature settings | 🟡 Settings › Members (QD-416) and Settings › Catalogue (QD-415). AI settings still to come | ⏳ QD-417 (AI setting) |
-| Goal 3: AI provenance, **fallback behavior** and human review visible | 🟡 Provenance and review ✅; fallback ⏳ | ⏳ QD-417 |
+| Admin configures the workspace: catalogue, members, roles, feature settings | ✅ Settings › Members, Catalogue and AI | QD-415, QD-416, QD-417 |
+| Goal 3: AI provenance, **fallback behavior** and human review visible | ✅ | QD-417 |
 | Journey 1–8 end to end in the UI | 🟡 Step 5 (submit for approval) needs the API | ⏳ QD-412 |
 | Viewer reads shared or approved proposals | ✅ Client preview covers approved, shared and closed versions | QD-401, QD-414 |
 
@@ -56,9 +56,9 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | Weekend 4: demo video and first case-study article | ⏳ | ⏳ QD-407 |
 | Release sign-off and human E2E pass | ⏳ | ⏳ QD-408 |
 | AI eval plan cases 1–7 and 10 | ✅ | QD-403, QD-404, QD-410 |
-| AI eval plan cases 8–9 (fallback / no fallback) | ⏳ | ⏳ QD-417 |
+| AI eval plan cases 8–9 (fallback / no fallback) | ✅ Run in CI with fakes | QD-417 |
 | Scenario scoring and pass-percentage approval (PO request during QD-403) | ⏳ | ⏳ QD-418 |
-| ADR-005 fallback | 🟡 | ⏳ QD-417 |
+| ADR-005 fallback | ✅ | QD-417 |
 | ADR-008 approval | Proposed | PO decision |
 
 Deliberately out of scope (not gaps): billing, email sending, PDF rendering, SSO, third-party integrations, real marketplace data, public deployment, and autonomous agents.

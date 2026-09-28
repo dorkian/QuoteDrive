@@ -10,7 +10,11 @@ from app.models import Customer, GenerationLog, Opportunity, ProposalVersion
 from app.repositories.base import get_tenant_scoped_or_404
 from app.schemas.ai import NarrativeOutput, ProposalNarrativeResponse
 from app.services.ai.output_guard import find_violations
-from app.services.ai.providers.base import GenerationProvider, GenerationRequest
+from app.services.ai.providers.base import (
+    GenerationProvider,
+    GenerationRequest,
+    GenerationResult,
+)
 
 _FENCE_RE = re.compile(r"^```[a-zA-Z]*\s*|```\s*$")
 
@@ -125,6 +129,7 @@ def generate_narrative(
 
     started = time.monotonic()
     output: NarrativeOutput | None = None
+    res: GenerationResult | None = None
     try:
         res = provider.generate(req)
         output = parse_narrative_output(res.text)
@@ -137,14 +142,25 @@ def generate_narrative(
             raise NarrativeGuardError("Output guard: " + "; ".join(violations))
     except Exception as exc:
         log_entry.error_detail = str(exc)
+        if res is None and provider.fallback_reason and exc.__cause__ is not None:
+            # FallbackProvider re-raises the primary's error with the fallback's
+            # own failure chained; keep both, or the log hides why Ollama failed.
+            log_entry.error_detail += f" (fallback also failed: {exc.__cause__})"
         log_entry.latency_ms = int((time.monotonic() - started) * 1000)
+        if res is not None:
+            # The provider answered but the output was rejected: attribute the
+            # failure to whoever produced it, which may be the fallback.
+            log_entry.provider = res.provider
+            log_entry.model = res.model
         raise
     else:
+        assert res is not None
         log_entry.provider = res.provider
         log_entry.model = res.model
         log_entry.latency_ms = res.latency_ms
         log_entry.status = "success"
     finally:
+        log_entry.fallback_reason = provider.fallback_reason
         # A single, unconditional commit — not one per except branch — so the
         # log row survives regardless of which exception (if any) was raised,
         # including failure modes narrower except clauses wouldn't catch.
@@ -155,4 +171,5 @@ def generate_narrative(
         disclaimer="Draft AI Content — Requires human review",
         provider=res.provider,
         model=res.model,
+        fallback_reason=res.fallback_reason,
     )

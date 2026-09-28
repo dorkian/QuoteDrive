@@ -19,6 +19,8 @@ class ProposalNarrativeResponse(NarrativeOutput):
     disclaimer: str
     provider: str
     model: str
+    # Set when the primary provider failed and the fallback wrote this draft.
+    fallback_reason: str | None = None
 
 
 class DiscoveryBriefRequest(BaseModel):
@@ -37,3 +39,5 @@ class DiscoveryBriefResponse(DiscoveryBriefOutput):
     disclaimer: str
     provider: str
     model: str
+    # Set when the primary provider failed and the fallback wrote this draft.
+    fallback_reason: str | None = None

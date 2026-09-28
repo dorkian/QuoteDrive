@@ -26,4 +26,6 @@ class GenerationLog(TenantOwnedMixin, Base):
     latency_ms: Mapped[int | None] = mapped_column(nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     error_detail: Mapped[str | None] = mapped_column(String, nullable=True)
+    # e.g. "openrouter timeout" when another provider was tried (ADR-005).
+    fallback_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
