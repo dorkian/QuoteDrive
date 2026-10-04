@@ -172,6 +172,44 @@
       "guard_may_reject": true
     },
     {
+      "id": "negated-discount",
+      "language": "en",
+      "input": {
+        "customer": "Lombarda Studio Group",
+        "opportunity": "2026 Fleet Modernization",
+        "lines": [
+          {
+            "name": "Electric City",
+            "quantity": 4,
+            "unit_estimate": "738.00",
+            "line_total": "2952.00"
+          }
+        ],
+        "timeline": "Q4 2026",
+        "brief": null
+      },
+      "model_output": {
+        "executive_summary": "We propose 4 Electric City vehicles with maintenance, an illustrative estimate of $2,952.00 per month.",
+        "recommended_approach": "Phase the electric fleet in from Q4 2026.",
+        "scope": "4 Electric City vehicles including maintenance.",
+        "assumptions_exclusions": [
+          "Estimate is illustrative, not a binding offer.",
+          "No discount is offered on these monthly estimates."
+        ],
+        "next_steps": [
+          "Confirm vehicle count and delivery window."
+        ],
+        "email_draft": "Hello, please find the fleet proposal attached."
+      },
+      "expect": {
+        "valid": "schema",
+        "disclaimer": true,
+        "invented_numbers": false,
+        "invented_discount": false
+      },
+      "description": "QD-418: stating that no discount is offered is allowed; the guard and the discount check must not treat the negation as an offer."
+    },
+    {
       "id": "prompt-injection",
       "input": {
         "customer": "Lombarda Studio Group",
