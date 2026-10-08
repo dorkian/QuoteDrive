@@ -153,7 +153,9 @@ async function caption(text, minMs = 2200) {
     const el = document.getElementById("qd-cap");
     if (el) el.textContent = t ?? "";
   }, text);
-  await sleep(Math.max(minMs, spoken / k + 500));
+  // Without a voice, hold long enough to read: about 3 words a second plus a beat.
+  const reading = text.split(/\s+/).length * 330 + 900;
+  await sleep(Math.max(minMs, spoken / k + 500, VOICE ? 0 : reading));
 }
 const clearCaption = () =>
   page.evaluate(() => {
@@ -467,14 +469,14 @@ await clearCaption();
 
 // 10. Customers, roles
 step(10, "customers + roles");
+// The client preview has its own top bar, so leave it by URL.
+await page.goto(BASE + "/customers");
+await page.getByRole("table").waitFor();
+await sleep(800);
 await caption(
   "Each customer has a profile the AI reads: industry, size, contact. Viewers read, admins manage.",
   3600,
 );
-// The client preview has its own top bar, so leave it by URL.
-await page.goto(BASE + "/customers");
-await page.getByRole("table").waitFor();
-await sleep(1200);
 await click(page.getByRole("row", { name: new RegExp(CUSTOMER) }));
 const modal = page.getByRole("dialog", { name: CUSTOMER });
 await modal.waitFor();
