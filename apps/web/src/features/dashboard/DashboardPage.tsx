@@ -139,7 +139,10 @@ export function DashboardPage() {
             <h2 className="mb-4 text-sm font-medium text-foreground">
               Recent activity
             </h2>
-            <ActivityTimeline emptyMessage="No activity yet. Actions on opportunities will show up here." />
+            <ActivityTimeline
+              contained
+              emptyMessage="No activity yet. Actions on opportunities will show up here."
+            />
           </section>
         </div>
       )}
