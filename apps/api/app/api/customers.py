@@ -8,6 +8,7 @@ from app.models import Customer, Opportunity, Role
 from app.repositories.base import get_tenant_scoped_or_404
 from app.schemas.customer import CustomerCreate, CustomerOut, CustomerUpdate
 from app.services.audit import record_audit_event
+from app.services.summaries import summarize_customers
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
@@ -19,7 +20,7 @@ def create_customer(
     body: CustomerCreate,
     current: CurrentMembership = Depends(_can_edit),
     db: Session = Depends(get_db),
-) -> Customer:
+) -> CustomerOut:
     customer = Customer(
         organization_id=current.organization.id,
         name=body.name,
@@ -43,7 +44,7 @@ def create_customer(
     )
     db.commit()
     db.refresh(customer)
-    return customer
+    return summarize_customers(db, current.organization.id, [customer])[0]
 
 
 @router.get("", response_model=list[CustomerOut])
@@ -51,14 +52,15 @@ def list_customers(
     q: str | None = Query(default=None, max_length=200),
     current: CurrentMembership = Depends(get_current_membership),
     db: Session = Depends(get_db),
-) -> list[Customer]:
+) -> list[CustomerOut]:
     stmt = select(Customer).where(Customer.organization_id == current.organization.id)
     if q is not None and q.strip():
         # Case-insensitive substring match; escape LIKE wildcards so "%" and "_"
         # in the search box match literally.
         needle = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         stmt = stmt.where(Customer.name.ilike(f"%{needle}%", escape="\\"))
-    return list(db.execute(stmt.order_by(Customer.name, Customer.id)).scalars().all())
+    rows = list(db.execute(stmt.order_by(Customer.name, Customer.id)).scalars().all())
+    return summarize_customers(db, current.organization.id, rows)
 
 
 @router.get("/{customer_id}", response_model=CustomerOut)
@@ -66,8 +68,9 @@ def get_customer(
     customer_id: int,
     current: CurrentMembership = Depends(get_current_membership),
     db: Session = Depends(get_db),
-) -> Customer:
-    return get_tenant_scoped_or_404(db, Customer, customer_id, current.organization.id)
+) -> CustomerOut:
+    customer = get_tenant_scoped_or_404(db, Customer, customer_id, current.organization.id)
+    return summarize_customers(db, current.organization.id, [customer])[0]
 
 
 @router.patch("/{customer_id}", response_model=CustomerOut)
@@ -76,7 +79,7 @@ def update_customer(
     body: CustomerUpdate,
     current: CurrentMembership = Depends(_can_edit),
     db: Session = Depends(get_db),
-) -> Customer:
+) -> CustomerOut:
     customer = get_tenant_scoped_or_404(db, Customer, customer_id, current.organization.id)
     before = {
         "name": customer.name,
@@ -106,7 +109,7 @@ def update_customer(
     )
     db.commit()
     db.refresh(customer)
-    return customer
+    return summarize_customers(db, current.organization.id, [customer])[0]
 
 
 @router.delete("/{customer_id}", status_code=204)

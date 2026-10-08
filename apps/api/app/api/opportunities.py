@@ -10,6 +10,7 @@ from app.models import Customer, Opportunity, Role
 from app.repositories.base import get_tenant_scoped_or_404
 from app.schemas.opportunity import OpportunityCreate, OpportunityOut, OpportunityUpdate
 from app.services.audit import record_audit_event
+from app.services.summaries import summarize_opportunities
 
 router = APIRouter(prefix="/opportunities", tags=["opportunities"])
 
@@ -21,7 +22,7 @@ def create_opportunity(
     body: OpportunityCreate,
     current: CurrentMembership = Depends(_can_edit),
     db: Session = Depends(get_db),
-) -> Opportunity:
+) -> OpportunityOut:
     get_tenant_scoped_or_404(db, Customer, body.customer_id, current.organization.id)
     opportunity = Opportunity(
         organization_id=current.organization.id,
@@ -43,7 +44,7 @@ def create_opportunity(
     )
     db.commit()
     db.refresh(opportunity)
-    return opportunity
+    return summarize_opportunities(db, current.organization.id, [opportunity])[0]
 
 
 @router.get("", response_model=list[OpportunityOut])
@@ -53,7 +54,7 @@ def list_opportunities(
     status_filter: str | None = Query(default=None, alias="status"),
     current: CurrentMembership = Depends(get_current_membership),
     db: Session = Depends(get_db),
-) -> list[Opportunity]:
+) -> list[OpportunityOut]:
     stmt = select(Opportunity).where(Opportunity.organization_id == current.organization.id)
     if customer_id is not None:
         stmt = stmt.where(Opportunity.customer_id == customer_id)
@@ -61,7 +62,8 @@ def list_opportunities(
         stmt = stmt.where(Opportunity.owner_id == owner_id)
     if status_filter is not None:
         stmt = stmt.where(Opportunity.status == status_filter)
-    return list(db.execute(stmt).scalars().all())
+    rows = list(db.execute(stmt).scalars().all())
+    return summarize_opportunities(db, current.organization.id, rows)
 
 
 @router.get("/{opportunity_id}", response_model=OpportunityOut)
@@ -69,8 +71,9 @@ def get_opportunity(
     opportunity_id: int,
     current: CurrentMembership = Depends(get_current_membership),
     db: Session = Depends(get_db),
-) -> Opportunity:
-    return get_tenant_scoped_or_404(db, Opportunity, opportunity_id, current.organization.id)
+) -> OpportunityOut:
+    opportunity = get_tenant_scoped_or_404(db, Opportunity, opportunity_id, current.organization.id)
+    return summarize_opportunities(db, current.organization.id, [opportunity])[0]
 
 
 @router.patch("/{opportunity_id}", response_model=OpportunityOut)
@@ -79,7 +82,7 @@ def update_opportunity(
     body: OpportunityUpdate,
     current: CurrentMembership = Depends(_can_edit),
     db: Session = Depends(get_db),
-) -> Opportunity:
+) -> OpportunityOut:
     opportunity = get_tenant_scoped_or_404(db, Opportunity, opportunity_id, current.organization.id)
     before: dict[str, Any] = {"title": opportunity.title, "status": opportunity.status}
     after: dict[str, Any] = {"title": opportunity.title, "status": opportunity.status}
@@ -106,7 +109,7 @@ def update_opportunity(
     )
     db.commit()
     db.refresh(opportunity)
-    return opportunity
+    return summarize_opportunities(db, current.organization.id, [opportunity])[0]
 
 
 @router.delete("/{opportunity_id}", status_code=204)

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import BaseModel
 
 
@@ -18,3 +20,7 @@ class CustomerOut(BaseModel):
     name: str
     industry: str | None = None
     status: str
+    # Summary fields; see services/summaries.py.
+    opportunity_count: int = 0
+    open_opportunities: int = 0
+    open_pipeline_value: Decimal = Decimal(0)
