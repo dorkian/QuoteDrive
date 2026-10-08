@@ -33,6 +33,7 @@ export function Sidebar({ active, onSelect, collapsed = false }: SidebarProps) {
           <button
             key={item}
             type="button"
+            data-tour={`nav-${item.toLowerCase()}`}
             aria-current={isActive ? "page" : undefined}
             aria-label={collapsed ? item : undefined}
             title={collapsed ? item : undefined}

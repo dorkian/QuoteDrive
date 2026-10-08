@@ -13,6 +13,8 @@ interface HeaderProps {
   onOpenNav?: () => void;
   onToggleSidebar?: () => void;
   onOpenSearch?: () => void;
+  /** Help menu, shown beside the account details. */
+  helpMenu?: ReactNode;
 }
 
 export function Header({
@@ -23,6 +25,7 @@ export function Header({
   onOpenNav,
   onToggleSidebar,
   onOpenSearch,
+  helpMenu,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur sm:px-6">
@@ -54,15 +57,16 @@ export function Header({
           variant="outline"
           onClick={onOpenSearch}
           aria-label="Search pages"
-          className="px-3 text-muted-foreground"
+          className="shrink-0 px-3 text-muted-foreground lg:w-56 lg:justify-start xl:w-72 2xl:w-96"
         >
           <Search />
           <span className="hidden lg:inline">Go to…</span>
-          <kbd className="hidden rounded border border-border px-1 font-sans text-[10px] lg:inline">
+          <kbd className="ml-auto hidden rounded border border-border px-1 font-sans text-[10px] lg:inline">
             ⌘K
           </kbd>
         </Button>
       )}
+      {helpMenu}
       <div className="hidden min-w-0 text-right sm:block">
         <p className="truncate text-sm font-medium text-foreground">
           {organizationName}

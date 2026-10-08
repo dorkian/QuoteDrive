@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "../../lib/api";
@@ -59,7 +59,13 @@ function renderDashboard(me: api.Me = approverMe) {
   return render(
     <AuthProvider>
       <MemoryRouter>
-        <ApprovalDashboard />
+        <Routes>
+          <Route path="/" element={<ApprovalDashboard />} />
+          <Route
+            path="/approvals/:requestId"
+            element={<p>Approval detail route</p>}
+          />
+        </Routes>
       </MemoryRouter>
     </AuthProvider>,
   );
@@ -79,9 +85,53 @@ describe("ApprovalDashboard", () => {
     await waitFor(() =>
       expect(screen.getByText("Green Logistics Fleet")).toBeInTheDocument(),
     );
-    expect(screen.getByText("v2")).toBeInTheDocument();
-    expect(screen.getByText(/Proposal Manager/)).toBeInTheDocument();
+    expect(screen.getByText("Version 2")).toBeInTheDocument();
+    expect(screen.getByText("Proposal Manager")).toBeInTheDocument();
+    expect(screen.getByText("Approver User")).toBeInTheDocument();
     expect(screen.getByText("Pending")).toBeInTheDocument();
+    // Submitted long ago, so the wait is flagged as overdue for screen readers.
+    expect(screen.getByText("(overdue)")).toBeInTheDocument();
+  });
+
+  it("opens a request from its row or its View button", async () => {
+    vi.mocked(api.fetchApprovalRequests).mockResolvedValue(mockRequests);
+
+    renderDashboard();
+
+    await waitFor(() =>
+      expect(screen.getByText("Green Logistics Fleet")).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "View Green Logistics Fleet version 2",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Green Logistics Fleet"));
+    expect(
+      await screen.findByText("Approval detail route"),
+    ).toBeInTheDocument();
+  });
+
+  it("filters to requests that have waited two days or more", async () => {
+    vi.mocked(api.fetchApprovalRequests).mockResolvedValue([
+      ...mockRequests,
+      {
+        ...mockRequests[0],
+        id: 102,
+        opportunity_title: "Fresh Request",
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    renderDashboard();
+
+    await waitFor(() =>
+      expect(screen.getByText("Fresh Request")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Waiting 2\+ days/ }));
+    expect(screen.queryByText("Fresh Request")).not.toBeInTheDocument();
+    expect(screen.getByText("Green Logistics Fleet")).toBeInTheDocument();
   });
 
   it("shows empty state when there are no pending approvals", async () => {
@@ -90,7 +140,7 @@ describe("ApprovalDashboard", () => {
     renderDashboard();
 
     await waitFor(() =>
-      expect(screen.getByText("No pending approvals.")).toBeInTheDocument(),
+      expect(screen.getByText(/No pending approvals\./)).toBeInTheDocument(),
     );
   });
 

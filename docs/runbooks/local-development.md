@@ -14,6 +14,8 @@ docker compose exec api python -m scripts.seed_demo
 - Web: http://localhost:5173. Pick a demo user; see [demo-scenario.md](../product/demo-scenario.md).
 - API: http://localhost:8000, with interactive docs at `/docs` and a health check at `/health`.
 
+For a dashboard with ten weeks of fictional history (fifteen customer stories that were won, lost, expired or are still in progress), also run `docker compose exec api python -m scripts.seed_demo_history`. It is optional, idempotent, and uses synthetic data only.
+
 Seeding is idempotent, so running it again is safe. For the E2E tenant-isolation test, also run `docker compose exec api python -m scripts.seed_e2e`, which adds a second fictional tenant.
 
 The images have **no source mounts**: after changing code, rebuild with `docker compose up -d --build api web`.

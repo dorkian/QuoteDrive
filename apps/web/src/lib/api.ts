@@ -39,12 +39,38 @@ export interface AuditEvent {
   created_at: string;
 }
 
-export interface Customer {
+export type CompanySize = "1-50" | "51-200" | "201-1000" | "1000+";
+
+/** The profile details a customer can carry; every one is optional. */
+export interface CustomerProfile {
+  website: string | null;
+  hq_city: string | null;
+  hq_country: string | null;
+  company_size: CompanySize | null;
+  about: string | null;
+  industry_tags: string[] | null;
+  contact_name: string | null;
+  contact_title: string | null;
+  contact_email: string | null;
+}
+
+export interface Customer extends Partial<CustomerProfile> {
   id: number;
   organization_id: number;
   name: string;
   industry: string | null;
   status: string;
+  /** Summary fields the API adds to every customer response. */
+  opportunity_count?: number;
+  open_opportunities?: number;
+  open_pipeline_value?: string;
+}
+
+export interface LatestVersion {
+  id: number;
+  version_number: number;
+  status: string;
+  total_estimate: string;
 }
 
 export interface Opportunity {
@@ -55,6 +81,12 @@ export interface Opportunity {
   title: string;
   status: string;
   brief_json: Record<string, unknown> | null;
+  /** Summary fields the API adds to every opportunity response. */
+  created_at?: string | null;
+  owner_name?: string | null;
+  version_count?: number;
+  latest_version?: LatestVersion | null;
+  last_activity_at?: string | null;
 }
 
 export interface CatalogueItem {
@@ -167,6 +199,72 @@ export async function fetchDashboardSummary(
   return (await res.json()) as DashboardSummary;
 }
 
+export type AnalyticsRange = "4w" | "12w" | "all";
+
+export interface StageStat {
+  status: string;
+  count: number;
+  value: string;
+}
+
+export interface WeeklyPoint {
+  week_start: string;
+  opportunities_created: number;
+  versions_created: number;
+  value_created: string;
+  approvals_decided: number;
+  median_approval_hours: number | null;
+}
+
+export interface PackageStat {
+  name: string;
+  category: string;
+  quantity: number;
+  value: string;
+}
+
+export interface AiStat {
+  provider: string;
+  model: string;
+  total: number;
+  succeeded: number;
+  failed: number;
+  fallbacks: number;
+  median_latency_ms: number | null;
+}
+
+export interface AnalyticsKpis {
+  open_pipeline_value: string;
+  open_opportunities: number;
+  win_rate: number | null;
+  won: number;
+  lost: number;
+  awaiting_approval: number;
+  median_approval_hours: number | null;
+  ai_success_rate: number | null;
+  ai_generations: number;
+}
+
+export interface DashboardAnalytics {
+  range: AnalyticsRange;
+  kpis: AnalyticsKpis;
+  stages: StageStat[];
+  weekly: WeeklyPoint[];
+  packages: PackageStat[];
+  ai: AiStat[];
+}
+
+export async function fetchDashboardAnalytics(
+  token: string,
+  range: AnalyticsRange,
+): Promise<DashboardAnalytics> {
+  const res = await fetch(`${API_URL}/dashboard/analytics?range=${range}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to load dashboard analytics");
+  return (await res.json()) as DashboardAnalytics;
+}
+
 export interface FetchAuditEventsOptions {
   limit?: number;
   entityType?: string;
@@ -200,8 +298,13 @@ export async function fetchAuditEvents(
 
 export async function fetchOpportunities(
   token: string,
+  customerId?: number,
 ): Promise<Opportunity[]> {
-  const res = await fetch(`${API_URL}/opportunities`, {
+  const url = new URL(`${API_URL}/opportunities`);
+  if (customerId !== undefined) {
+    url.searchParams.set("customer_id", String(customerId));
+  }
+  const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
   await throwIfNotOk(res, "Failed to load opportunities");
@@ -245,7 +348,7 @@ export async function fetchCustomer(
   return (await res.json()) as Customer;
 }
 
-export interface CustomerInput {
+export interface CustomerInput extends Partial<CustomerProfile> {
   name: string;
   industry: string | null;
 }

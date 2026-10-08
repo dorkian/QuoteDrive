@@ -273,4 +273,50 @@ describe("ActivityTimeline", () => {
       screen.queryByRole("button", { name: "Load more" }),
     ).not.toBeInTheDocument();
   });
+
+  it("contained mode keeps load-more inside a scrollable region and scrolls only that panel", async () => {
+    const event = (id: number, title: string): api.AuditEvent => ({
+      id,
+      actor_id: 1,
+      actor_name: "Jane Doe",
+      entity_type: "opportunity",
+      entity_id: id,
+      action: "create",
+      before_json: null,
+      after_json: { title },
+      created_at: new Date().toISOString(),
+    });
+    vi.mocked(api.fetchAuditEvents)
+      .mockResolvedValueOnce([event(3, "Third"), event(2, "Second")])
+      .mockResolvedValueOnce([event(1, "First")]);
+    const scrollTo = vi.fn();
+    const windowScrollTo = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation(() => {});
+    Element.prototype.scrollTo = scrollTo;
+
+    renderWithAuth(<ActivityTimeline limit={1} contained />);
+
+    const region = await screen.findByRole("region", { name: "Activity list" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region.className).toContain("overflow-y-auto");
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    await waitFor(() => expect(screen.getByText("First")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(scrollTo).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: expect.any(String) }),
+      ),
+    );
+    expect(windowScrollTo).not.toHaveBeenCalled();
+    windowScrollTo.mockRestore();
+  });
+
+  it("is not wrapped in a scroll region by default", async () => {
+    vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
+    renderWithAuth(<ActivityTimeline emptyMessage="Nothing yet." />);
+    await screen.findByText("Nothing yet.");
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
 });

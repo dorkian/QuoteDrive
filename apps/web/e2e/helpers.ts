@@ -7,6 +7,10 @@ export const APPROVER = "approver@northstar.example";
 export const OTHER_TENANT_MANAGER = "manager@harbor.example";
 
 export async function loginViaUi(page: Page, email: string): Promise<void> {
+  // The first-visit tour is covered by unit tests; here it would only sit in the way.
+  await page.addInitScript(() =>
+    localStorage.setItem("quotedrive.tour.skip", "1"),
+  );
   await page.goto("/");
   await page.getByRole("button", { name: new RegExp(email) }).click();
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();

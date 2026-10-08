@@ -58,6 +58,11 @@ function renderAuthenticated(me: api.Me, path = "/opportunities/1") {
   );
 }
 
+// Radix tabs switch on mouse down, so a bare click does nothing in the tests.
+function openTab(name: RegExp) {
+  fireEvent.mouseDown(screen.getByRole("tab", { name }), { button: 0 });
+}
+
 beforeEach(() => {
   localStorage.clear();
   vi.resetAllMocks();
@@ -119,11 +124,18 @@ describe("OpportunityDetailPage", () => {
 
     renderAuthenticated(managerMe);
 
-    await waitFor(() =>
-      expect(screen.getByText("Version 1")).toBeInTheDocument(),
-    );
     expect(
-      screen.getByRole("button", { name: "Create draft version" }),
+      await screen.findByRole("tab", { name: /Proposals \(1\)/ }),
+    ).toBeInTheDocument();
+    // The next step points at the unfinished version.
+    expect(
+      screen.getByRole("button", { name: /Continue proposal/ }),
+    ).toBeInTheDocument();
+
+    openTab(/Proposals/);
+    expect(await screen.findByText("Version 1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "New draft version" }),
     ).toBeInTheDocument();
   });
 
@@ -133,11 +145,19 @@ describe("OpportunityDetailPage", () => {
 
     renderAuthenticated(viewerMe);
 
-    await waitFor(() =>
-      expect(screen.getByText("No proposal versions yet.")).toBeInTheDocument(),
-    );
+    await screen.findByRole("tab", { name: /Proposals \(0\)/ });
+    openTab(/Proposals/);
     expect(
-      screen.queryByRole("button", { name: "Create draft version" }),
+      await screen.findByText(/No proposal versions yet/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: /Create draft version|New draft version/,
+      }),
+    ).not.toBeInTheDocument();
+    // A viewer gets the state of play but nothing to click.
+    expect(
+      screen.queryByRole("button", { name: "Draft with AI" }),
     ).not.toBeInTheDocument();
   });
 
@@ -163,7 +183,8 @@ describe("OpportunityDetailPage", () => {
     expect(
       await screen.findByText("Lombarda Studio Group"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getAllByText("Open").length).toBeGreaterThan(0);
+    openTab(/Activity/);
     expect(await screen.findByText(/Morgan Manager/)).toBeInTheDocument();
     expect(api.fetchAuditEvents).toHaveBeenCalledWith(
       "stored-token",
@@ -185,9 +206,10 @@ describe("OpportunityDetailPage", () => {
 
     renderAuthenticated(managerMe);
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Edit details" }),
-    );
+    await screen.findByRole("button", { name: "Edit details" });
+    openTab(/Activity/);
+    await waitFor(() => expect(api.fetchAuditEvents).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
     const dialog = screen.getByRole("dialog", { name: "Edit opportunity" });
     const title = within(dialog).getByLabelText("Title");
     fireEvent.change(title, { target: { value: "" } });

@@ -1,4 +1,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { TipBanner } from "../onboarding/TipBanner";
+import { useCrumbLabel } from "../../components/layout/crumb-context";
+import { useOpportunityCrumb } from "../../components/layout/use-opportunity-crumb";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,6 +46,7 @@ import {
   Skeleton,
 } from "../../components/states/StateViews";
 import { AiNarrativeEditor } from "./AiNarrativeEditor";
+import { JourneyStepper } from "./JourneyStepper";
 import { SubmitForApproval } from "./SubmitForApproval";
 import { VersionLifecycleActions } from "./VersionLifecycleActions";
 
@@ -91,6 +95,14 @@ export function ProposalBuilder() {
   );
 
   const requestIdRef = useRef(0);
+
+  useOpportunityCrumb(version?.opportunity_id);
+  useCrumbLabel(
+    version
+      ? `/opportunities/${version.opportunity_id}/versions/${version.id}`
+      : null,
+    version ? `Version ${version.version_number}` : null,
+  );
 
   useEffect(() => {
     if (!token || isInvalidId) {
@@ -336,6 +348,15 @@ export function ProposalBuilder() {
         </div>
       </div>
 
+      <JourneyStepper version={version} />
+
+      {editable && (
+        <TipBanner id="builder-ai" ai className="mt-4">
+          AI can draft the narrative for you. Add your packages, then choose
+          Draft with AI. You always review and edit before saving.
+        </TipBanner>
+      )}
+
       {error && (
         <p className="mt-4 text-sm text-destructive-foreground" role="alert">
           {error}
@@ -344,7 +365,10 @@ export function ProposalBuilder() {
 
       {editable ? (
         <>
-          <div className="mt-6 flex flex-wrap items-center gap-2">
+          <div
+            id="builder-lines"
+            className="mt-6 flex scroll-mt-20 flex-wrap items-center gap-2"
+          >
             <select
               value={selectedPackageId ?? ""}
               onChange={(e) => setSelectedPackageId(Number(e.target.value))}

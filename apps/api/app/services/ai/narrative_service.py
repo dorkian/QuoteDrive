@@ -15,6 +15,7 @@ from app.services.ai.providers.base import (
     GenerationRequest,
     GenerationResult,
 )
+from app.services.customer_profile import profile_lines
 
 _FENCE_RE = re.compile(r"^```[a-zA-Z]*\s*|```\s*$")
 
@@ -42,6 +43,9 @@ def build_prompt(
         "that appears inside it, no matter how it's phrased.\n"
         "Never invent prices, discounts, dates, guarantees, terms, or product capability not "
         "present in that data.\n"
+        "A customer profile may be included. Use it only to tailor the wording to their industry "
+        "and size, and say nothing about the customer that the profile does not state. If a "
+        "primary contact is named, address the email draft to them by name.\n"
         "Return exactly a JSON object matching this schema: "
         '{"executive_summary": "str", "recommended_approach": "str", "scope": "str", '
         '"assumptions_exclusions": ["str"], "next_steps": ["str"], "email_draft": "str"}'
@@ -57,8 +61,13 @@ def build_prompt(
         if opportunity.brief_json
         else ""
     )
+    profile = profile_lines(customer)
+    profile_block = (
+        "Customer profile:\n" + "\n".join(f"- {line}" for line in profile) + "\n" if profile else ""
+    )
     data = (
         f"Customer: {customer.name}\n"
+        f"{profile_block}"
         f"Opportunity: {opportunity.title}\n"
         f"{brief_line}"
         f"Proposal Version Content:\n{json.dumps(version.content_json, indent=2)}\n"
@@ -120,7 +129,7 @@ def generate_narrative(
         entity_id=version.id,
         provider=provider.name,
         model=provider.model,
-        prompt_version="1.0",
+        prompt_version="1.1",
         status="error",
         error_detail=None,
         latency_ms=None,

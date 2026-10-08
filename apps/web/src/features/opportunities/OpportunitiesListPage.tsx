@@ -1,11 +1,13 @@
 import { Plus } from "lucide-react";
+import { TipBanner } from "../onboarding/TipBanner";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
 import { OpportunitiesTable } from "./OpportunitiesTable";
+import { OpportunityPanel } from "./OpportunityPanel";
 import {
   OpportunityFormDialog,
   type OpportunityFormValues,
@@ -49,6 +51,11 @@ export function OpportunitiesListPage() {
   const [attempt, setAttempt] = useState(0);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  // The open record lives in the URL, so Back closes the panel and a link reopens it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openParam = Number(searchParams.get("open"));
+  const openId =
+    Number.isInteger(openParam) && openParam > 0 ? openParam : null;
   const editable = !!me && canEditProposals(me.role);
 
   useEffect(() => {
@@ -97,7 +104,19 @@ export function OpportunitiesListPage() {
       );
     }
     toast.success(`${created.title} created`);
-    navigate(`/opportunities/${created.id}`);
+    setOpportunities((prev) => (prev ? [created, ...prev] : [created]));
+    setSearchParams({ open: String(created.id) });
+  }
+
+  function openOpportunity(id: number | null): void {
+    if (id === null) setSearchParams({});
+    else setSearchParams({ open: String(id) });
+  }
+
+  function replaceOpportunity(updated: Opportunity): void {
+    setOpportunities(
+      (prev) => prev?.map((o) => (o.id === updated.id ? updated : o)) ?? prev,
+    );
   }
 
   const isLoading = opportunities === null || customers === null;
@@ -149,11 +168,26 @@ export function OpportunitiesListPage() {
           }
         />
       ) : (
-        <OpportunitiesTable
-          opportunities={opportunities}
-          customers={customers}
-        />
+        <>
+          <TipBanner id="opportunities-row" className="mt-6">
+            Click any row, or its View button, to open the opportunity in a side
+            panel. You keep your place in the list.
+          </TipBanner>
+          <OpportunitiesTable
+            opportunities={opportunities}
+            customers={customers}
+            selectedId={openId}
+            onOpen={(opportunity) => openOpportunity(opportunity.id)}
+          />
+        </>
       )}
+
+      <OpportunityPanel
+        opportunityId={openId}
+        seed={opportunities?.find((o) => o.id === openId)}
+        onClose={() => openOpportunity(null)}
+        onChanged={replaceOpportunity}
+      />
 
       {editable && customers && (
         <OpportunityFormDialog

@@ -22,9 +22,12 @@ test("manager builds and submits a proposal, approver approves, client preview r
   await dialog.getByLabel("Customer").selectOption({ label: CUSTOMER });
   await dialog.getByLabel("Title").fill(OPPORTUNITY);
   await dialog.getByRole("button", { name: "Create opportunity" }).click();
-  await expect(page.getByRole("heading", { name: OPPORTUNITY })).toBeVisible();
-  await expect(page.getByText(CUSTOMER)).toBeVisible();
-  await page.getByRole("button", { name: "Create draft version" }).click();
+  // The new opportunity opens in a side panel; its empty Proposals tab creates the first draft.
+  const panel = page.getByRole("dialog", { name: OPPORTUNITY });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText(CUSTOMER)).toBeVisible();
+  await panel.getByRole("tab", { name: /^Proposals/ }).click();
+  await panel.getByRole("button", { name: "Create draft version" }).click();
   await expect(page).toHaveURL(/\/opportunities\/\d+\/versions\/\d+$/);
   const [, opportunityId, versionId] =
     /\/opportunities\/(\d+)\/versions\/(\d+)$/.exec(page.url())!.map(Number);
@@ -65,7 +68,7 @@ test("manager builds and submits a proposal, approver approves, client preview r
   await loginViaUi(page, APPROVER);
   await page.goto("/approvals");
   await page
-    .getByRole("link", { name: new RegExp(OPPORTUNITY) })
+    .getByRole("button", { name: new RegExp(`^View ${OPPORTUNITY}`) })
     .first()
     .click();
   await page.getByRole("button", { name: "Approve" }).click();

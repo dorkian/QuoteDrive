@@ -13,6 +13,7 @@ import {
 } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth-context";
 import { describeError } from "../../../lib/errors";
+import { PreviewNav } from "./PreviewNav";
 import { LoginScreen } from "../../auth/LoginScreen";
 
 const PRINT_PAGE_CSS = "@page { size: A4; margin: 18mm 16mm; }";
@@ -152,7 +153,7 @@ export function ProposalPreviewPage() {
           to={builderPath}
           className={`-ml-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground ${FOCUS}`}
         >
-          ← Back to version {version.version_number}
+          ← Back to proposal builder (version {version.version_number})
         </Link>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="text-sm text-muted-foreground">
@@ -180,10 +181,13 @@ export function ProposalPreviewPage() {
 
 function PreviewShell({ children }: { children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-10 print:min-h-0 print:bg-white print:p-0 print:text-black">
-      <style>{PRINT_PAGE_CSS}</style>
-      <div className="mx-auto max-w-[52rem]">{children}</div>
-    </main>
+    <div className="min-h-screen bg-background text-foreground print:min-h-0 print:bg-white print:text-black">
+      <PreviewNav />
+      <main className="px-4 py-8 sm:px-6 sm:py-10 print:p-0">
+        <style>{PRINT_PAGE_CSS}</style>
+        <div className="mx-auto max-w-[52rem]">{children}</div>
+      </main>
+    </div>
   );
 }
 

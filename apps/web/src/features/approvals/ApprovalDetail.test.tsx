@@ -17,6 +17,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
     approveRequest: vi.fn(),
     requestChanges: vi.fn(),
     fetchMe: vi.fn(),
+    fetchOpportunity: vi.fn(),
   };
 });
 

@@ -42,6 +42,8 @@ cd QuoteDrive
 docker compose up -d --build
 docker compose exec api alembic upgrade head
 docker compose exec api python -m scripts.seed_demo
+# Optional: ten weeks of fictional history so the dashboard charts have something to show
+docker compose exec api python -m scripts.seed_demo_history
 ```
 
 Open **http://localhost:5173** and pick a demo user. No password is needed; this is demo sign-in for local use only.

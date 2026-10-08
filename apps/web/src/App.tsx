@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import { HelpMenu } from "./components/layout/HelpMenu";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { NAV_PATHS, navItemForPath } from "./components/layout/nav-items";
 import { CustomersPage } from "./features/customers/CustomersPage";
@@ -21,6 +22,7 @@ import { ProposalBuilder } from "./features/proposals/ProposalBuilder";
 import { ApprovalDashboard } from "./features/approvals/ApprovalDashboard";
 import { ApprovalDetail } from "./features/approvals/ApprovalDetail";
 import { ProposalPreviewPage } from "./features/proposals/preview/ProposalPreviewPage";
+import { TourProvider } from "./features/onboarding/TourProvider";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 
 function AppShell() {
@@ -45,32 +47,35 @@ function AppShell() {
   }
 
   return (
-    <DashboardLayout
-      active={active}
-      onSelect={(item) => navigate(NAV_PATHS[item])}
-      organizationName={me.organization.name}
-      role={me.role}
-      onLogout={logout}
-    >
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/opportunities" element={<OpportunitiesListPage />} />
-        <Route
-          path="/opportunities/:opportunityId"
-          element={<OpportunityDetailPage />}
-        />
-        <Route
-          path="/opportunities/:opportunityId/versions/:versionId"
-          element={<ProposalBuilder />}
-        />
-        <Route path="/customers" element={<CustomersPage />} />
-        <Route path="/proposals" element={<PackageComparison />} />
-        <Route path="/approvals" element={<ApprovalDashboard />} />
-        <Route path="/approvals/:requestId" element={<ApprovalDetail />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<ComingSoonPanel title="Not found" />} />
-      </Routes>
-    </DashboardLayout>
+    <TourProvider autoStart={import.meta.env.MODE !== "test"}>
+      <DashboardLayout
+        active={active}
+        onSelect={(item) => navigate(NAV_PATHS[item])}
+        organizationName={me.organization.name}
+        role={me.role}
+        onLogout={logout}
+        helpMenu={<HelpMenu />}
+      >
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/opportunities" element={<OpportunitiesListPage />} />
+          <Route
+            path="/opportunities/:opportunityId"
+            element={<OpportunityDetailPage />}
+          />
+          <Route
+            path="/opportunities/:opportunityId/versions/:versionId"
+            element={<ProposalBuilder />}
+          />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/proposals" element={<PackageComparison />} />
+          <Route path="/approvals" element={<ApprovalDashboard />} />
+          <Route path="/approvals/:requestId" element={<ApprovalDetail />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<ComingSoonPanel title="Not found" />} />
+        </Routes>
+      </DashboardLayout>
+    </TourProvider>
   );
 }
 

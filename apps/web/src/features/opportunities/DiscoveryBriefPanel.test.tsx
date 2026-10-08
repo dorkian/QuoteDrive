@@ -43,7 +43,7 @@ async function generate(): Promise<void> {
   fireEvent.change(screen.getByLabelText("Discovery notes"), {
     target: { value: "They run 12 vans." },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Draft brief" }));
+  fireEvent.click(screen.getByRole("button", { name: "Draft brief with AI" }));
   await screen.findByText("Draft AI Content — Requires human review");
 }
 
@@ -103,7 +103,9 @@ describe("DiscoveryBriefPanel", () => {
     fireEvent.change(screen.getByLabelText("Discovery notes"), {
       target: { value: "notes" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Draft brief" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Draft brief with AI" }),
+    );
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(api.saveOpportunityBrief).not.toHaveBeenCalled();
@@ -124,7 +126,7 @@ describe("DiscoveryBriefPanel", () => {
     expect(screen.getByText("Saved")).toBeInTheDocument();
     expect(screen.getByText("Budget range")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Draft brief" }),
+      screen.queryByRole("button", { name: "Draft brief with AI" }),
     ).not.toBeInTheDocument();
   });
 
@@ -155,6 +157,8 @@ describe("DiscoveryBriefPanel", () => {
 
   it("disables drafting until notes are entered", () => {
     renderPanel();
-    expect(screen.getByRole("button", { name: "Draft brief" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Draft brief with AI" }),
+    ).toBeDisabled();
   });
 });
