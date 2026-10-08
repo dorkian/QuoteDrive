@@ -13,6 +13,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     globals: true,
+    // Radix overlays render slowly under jsdom when CI runs ~37 workers at once; a test that
+    // takes 100 ms locally has timed out at the 5 s default there.
+    testTimeout: 20_000,
     // Playwright specs live in e2e/ and run separately (npm run e2e).
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
