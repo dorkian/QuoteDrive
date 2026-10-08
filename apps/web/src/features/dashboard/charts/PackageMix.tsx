@@ -9,7 +9,6 @@ import { useElementSize } from "./use-element-size";
 
 type SortKey = "value" | "quantity";
 const ROW = 26;
-const LABEL_W = 132;
 const VALUE_W = 56;
 const SHOWN = 6;
 
@@ -26,6 +25,7 @@ export function PackageMix({ packages }: { packages: PackageStat[] }) {
   const max = Math.max(1, ...rows.map(measure));
   const totalValue = packages.reduce((sum, p) => sum + Number(p.value), 0);
   const totalUnits = packages.reduce((sum, p) => sum + p.quantity, 0);
+  const LABEL_W = Math.min(Math.max(Math.round(width * 0.42), 96), 168);
   const barW = Math.max(width - LABEL_W - VALUE_W, 0);
 
   function show(p: PackageStat, px: number, py: number): void {
@@ -48,6 +48,7 @@ export function PackageMix({ packages }: { packages: PackageStat[] }) {
 
   return (
     <ChartCard
+      className="h-72 lg:col-span-4 lg:h-auto"
       title="Package mix"
       subtitle={
         packages.length
@@ -109,7 +110,10 @@ export function PackageMix({ packages }: { packages: PackageStat[] }) {
                     const r = ref.current?.getBoundingClientRect();
                     if (r) show(p, e.clientX - r.left, e.clientY - r.top);
                   }}
-                  onFocus={() => show(p, LABEL_W + 8, 24)}
+                  onFocus={(e) => {
+                    if (e.currentTarget.matches(":focus-visible"))
+                      show(p, LABEL_W + 8, 24);
+                  }}
                   onBlur={() => setTip(null)}
                   className="group flex items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   style={{ height: ROW }}

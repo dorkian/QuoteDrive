@@ -17,6 +17,7 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `GET /me` | all | User, organization and role. |
 | `GET /health` | public | Liveness check. |
 | `GET /dashboard/summary` | all | `opportunities_by_status` and `proposal_versions_by_status` counts. |
+| `GET /dashboard/analytics?range=4w\|12w\|all` | all | Read-only, tenant-scoped analytics for the dashboard: KPIs (open pipeline value from each open opportunity's latest live version, win rate, awaiting approval, median approval time, AI success rate), version counts and value per stage, a weekly series, package mix and AI generations by provider. `range` limits the weekly series, package mix, approval times and AI stats; the stage snapshot is always current. 422 for any other `range`. |
 | `GET\|POST /customers` | read: all · write: A, PM | Filter `q`: case-insensitive name search. Sorted by name. |
 | `GET\|PATCH\|DELETE /customers/{id}` | read: all · write: A, PM | DELETE returns 409 while opportunities reference the customer. |
 | `GET\|POST /opportunities` | read: all · write: A, PM | Filters: `customer_id`, `owner_id`, `status`. |

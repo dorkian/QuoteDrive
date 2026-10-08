@@ -38,11 +38,9 @@ function Sparkline({
       aria-hidden="true"
       onPointerMove={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
+        const ratio = r.width > 0 ? (e.clientX - r.left) / r.width : 0;
         const i = Math.min(
-          Math.max(
-            Math.round(((e.clientX - r.left) / r.width) * (values.length - 1)),
-            0,
-          ),
+          Math.max(Math.round(ratio * (values.length - 1)), 0),
           values.length - 1,
         );
         setAt(i);

@@ -137,6 +137,7 @@ export function ActivityChart({ weekly }: { weekly: WeeklyPoint[] }) {
 
   return (
     <ChartCard
+      className="h-72 lg:col-span-8 lg:h-auto"
       title="Weekly activity"
       subtitle={`${total("opportunities_created")} opportunities and ${total("versions_created")} versions in ${n} weeks`}
       table={

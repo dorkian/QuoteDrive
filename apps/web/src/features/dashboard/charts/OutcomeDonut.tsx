@@ -45,12 +45,17 @@ export function OutcomeDonut({
   const stroke = Math.max(size * 0.15, 10);
   const r = size / 2 - stroke / 2 - 2;
   const C = 2 * Math.PI * r;
-  let acc = 0;
 
+  const starts = counts.map((_, i) =>
+    counts
+      .slice(0, i)
+      .reduce((sum, o) => sum + (o.count / (total || 1)) * C, 0),
+  );
   const share = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 
   return (
     <ChartCard
+      className="h-72 lg:col-span-4 lg:h-auto"
       title="Proposal outcomes"
       subtitle={
         total
@@ -108,7 +113,7 @@ export function OutcomeDonut({
                     strokeWidth={stroke}
                     opacity={0.4}
                   />
-                  {counts.map((o) => {
+                  {counts.map((o, i) => {
                     if (o.count === 0) return null;
                     const len = (o.count / total) * C;
                     const dash = Math.max(
@@ -116,8 +121,7 @@ export function OutcomeDonut({
                         (counts.filter((c) => c.count).length > 1 ? GAP : 0),
                       1,
                     );
-                    const offset = -acc;
-                    acc += len;
+                    const offset = -starts[i];
                     const dim = active !== null && active !== o.status;
                     return (
                       <circle
@@ -179,7 +183,10 @@ export function OutcomeDonut({
                     aria-pressed={pinned === o.status}
                     onPointerEnter={() => setHover(o.status)}
                     onPointerLeave={() => setHover(null)}
-                    onFocus={() => setHover(o.status)}
+                    onFocus={(e) => {
+                      if (e.currentTarget.matches(":focus-visible"))
+                        setHover(o.status);
+                    }}
                     onBlur={() => setHover(null)}
                     onClick={() =>
                       setPinned((p) => (p === o.status ? null : o.status))

@@ -19,8 +19,8 @@ const MAIN_PATH = [
 ] as const;
 const OFF_PATH = ["changes_requested", "lost", "expired"] as const;
 
-const ROW = 24;
-const LABEL_W = 118;
+const ROW = 22;
+const LABEL_W = 112;
 const VALUE_W = 74;
 
 /** Versions per stage with their monthly value. Click a stage to pin its detail. */
@@ -38,13 +38,11 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
 
   function detail(status: string) {
     const s = stat(status);
-    const i = MAIN_PATH.indexOf(status as (typeof MAIN_PATH)[number]);
-    const prev = i > 0 ? stat(MAIN_PATH[i - 1]) : null;
-    return { s, share: total ? Math.round((s.count / total) * 100) : 0, prev };
+    return { s, share: total ? Math.round((s.count / total) * 100) : 0 };
   }
 
   function showTip(status: string, px: number, py: number): void {
-    const { s, share, prev } = detail(status);
+    const { s, share } = detail(status);
     setTip({
       x: px,
       y: py,
@@ -56,12 +54,6 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
           <TipRow label="Versions" value={String(s.count)} />
           <TipRow label="Monthly value" value={formatMoney(Number(s.value))} />
           <TipRow label="Share of all versions" value={`${share}%`} />
-          {prev && prev.count > 0 && (
-            <TipRow
-              label={`vs ${formatStatus(prev.status)}`}
-              value={`${Math.round((s.count / prev.count) * 100)}%`}
-            />
-          )}
         </div>
       ),
     });
@@ -73,6 +65,7 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
 
   return (
     <ChartCard
+      className="h-72 lg:col-span-4 lg:h-auto"
       title="Proposal pipeline"
       subtitle={`${total} versions by stage`}
       table={
@@ -95,9 +88,6 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
             {": "}
             {sel.s.count} versions, {formatMoney(Number(sel.s.value))}/mo,{" "}
             {sel.share}% of all
-            {sel.prev &&
-              sel.prev.count > 0 &&
-              ` · ${Math.round((sel.s.count / sel.prev.count) * 100)}% of ${formatStatus(sel.prev.status)}`}
           </p>
         ) : (
           <p>Select a stage for its detail.</p>
@@ -109,7 +99,7 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
         className="relative flex h-full flex-col justify-between"
         onPointerLeave={() => setTip(null)}
       >
-        <ul className="space-y-0.5" aria-label="Main path">
+        <ul aria-label="Main path">
           {MAIN_PATH.map((status) => {
             const s = stat(status);
             const w = (s.count / max) * barW;
@@ -126,7 +116,11 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
                     if (r)
                       showTip(status, e.clientX - r.left, e.clientY - r.top);
                   }}
-                  onFocus={() => showTip(status, LABEL_W + 8, 0)}
+                  onFocus={(e) => {
+                    // Keyboard focus only; a click focuses too and would pin the tip.
+                    if (e.currentTarget.matches(":focus-visible"))
+                      showTip(status, LABEL_W + 8, 0);
+                  }}
                   onBlur={() => setTip(null)}
                   className="group flex w-full items-center rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   style={{ height: ROW }}
@@ -188,7 +182,7 @@ export function StageFunnel({ stages }: { stages: StageStat[] }) {
           })}
         </ul>
         <ul
-          className="mt-2 flex flex-wrap gap-1.5"
+          className="mt-1.5 flex flex-wrap gap-1.5"
           aria-label="Off the main path"
         >
           {OFF_PATH.map((status) => {

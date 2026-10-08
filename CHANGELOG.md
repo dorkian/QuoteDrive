@@ -8,7 +8,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 
 ### Added
 - **Tenancy and access**: demo sign-in with four roles (Admin, Proposal Manager, Approver, Viewer). Every query is scoped to the caller's organization, and cross-tenant access returns 404 (QD-101, QD-102, QD-105).
-- **Dashboard** with pipeline counts, pending approvals and an activity timeline (QD-103, QD-104, QD-304).
+- **Dashboard** with pipeline counts, pending approvals and an activity timeline (QD-103, QD-104, QD-304). It is now an interactive one-screen view: KPI tiles with weekly trend lines (open pipeline, win rate, awaiting approval, median approval time, AI draft health), a weekly activity chart with crosshair tooltip and series toggles, a proposal-pipeline funnel, an outcomes donut with win rate, a package mix, and the recent-activity panel. A 4-week, 12-week and all-time range applies to every chart. Hand-built SVG, no chart library; each chart has keyboard access and a table view. New `GET /dashboard/analytics` (read-only, tenant-scoped) and an optional `scripts.seed_demo_history` that adds fifteen fictional customer stories.
 - **Customers and opportunities** API with search and filters (QD-201), and UI to search, create, edit and delete customers, create opportunities, edit their title and status, and see each opportunity's activity history (QD-413).
 - **Catalogue** of synthetic packages and add-ons (QD-202).
 - **Proposal builder** with live, server-calculated illustrative estimates (QD-203, QD-204) and a three-option package comparison (QD-206).
