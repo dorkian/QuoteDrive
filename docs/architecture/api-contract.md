@@ -29,8 +29,9 @@ Reconciled with the running API's OpenAPI schema on 2026-09-26 (QD-406). The int
 | `GET\|PATCH /proposal-versions/{id}` | read: all · write: A, PM | PATCH lines only while `draft`/`configured`; otherwise 400 (immutable). |
 | `POST /proposal-versions/{id}/finalize` | A, PM | `configured` → `proposal_drafted`. |
 | `PATCH /proposal-versions/{id}/narrative` | A, PM | Saves a human-reviewed narrative. |
-| `POST /proposal-versions/{id}/submit` | A, PM | `proposal_drafted` → `awaiting_approval`. No UI yet (QD-412). |
-| `POST /proposal-versions/{id}/approval-request` | A, PM | `{assigned_to}`: an Admin or Approver who is not the version's creator. No UI yet (QD-412). |
+| `POST /proposal-versions/{id}/submit` | A, PM | `proposal_drafted` → `awaiting_approval`. The UI calls this and `approval-request` in one step (QD-412). |
+| `POST /proposal-versions/{id}/approval-request` | A, PM | `{assigned_to}`: an Admin or Approver who is not the version's creator. |
+| `GET /proposal-versions/{id}/approvers` | A, PM | Who the version can be assigned to: the org's Admins and Approvers except the version's creator. `{user_id, display_name, role}` only. 404 for another tenant's version (QD-412). |
 | `POST /proposal-versions/{id}/share` | A, PM | `approved` → `shared`. Records the hand-off; nothing is sent. 400 from any other status. |
 | `POST /proposal-versions/{id}/outcome` | A, PM | `{outcome: won\|lost\|expired}`, `shared` → outcome (terminal). Won/Lost also set the opportunity status. 400 from any other status. |
 | `GET /approval-requests` | A, Ap | Filter `status`. |

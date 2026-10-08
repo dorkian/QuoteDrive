@@ -537,6 +537,55 @@ export async function shareProposalVersion(
   return (await res.json()) as ProposalVersion;
 }
 
+export interface ApproverOption {
+  user_id: number;
+  display_name: string;
+  role: Role;
+}
+
+export async function fetchApprovers(
+  token: string,
+  versionId: number,
+): Promise<ApproverOption[]> {
+  const res = await fetch(
+    `${API_URL}/proposal-versions/${versionId}/approvers`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  await throwIfNotOk(res, "Failed to load approvers");
+  return (await res.json()) as ApproverOption[];
+}
+
+export async function submitProposalVersion(
+  token: string,
+  versionId: number,
+): Promise<ProposalVersion> {
+  const res = await fetch(`${API_URL}/proposal-versions/${versionId}/submit`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to submit the version");
+  return (await res.json()) as ProposalVersion;
+}
+
+export async function requestApproval(
+  token: string,
+  versionId: number,
+  assignedTo: number,
+): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/proposal-versions/${versionId}/approval-request`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ assigned_to: assignedTo }),
+    },
+  );
+  await throwIfNotOk(res, "Failed to request approval");
+}
+
 export type ProposalOutcome = "won" | "lost" | "expired";
 
 export async function recordProposalOutcome(
