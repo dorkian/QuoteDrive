@@ -16,9 +16,10 @@ from app.models import (
     ProposalVersion,
     ProposalVersionStatus,
     Role,
+    User,
 )
 from app.repositories.base import get_tenant_scoped_or_404
-from app.schemas.approval_request import ApprovalRequestCreate, ApprovalRequestOut
+from app.schemas.approval_request import ApprovalRequestCreate, ApprovalRequestOut, ApproverOption
 from app.schemas.proposal_version import (
     ProposalOutcomeCreate,
     ProposalVersionCreate,
@@ -253,6 +254,34 @@ def submit_proposal_version(
     db.commit()
     db.refresh(version)
     return version
+
+
+@router.get(
+    "/proposal-versions/{version_id}/approvers",
+    response_model=list[ApproverOption],
+)
+def list_assignable_approvers(
+    version_id: int,
+    current: CurrentMembership = Depends(_can_edit),
+    db: Session = Depends(get_db),
+) -> list[ApproverOption]:
+    """Who this version may be assigned to: the org's Admins and Approvers,
+    except the version's creator (the same rule create_approval_request enforces)."""
+    version = get_tenant_scoped_or_404(db, ProposalVersion, version_id, current.organization.id)
+    rows = db.execute(
+        select(OrganizationMembership, User)
+        .join(User, User.id == OrganizationMembership.user_id)
+        .where(
+            OrganizationMembership.organization_id == current.organization.id,
+            OrganizationMembership.role.in_((Role.ADMIN, Role.APPROVER)),
+            OrganizationMembership.user_id != version.created_by,
+        )
+        .order_by(User.display_name, User.id)
+    ).all()
+    return [
+        ApproverOption(user_id=user.id, display_name=user.display_name, role=membership.role)
+        for membership, user in rows
+    ]
 
 
 @router.post(

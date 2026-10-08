@@ -3,12 +3,19 @@ from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
 from app.models.approval_request import ApprovalRequestStatus
+from app.models.membership import Role
 
 _COMMENT_MAX_LENGTH = 4096  # matches approval_comments.body's String(4096) column
 
 
 class ApprovalRequestCreate(BaseModel):
     assigned_to: int
+
+
+class ApproverOption(BaseModel):
+    user_id: int
+    display_name: str
+    role: Role
 
 
 class ApprovalRequestOut(BaseModel):

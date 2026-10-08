@@ -634,3 +634,69 @@ def test_get_approval_request_cross_tenant_returns_404(
 
     token_b = login(two_orgs.admin_b)
     assert client.get(f"/approval-requests/{req['id']}", headers=_auth(token_b)).status_code == 404
+
+
+def test_approvers_list_has_admins_and_approvers_but_not_the_creator(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    manager_token = login(two_orgs.manager_a)
+    version = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions", json={}, headers=_auth(manager_token)
+    ).json()
+
+    response = client.get(
+        f"/proposal-versions/{version['id']}/approvers", headers=_auth(manager_token)
+    )
+
+    assert response.status_code == 200
+    assert {a["display_name"] for a in response.json()} == {two_orgs.admin_a, two_orgs.approver_a}
+    assert {a["role"] for a in response.json()} == {"admin", "approver"}
+
+
+def test_approvers_list_excludes_an_admin_who_created_the_version(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    admin_token = login(two_orgs.admin_a)
+    version = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions", json={}, headers=_auth(admin_token)
+    ).json()
+
+    response = client.get(
+        f"/proposal-versions/{version['id']}/approvers", headers=_auth(admin_token)
+    )
+
+    assert [a["display_name"] for a in response.json()] == [two_orgs.approver_a]
+
+
+def test_approvers_list_forbidden_for_approver_and_viewer(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    version = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(login(two_orgs.manager_a)),
+    ).json()
+
+    for email in (two_orgs.approver_a, two_orgs.viewer_a):
+        response = client.get(
+            f"/proposal-versions/{version['id']}/approvers", headers=_auth(login(email))
+        )
+        assert response.status_code == 403
+
+
+def test_approvers_list_is_tenant_scoped_and_needs_auth(
+    client: TestClient, two_orgs: TwoOrgs, seeded_env: dict[str, int], login: Callable[[str], str]
+) -> None:
+    version = client.post(
+        f"/opportunities/{seeded_env['opp_a_id']}/versions",
+        json={},
+        headers=_auth(login(two_orgs.manager_a)),
+    ).json()
+
+    cross_tenant = client.get(
+        f"/proposal-versions/{version['id']}/approvers",
+        headers=_auth(login(two_orgs.admin_b)),
+    )
+
+    assert cross_tenant.status_code == 404
+    assert client.get(f"/proposal-versions/{version['id']}/approvers").status_code == 401

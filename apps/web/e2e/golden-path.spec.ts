@@ -1,13 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import {
-  API_URL,
-  APPROVER,
-  MANAGER,
-  apiToken,
-  loginViaUi,
-  logout,
-} from "./helpers.ts";
+import { APPROVER, MANAGER, loginViaUi, logout } from "./helpers.ts";
 
 const CUSTOMER = "Lombarda Studio Group";
 // Unique per run so the approval list link is unambiguous across reruns.
@@ -20,7 +13,6 @@ const LINES = [
 
 test("manager builds and submits a proposal, approver approves, client preview renders", async ({
   page,
-  request,
 }) => {
   // Manager: create a fresh opportunity for a seeded customer, then a draft.
   await loginViaUi(page, MANAGER);
@@ -52,30 +44,21 @@ test("manager builds and submits a proposal, approver approves, client preview r
   await page.getByRole("button", { name: "Finalize version" }).click();
   await expect(page.getByText("Proposal drafted")).toBeVisible();
 
-  // No UI exists yet for submit + approval request (follow-up card), so this
-  // one step goes through the API as the manager.
-  const managerToken = await apiToken(request, MANAGER);
-  const approverMe = await (
-    await request.get(`${API_URL}/me`, {
-      headers: { Authorization: `Bearer ${await apiToken(request, APPROVER)}` },
-    })
-  ).json();
-  const auth = { Authorization: `Bearer ${managerToken}` };
-  expect(
-    (
-      await request.post(`${API_URL}/proposal-versions/${versionId}/submit`, {
-        headers: auth,
-      })
-    ).ok(),
-  ).toBeTruthy();
-  expect(
-    (
-      await request.post(
-        `${API_URL}/proposal-versions/${versionId}/approval-request`,
-        { headers: auth, data: { assigned_to: approverMe.user.id } },
-      )
-    ).ok(),
-  ).toBeTruthy();
+  // Submit for approval from the UI, assigning the seeded approver.
+  await page.getByRole("button", { name: "Submit for approval" }).click();
+  const approverSelect = page.getByLabel("Approver");
+  const approverOption = approverSelect.locator("option", {
+    hasText: "(Approver)",
+  });
+  await expect(approverOption.first()).toBeAttached();
+  await approverSelect.selectOption({
+    label: (await approverOption.first().textContent())!.trim(),
+  });
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Submit for approval" })
+    .click();
+  await expect(page.getByText("Awaiting approval")).toBeVisible();
   await logout(page);
 
   // Approver: find the request, approve it with confirmation.

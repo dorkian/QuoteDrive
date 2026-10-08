@@ -85,7 +85,7 @@ The seed creates the tenant **Northstar Mobility Advisory**, its customer **Lomb
 4. Under **AI proposal narrative**, choose **Generate draft**, review and edit it, then save.
    ![AI narrative draft with provider badge and review label](docs/screenshots/v1/ai-narrative.png)
 5. **Finalize** the version. The version is now read-only.
-6. Submit it for approval. *There is no button for this yet ([QD-412](docs/product/backlog.md)); use the API docs at `/docs`: `POST /proposal-versions/{id}/submit`, then `POST /proposal-versions/{id}/approval-request` with the approver's user id. The Playwright golden path does exactly this.*
+6. Choose **Submit for approval**, pick an approver (any Admin or Approver except you) and confirm.
 7. Sign in as the approver, open **Approvals**, review the diff and **Approve**.
    ![Approval detail with version comparison](docs/screenshots/v1/approval.png)
 8. Open **Client preview** on the approved version.
@@ -153,7 +153,6 @@ Details, and how to run everything locally: [docs/quality/quality-gates.md](docs
 ## Known limitations and deferred scope
 
 Known gaps in v1.0.0. Each planned item that isn't built yet has a card; the full audit is in [plan-vs-built.md](docs/product/plan-vs-built.md).
-- **No "submit for approval" button.** The API supports it (QD-412).
 - Members can change roles, but there are no invitations: new members come from the seed.
 - **The output guard is heuristic.** It understands simple negation ("no discount is offered" passes), but unusual phrasing can still be rejected or slip through; live evals score it against a 90% release threshold (QD-418).
 - **FakeProvider is the default**, so AI drafting shows an error until a provider is configured.

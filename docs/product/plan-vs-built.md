@@ -14,7 +14,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | FR-03 | Admin manages packages and add-ons | ✅ Settings › Catalogue: create, edit, deactivate (QD-415) | — |
 | FR-03 | Manager adds lines, quantities, assumptions; inactive items can't be selected | ✅ | QD-203, QD-204 |
 | FR-04 | Server-side estimate formula, totals, disclaimer, versioning | ✅ | QD-204, QD-205, QD-401 |
-| FR-05 | Manager submits a version for review | 🟡 API only | ⏳ QD-412 |
+| FR-05 | Manager submits a version for review | ✅ Submit-for-approval button with approver picker | QD-412 |
 | FR-05 | Approve or request changes with a comment; no self-approval; audit events | ✅ | QD-301, QD-302, QD-303 |
 | FR-06 | Narrative and discovery drafts, editable, labelled, never change state | ✅ | QD-305–QD-308, QD-404, QD-410 |
 | FR-06 | Fallback reason recorded | ✅ `generation_logs.fallback_reason`, response and saved draft | QD-417 |
@@ -22,7 +22,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 ## Lifecycle and permissions ([security-and-tenancy.md](../architecture/security-and-tenancy.md))
 | Commitment | Status | Where / card |
 |---|---|---|
-| Draft → Configured → Proposal Drafted → Awaiting Approval → Approved / Changes Requested | ✅ (submit has no UI yet) | QD-205, QD-301; ⏳ QD-412 |
+| Draft → Configured → Proposal Drafted → Awaiting Approval → Approved / Changes Requested | ✅ | QD-205, QD-301, QD-412 |
 | Approved → Shared → Won / Lost / Expired; "Share" and "Record outcome" permissions | ✅ Share and outcome actions on the version page, dashboard outcome counts (QD-414) | — |
 | "Manage catalogue items" (Admin) | ✅ | QD-415 |
 | Release-blocking tests: cross-tenant, viewer mutation, self-approval, illegal transition, provider failure without state change | ✅ | QD-105, QD-301, QD-403 |
@@ -45,7 +45,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 |---|---|---|
 | Admin configures the workspace: catalogue, members, roles, feature settings | ✅ Settings › Members, Catalogue and AI | QD-415, QD-416, QD-417 |
 | Goal 3: AI provenance, **fallback behavior** and human review visible | ✅ | QD-417 |
-| Journey 1–8 end to end in the UI | 🟡 Step 5 (submit for approval) needs the API | ⏳ QD-412 |
+| Journey 1–8 end to end in the UI | ✅ | QD-412 |
 | Viewer reads shared or approved proposals | ✅ Client preview covers approved, shared and closed versions | QD-401, QD-414 |
 
 ## Roadmap ([mvp-scope-and-roadmap.md](mvp-scope-and-roadmap.md)) and quality plans
