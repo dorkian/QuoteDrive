@@ -47,6 +47,19 @@ const harbor: api.Customer = {
   open_pipeline_value: "0",
 };
 
+// What the form sends for the profile when none of it is filled in.
+const EMPTY_PROFILE = {
+  industry_tags: null,
+  website: null,
+  hq_city: null,
+  hq_country: null,
+  company_size: null,
+  about: null,
+  contact_name: null,
+  contact_title: null,
+  contact_email: null,
+};
+
 const deal: api.Opportunity = {
   id: 7,
   organization_id: 1,
@@ -263,6 +276,7 @@ describe("CustomersPage", () => {
       await screen.findByRole("dialog", { name: "Harbor Freight Co" }),
     ).toBeInTheDocument();
     expect(api.createCustomer).toHaveBeenCalledWith("stored-token", {
+      ...EMPTY_PROFILE,
       name: "Harbor Freight Co",
       industry: null,
     });
@@ -288,7 +302,7 @@ describe("CustomersPage", () => {
     expect(within(dialog).getByLabelText("Customer name")).toHaveValue(
       "Lombarda Studio Group",
     );
-    fireEvent.change(within(dialog).getByLabelText(/Industry/), {
+    fireEvent.change(within(dialog).getByLabelText("Industry (optional)"), {
       target: { value: "Media" },
     });
     fireEvent.click(
@@ -297,6 +311,7 @@ describe("CustomersPage", () => {
 
     await waitFor(() =>
       expect(api.updateCustomer).toHaveBeenCalledWith("stored-token", 10, {
+        ...EMPTY_PROFILE,
         name: "Lombarda Studio Group",
         industry: "Media",
       }),
@@ -402,5 +417,247 @@ describe("CustomersPage", () => {
     expect(
       await screen.findByText("Lombarda Studio Group"),
     ).toBeInTheDocument();
+  });
+
+  describe("customer profile", () => {
+    const orchard: api.Customer = {
+      id: 15,
+      organization_id: 1,
+      name: "Orchard Retail Collective",
+      industry: "Retail",
+      status: "active",
+      website: "https://orchard-retail.example",
+      hq_city: "Turin",
+      hq_country: "Italy",
+      company_size: "201-1000",
+      about: "Regional grocery and home-delivery group.",
+      industry_tags: ["Grocery", "Home delivery"],
+      contact_name: "Giulia Rossi",
+      contact_title: "Head of Operations",
+      contact_email: "giulia.rossi@orchard-retail.example",
+      opportunity_count: 1,
+      open_opportunities: 1,
+      open_pipeline_value: "6015.00",
+    };
+
+    it("shows the logo, location, size, tags and the whole profile in the modal", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([orchard]);
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Orchard Retail Collective");
+      expect(within(modal).getByText("Turin, Italy")).toBeInTheDocument();
+      expect(within(modal).getByText("Grocery")).toBeInTheDocument();
+      expect(within(modal).getByText("Home delivery")).toBeInTheDocument();
+      expect(
+        within(modal).getByText("Regional grocery and home-delivery group."),
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getAllByText("201-1000 people").length,
+      ).toBeGreaterThan(0);
+      expect(modal.querySelector("[data-logo]")).not.toBeNull();
+      expect(within(modal).getByText("Giulia Rossi")).toBeInTheDocument();
+      expect(within(modal).getByText("Head of Operations")).toBeInTheDocument();
+    });
+
+    it("opens the website safely in a new tab and offers to email the contact", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([orchard]);
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Orchard Retail Collective");
+      const site = within(modal).getByRole("link", {
+        name: /orchard-retail\.example/,
+      });
+      expect(site).toHaveAttribute("href", "https://orchard-retail.example");
+      expect(site).toHaveAttribute("target", "_blank");
+      expect(site).toHaveAttribute("rel", "noopener noreferrer");
+      expect(
+        within(modal).getByRole("link", { name: /Email/ }),
+      ).toHaveAttribute("href", "mailto:giulia.rossi@orchard-retail.example");
+    });
+
+    it("never renders a non-web address as a link", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([
+        { ...orchard, website: "javascript:alert(1)" },
+      ]);
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Orchard Retail Collective");
+      expect(
+        within(modal).queryByRole("link", { name: /alert/ }),
+      ).not.toBeInTheDocument();
+      expect(modal.querySelector('a[href^="javascript"]')).toBeNull();
+    });
+
+    it("copies the contact's email", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([orchard]);
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText },
+        configurable: true,
+      });
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Orchard Retail Collective");
+      fireEvent.click(
+        within(modal).getByRole("button", { name: /Copy giulia/ }),
+      );
+
+      await waitFor(() =>
+        expect(writeText).toHaveBeenCalledWith(
+          "giulia.rossi@orchard-retail.example",
+        ),
+      );
+      expect(await within(modal).findByText("Copied")).toBeInTheDocument();
+    });
+
+    it("invites an editor to add details when the profile is empty", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([harbor]);
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Harbor Freight Co");
+      expect(
+        within(modal).getByText("No profile details yet."),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Add details" }),
+      );
+      expect(
+        screen.getByRole("dialog", { name: "Edit customer" }),
+      ).toBeInTheDocument();
+    });
+
+    it("does not nag a viewer to add details", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([harbor]);
+
+      renderAuthenticated({ ...managerMe, role: "viewer" });
+
+      const modal = await openPanel("Harbor Freight Co");
+      expect(
+        within(modal).queryByRole("button", { name: "Add details" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows location and size in the table and searches the whole profile", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([orchard, lombarda]);
+
+      renderAuthenticated();
+
+      expect(
+        await screen.findByText(/Retail · Turin, Italy/),
+      ).toBeInTheDocument();
+      fireEvent.change(
+        screen.getByRole("searchbox", { name: "Search customers" }),
+        { target: { value: "giulia" } },
+      );
+      expect(screen.getByText("Orchard Retail Collective")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Lombarda Studio Group"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(
+        screen.getByRole("searchbox", { name: "Search customers" }),
+        { target: { value: "home delivery" } },
+      );
+      expect(screen.getByText("Orchard Retail Collective")).toBeInTheDocument();
+    });
+
+    it("saves every profile detail from the form", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([harbor]);
+      vi.mocked(api.updateCustomer).mockResolvedValue({
+        ...harbor,
+        hq_city: "Genoa",
+      });
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Harbor Freight Co");
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Edit customer" }),
+      );
+      const dialog = screen.getByRole("dialog", { name: "Edit customer" });
+      fireEvent.change(within(dialog).getByLabelText("Industry (optional)"), {
+        target: { value: "Maritime" },
+      });
+      fireEvent.change(
+        within(dialog).getByLabelText("Company size (optional)"),
+        { target: { value: "51-200" } },
+      );
+      fireEvent.change(within(dialog).getByLabelText("Website (optional)"), {
+        target: { value: "harbor.example" },
+      });
+      fireEvent.change(within(dialog).getByLabelText("City (optional)"), {
+        target: { value: " Genoa " },
+      });
+      fireEvent.change(within(dialog).getByLabelText("Country (optional)"), {
+        target: { value: "Italy" },
+      });
+      fireEvent.change(within(dialog).getByLabelText(/^About/), {
+        target: { value: "Port hauliers." },
+      });
+      fireEvent.change(
+        within(dialog).getByLabelText("Contact name (optional)"),
+        { target: { value: "Marco Bellini" } },
+      );
+      fireEvent.change(within(dialog).getByLabelText("Job title (optional)"), {
+        target: { value: "Transport Manager" },
+      });
+      fireEvent.change(
+        within(dialog).getByLabelText("Contact email (optional)"),
+        {
+          target: { value: "marco@harbor.example" },
+        },
+      );
+      const tags = within(dialog).getByLabelText("Industry tags (optional)");
+      fireEvent.change(tags, { target: { value: "Haulage" } });
+      fireEvent.keyDown(tags, { key: "Enter" });
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Save changes" }),
+      );
+
+      await waitFor(() =>
+        expect(api.updateCustomer).toHaveBeenCalledWith("stored-token", 11, {
+          name: "Harbor Freight Co",
+          industry: "Maritime",
+          industry_tags: ["Haulage"],
+          website: "harbor.example",
+          hq_city: "Genoa",
+          hq_country: "Italy",
+          company_size: "51-200",
+          about: "Port hauliers.",
+          contact_name: "Marco Bellini",
+          contact_title: "Transport Manager",
+          contact_email: "marco@harbor.example",
+        }),
+      );
+    });
+
+    it("blocks an invalid contact email before it is sent", async () => {
+      vi.mocked(api.fetchCustomers).mockResolvedValue([harbor]);
+
+      renderAuthenticated();
+
+      const modal = await openPanel("Harbor Freight Co");
+      fireEvent.click(
+        within(modal).getByRole("button", { name: "Edit customer" }),
+      );
+      const dialog = screen.getByRole("dialog", { name: "Edit customer" });
+      fireEvent.change(
+        within(dialog).getByLabelText("Contact email (optional)"),
+        { target: { value: "nope" } },
+      );
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Save changes" }),
+      );
+
+      expect(
+        within(dialog).getByText("Enter a valid contact email."),
+      ).toBeInTheDocument();
+      expect(api.updateCustomer).not.toHaveBeenCalled();
+    });
   });
 });

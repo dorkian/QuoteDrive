@@ -39,7 +39,22 @@ export interface AuditEvent {
   created_at: string;
 }
 
-export interface Customer {
+export type CompanySize = "1-50" | "51-200" | "201-1000" | "1000+";
+
+/** The profile details a customer can carry; every one is optional. */
+export interface CustomerProfile {
+  website: string | null;
+  hq_city: string | null;
+  hq_country: string | null;
+  company_size: CompanySize | null;
+  about: string | null;
+  industry_tags: string[] | null;
+  contact_name: string | null;
+  contact_title: string | null;
+  contact_email: string | null;
+}
+
+export interface Customer extends Partial<CustomerProfile> {
   id: number;
   organization_id: number;
   name: string;
@@ -333,7 +348,7 @@ export async function fetchCustomer(
   return (await res.json()) as Customer;
 }
 
-export interface CustomerInput {
+export interface CustomerInput extends Partial<CustomerProfile> {
   name: string;
   industry: string | null;
 }

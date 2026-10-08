@@ -20,7 +20,7 @@ erDiagram
 - `organizations(id, name, slug, ai_fallback_enabled, created_at)`. `ai_fallback_enabled` is the tenant's opt-in to the local AI fallback (ADR-005), off by default.
 - `users(id, email, display_name, created_at)`
 - `organization_memberships(user_id, organization_id, role)`. `role`: `admin`, `proposal_manager`, `approver`, `viewer`.
-- `customers(id, organization_id, name, industry, status, created_at)`
+- `customers(id, organization_id, name, industry, status, created_at, website, hq_city, hq_country, company_size, about, industry_tags, contact_name, contact_title, contact_email)`. The profile columns (from `c9d4e7a1f2b8`) are all optional. `company_size` is one of `1-50`, `51-200`, `201-1000`, `1000+`; `industry_tags` is a JSON list of up to 6 short tags.
 - `opportunities(id, organization_id, customer_id, owner_id, title, status, brief_json, created_at)`. `brief_json` holds the human-reviewed discovery brief (`summary`, `requirements`, `open_questions`, `unknowns`, `provider`, `model`).
 - `catalogue_items(id, organization_id, type, name, category, base_monthly_estimate, active, created_at)`. `type`: `package` or `add_on`.
 - `proposal_versions(id, organization_id, opportunity_id, version_number, status, content_json, narrative_json, total_estimate, created_by, created_at)`.

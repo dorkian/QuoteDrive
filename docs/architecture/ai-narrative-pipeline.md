@@ -15,7 +15,7 @@ How a proposal's structured content becomes an AI-drafted narrative, and what st
 
 ## Two gaps, not smoothed over
 
-- **`Opportunity.brief_json` isn't wired into drafting.** It's captured (`PATCH /opportunities/{id}`) and stored, but `build_prompt()` never reads it — the narrative prompt is built only from customer, opportunity title, proposal content, and an optional `timeline` string. The mission's "brief → extraction" step doesn't exist as a real connection yet.
+- **`Opportunity.brief_json` isn't wired into drafting.** It's captured (`PATCH /opportunities/{id}`) and stored, but `build_prompt()` never reads it — the narrative prompt is built from the customer (name plus its profile: industry, focus tags, company size, headquarters, about and the primary contact's name and title), the opportunity title, proposal content, and an optional `timeline` string. The profile sits inside the untrusted-data fence, never includes the contact's email, and its figures (the employee range) are part of the source the output guard compares against, so a model that invents a headcount is still rejected. Prompt version `1.1`; the discovery brief uses `discovery-1.1`. The mission's "brief → extraction" step doesn't exist as a real connection yet.
 - **No review UI yet.** QD-307 (narrative editor, provider badge, edit/save) is still unbuilt. Concretely, this also means a generated draft isn't persisted anywhere today — `POST /ai/proposal-narrative` returns it, but nothing writes it back onto the `ProposalVersion` until QD-307 ships a save action.
 
 ## Why there's no separate "evaluator" service

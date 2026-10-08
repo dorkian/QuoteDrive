@@ -34,6 +34,7 @@ from app.models import (
     Role,
     User,
 )
+from scripts.demo_profiles import PROFILES
 from scripts.seed_demo import ORG_SLUG
 from scripts.seed_demo import seed as seed_demo
 
@@ -211,6 +212,22 @@ def _items(db: Session, org_id: int) -> dict[str, CatalogueItem]:
     return {item.name: item for item in rows.scalars()}
 
 
+def apply_profiles(db: Session, org_id: int) -> int:
+    """Fill in each demo customer's profile where it is still empty. Safe to repeat."""
+    changed = 0
+    for customer in db.execute(
+        select(Customer).where(Customer.organization_id == org_id)
+    ).scalars():
+        profile = PROFILES.get(customer.name)
+        if profile is None:
+            continue
+        for column, value in profile.items():
+            if getattr(customer, column) is None:
+                setattr(customer, column, value)
+                changed += 1
+    return changed
+
+
 def seed(db: Session) -> None:
     org = db.execute(select(Organization).where(Organization.slug == ORG_SLUG)).scalar_one_or_none()
     if org is None:
@@ -219,7 +236,9 @@ def seed(db: Session) -> None:
     if db.execute(
         select(Customer).where(Customer.organization_id == org.id, Customer.name == MARKER)
     ).scalar_one_or_none():
-        print("demo history already seeded; nothing to do")
+        filled = apply_profiles(db, org.id)
+        db.commit()
+        print(f"demo history already seeded; filled {filled} empty profile fields")
         return
 
     def user(role: Role) -> User:
@@ -407,6 +426,8 @@ def seed(db: Session) -> None:
             )
         print(f"seeded case study: {case.customer} - {case.title} ({case.end.value})")
 
+    db.flush()
+    apply_profiles(db, org.id)
     db.commit()
 
 

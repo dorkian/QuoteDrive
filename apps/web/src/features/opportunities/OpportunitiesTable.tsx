@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Avatar } from "@/components/Avatar";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import {
   DataTable,
   type Column,
@@ -53,7 +54,7 @@ export function OpportunitiesTable({
       sortValue: (r) => r.opportunity.title,
       cell: (r) => (
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar name={r.customerName} />
+          <CompanyLogo name={r.customerName} />
           <div className="min-w-0">
             <div className="truncate font-medium text-foreground">
               {r.opportunity.title}

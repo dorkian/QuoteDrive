@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Avatar } from "@/components/Avatar";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import {
   DataTable,
   type Column,
@@ -44,6 +44,11 @@ import {
   type ErrorDescription,
 } from "../../lib/errors";
 import { canEditProposals } from "../../lib/roles";
+import {
+  COMPANY_SIZE_OPTIONS,
+  companySizeShort,
+  headquarters,
+} from "../../lib/customer-profile";
 import { formatMoney } from "../dashboard/charts/chart-theme";
 import { CustomerFormDialog } from "./CustomerFormDialog";
 import { CustomerModal } from "./CustomerModal";
@@ -61,11 +66,13 @@ const COLUMNS: Column<Customer>[] = [
     sortValue: (c) => c.name,
     cell: (c) => (
       <div className="flex min-w-0 items-center gap-3">
-        <Avatar name={c.name} />
+        <CompanyLogo name={c.name} />
         <div className="min-w-0">
           <div className="truncate font-medium text-foreground">{c.name}</div>
           <div className="truncate text-xs text-muted-foreground">
-            {c.industry ?? "No industry set"}
+            {[c.industry ?? "No industry set", headquarters(c)]
+              .filter(Boolean)
+              .join(" · ")}
           </div>
         </div>
       </div>
@@ -76,6 +83,18 @@ const COLUMNS: Column<Customer>[] = [
     header: "Status",
     sortValue: (c) => c.status,
     cell: (c) => <StatusBadge status={c.status} />,
+  },
+  {
+    key: "size",
+    header: "Size",
+    hideBelow: "lg",
+    sortValue: (c) =>
+      COMPANY_SIZE_OPTIONS.findIndex((o) => o.value === c.company_size),
+    cell: (c) => (
+      <span className="text-muted-foreground">
+        {companySizeShort(c.company_size) ?? "-"}
+      </span>
+    ),
   },
   {
     key: "opportunities",
@@ -306,8 +325,10 @@ export function CustomersPage() {
             rowLabel={(c) => c.name}
             onOpen={(c) => open(c.id)}
             selectedId={openId}
-            searchText={(c) => `${c.name} ${c.industry ?? ""}`}
-            searchPlaceholder="Search name or industry"
+            searchText={(c) =>
+              `${c.name} ${c.industry ?? ""} ${(c.industry_tags ?? []).join(" ")} ${headquarters(c) ?? ""} ${c.contact_name ?? ""}`
+            }
+            searchPlaceholder="Search name, industry, city or contact"
             filters={FILTERS}
             initialSort={{ key: "pipeline", direction: "desc" }}
           />
