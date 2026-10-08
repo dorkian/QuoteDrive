@@ -167,6 +167,72 @@ export async function fetchDashboardSummary(
   return (await res.json()) as DashboardSummary;
 }
 
+export type AnalyticsRange = "4w" | "12w" | "all";
+
+export interface StageStat {
+  status: string;
+  count: number;
+  value: string;
+}
+
+export interface WeeklyPoint {
+  week_start: string;
+  opportunities_created: number;
+  versions_created: number;
+  value_created: string;
+  approvals_decided: number;
+  median_approval_hours: number | null;
+}
+
+export interface PackageStat {
+  name: string;
+  category: string;
+  quantity: number;
+  value: string;
+}
+
+export interface AiStat {
+  provider: string;
+  model: string;
+  total: number;
+  succeeded: number;
+  failed: number;
+  fallbacks: number;
+  median_latency_ms: number | null;
+}
+
+export interface AnalyticsKpis {
+  open_pipeline_value: string;
+  open_opportunities: number;
+  win_rate: number | null;
+  won: number;
+  lost: number;
+  awaiting_approval: number;
+  median_approval_hours: number | null;
+  ai_success_rate: number | null;
+  ai_generations: number;
+}
+
+export interface DashboardAnalytics {
+  range: AnalyticsRange;
+  kpis: AnalyticsKpis;
+  stages: StageStat[];
+  weekly: WeeklyPoint[];
+  packages: PackageStat[];
+  ai: AiStat[];
+}
+
+export async function fetchDashboardAnalytics(
+  token: string,
+  range: AnalyticsRange,
+): Promise<DashboardAnalytics> {
+  const res = await fetch(`${API_URL}/dashboard/analytics?range=${range}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await throwIfNotOk(res, "Failed to load dashboard analytics");
+  return (await res.json()) as DashboardAnalytics;
+}
+
 export interface FetchAuditEventsOptions {
   limit?: number;
   entityType?: string;

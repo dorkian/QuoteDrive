@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentMembership, get_current_membership
 from app.core.database import get_db
 from app.models import AuditEvent, Opportunity, ProposalVersion
-from app.schemas.dashboard import AuditEventOut, DashboardSummary
+from app.schemas.dashboard import AuditEventOut, DashboardAnalytics, DashboardSummary
+from app.services.analytics import RangeKey, build_analytics
 
 router = APIRouter(tags=["dashboard"])
 
@@ -29,6 +30,15 @@ def get_dashboard_summary(
         opportunities_by_status={status: count for status, count in rows},
         proposal_versions_by_status={status.value: count for status, count in version_rows},
     )
+
+
+@router.get("/dashboard/analytics", response_model=DashboardAnalytics)
+def get_dashboard_analytics(
+    range: RangeKey = Query(default="12w"),
+    current: CurrentMembership = Depends(get_current_membership),
+    db: Session = Depends(get_db),
+) -> DashboardAnalytics:
+    return build_analytics(db, current.organization.id, range)
 
 
 @router.get("/audit-events", response_model=list[AuditEventOut])
