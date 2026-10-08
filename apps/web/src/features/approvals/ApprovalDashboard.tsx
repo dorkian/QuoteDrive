@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Hourglass } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
+import { Avatar } from "@/components/Avatar";
+import {
+  DataTable,
+  type Column,
+  type FilterChip,
+} from "@/components/data-table/DataTable";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Badge } from "@/components/ui/badge";
+import { statusMeta } from "@/lib/status-meta";
+import { cn } from "@/lib/utils";
 import {
   EmptyState,
   ErrorState,
@@ -17,6 +25,101 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { describeError, type ErrorDescription } from "../../lib/errors";
+
+const HOUR = 3_600_000;
+const URGENT_AFTER_HOURS = 48;
+
+function waitingHours(request: ApprovalRequest): number {
+  return Math.max(0, (Date.now() - Date.parse(request.created_at)) / HOUR);
+}
+
+function formatWaiting(hours: number): string {
+  if (hours < 1) return "Under an hour";
+  if (hours < 48) return `${Math.floor(hours)} h`;
+  return `${Math.floor(hours / 24)} days`;
+}
+
+function Person({ name }: { name: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-muted-foreground">
+      <Avatar name={name} size="sm" />
+      {name}
+    </span>
+  );
+}
+
+const COLUMNS: Column<ApprovalRequest>[] = [
+  {
+    key: "proposal",
+    header: "Proposal",
+    sortValue: (r) => r.opportunity_title,
+    cell: (r) => (
+      <div className="min-w-0">
+        <div className="truncate font-medium text-foreground">
+          {r.opportunity_title}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Version {r.version_number}
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "from",
+    header: "Submitted by",
+    hideBelow: "md",
+    sortValue: (r) => r.requested_by_name,
+    cell: (r) => <Person name={r.requested_by_name} />,
+  },
+  {
+    key: "to",
+    header: "Assigned to",
+    hideBelow: "lg",
+    sortValue: (r) => r.assigned_to_name,
+    cell: (r) => <Person name={r.assigned_to_name} />,
+  },
+  {
+    key: "waiting",
+    header: "Waiting",
+    sortValue: (r) => waitingHours(r),
+    cell: (r) => {
+      const hours = waitingHours(r);
+      const urgent = hours >= URGENT_AFTER_HOURS;
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 text-sm",
+            urgent
+              ? "font-medium text-[color-mix(in_oklab,#ec835a_60%,white)]"
+              : "text-muted-foreground",
+          )}
+          title={`Submitted ${new Date(r.created_at).toLocaleString()}`}
+        >
+          {urgent && (
+            <Hourglass aria-hidden="true" className="size-3.5 text-[#ec835a]" />
+          )}
+          {formatWaiting(hours)}
+          {urgent && <span className="sr-only"> (overdue)</span>}
+        </span>
+      );
+    },
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortValue: (r) => r.status,
+    cell: (r) => <StatusBadge status={r.status} />,
+  },
+];
+
+const FILTERS: FilterChip<ApprovalRequest>[] = [
+  {
+    key: "overdue",
+    label: "Waiting 2+ days",
+    color: statusMeta("changes_requested").color,
+    test: (r) => waitingHours(r) >= URGENT_AFTER_HOURS,
+  },
+];
 
 function PageHeading() {
   return (
@@ -36,6 +139,7 @@ export function ApprovalDashboard() {
   const [requests, setRequests] = useState<ApprovalRequest[] | null>(null);
   const [error, setError] = useState<ErrorDescription | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const navigate = useNavigate();
 
   const isAllowed = me ? canDecideApproval(me.role) : false;
 
@@ -92,45 +196,29 @@ export function ApprovalDashboard() {
         </LoadingRegion>
       ) : (
         <div className="mt-6">
-          {requests.length === 0 ? (
-            <EmptyState className="" message="No pending approvals." />
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {requests.map((req) => (
-                <li key={req.id}>
-                  <Link
-                    to={`/approvals/${req.id}`}
-                    className="flex flex-col gap-3 rounded-md border border-border bg-card p-4 transition-colors duration-150 hover:border-navy-700 hover:bg-navy-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">
-                          {req.opportunity_title}
-                        </span>
-                        <Badge variant="outline">v{req.version_number}</Badge>
-                      </div>
-                      <p className="mt-1 text-xs text-navy-400">
-                        Submitted by{" "}
-                        <span className="text-foreground">
-                          {req.requested_by_name}
-                        </span>{" "}
-                        on{" "}
-                        <time dateTime={req.created_at}>
-                          {new Date(req.created_at).toLocaleDateString()}
-                        </time>
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-3">
-                      <span className="whitespace-nowrap text-xs text-navy-400">
-                        Assigned to: {req.assigned_to_name}
-                      </span>
-                      <StatusBadge status={req.status} />
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            label="Pending approvals"
+            noun="approvals"
+            rows={requests}
+            columns={COLUMNS}
+            rowId={(r) => r.id}
+            rowLabel={(r) =>
+              `${r.opportunity_title} version ${r.version_number}`
+            }
+            onOpen={(r) => navigate(`/approvals/${r.id}`)}
+            searchText={(r) =>
+              `${r.opportunity_title} ${r.requested_by_name} ${r.assigned_to_name}`
+            }
+            searchPlaceholder="Search proposal or person"
+            filters={FILTERS}
+            initialSort={{ key: "waiting", direction: "desc" }}
+            empty={
+              <EmptyState
+                className=""
+                message="No pending approvals. New requests appear here the moment a manager submits one."
+              />
+            }
+          />
         </div>
       )}
     </div>

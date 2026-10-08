@@ -1,258 +1,183 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo } from "react";
 
-import { StatusBadge } from "@/components/StatusBadge";
-import { formatStatus } from "@/lib/format";
-import { Button } from "@/components/ui/button";
-import { FIELD_CLASSES, Input } from "@/components/ui/input";
+import { Avatar } from "@/components/Avatar";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { FOCUS_RING } from "@/components/ui/variants";
-import { cn } from "@/lib/utils";
+  DataTable,
+  type Column,
+  type FilterChip,
+} from "@/components/data-table/DataTable";
+import { StatusBadge } from "@/components/StatusBadge";
+import { statusMeta } from "@/lib/status-meta";
+import { formatRelativeTime } from "../../components/activity-timeline-utils";
 import type { Customer, Opportunity } from "../../lib/api";
+import { formatMoney } from "../dashboard/charts/chart-theme";
 
 export const PAGE_SIZE = 10;
-
-type SortKey = "title" | "customer" | "status";
-type SortDirection = "asc" | "desc";
 
 interface Row {
   opportunity: Opportunity;
   customerName: string;
 }
 
-const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
-  { key: "title", label: "Opportunity" },
-  { key: "customer", label: "Customer", className: "hidden sm:table-cell" },
-  { key: "status", label: "Status", className: "w-36" },
-];
+const NEEDS_ATTENTION = new Set(["awaiting_approval", "changes_requested"]);
 
-function sortValue(row: Row, key: SortKey): string {
-  if (key === "title") return row.opportunity.title;
-  if (key === "customer") return row.customerName;
-  return row.opportunity.status;
-}
+const stamp = (o: Opportunity): number =>
+  Date.parse(o.last_activity_at ?? o.created_at ?? "") || 0;
 
-/** Client-side sort, filter and pagination over the already-fetched list. */
+/** Every opportunity at a glance. Click a row, or its View button, to open the details panel. */
 export function OpportunitiesTable({
   opportunities,
   customers,
+  selectedId,
+  onOpen,
 }: {
   opportunities: Opportunity[];
   customers: Customer[];
+  selectedId?: number | null;
+  onOpen: (opportunity: Opportunity) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
-    key: "title",
-    direction: "asc",
-  });
-  const [page, setPage] = useState(0);
-
-  const rows = useMemo(() => {
-    const customerNameById = new Map(customers.map((c) => [c.id, c.name]));
+  const rows = useMemo<Row[]>(() => {
+    const names = new Map(customers.map((c) => [c.id, c.name]));
     return opportunities.map((opportunity) => ({
       opportunity,
       customerName:
-        customerNameById.get(opportunity.customer_id) ??
+        names.get(opportunity.customer_id) ??
         `Customer #${opportunity.customer_id}`,
     }));
   }, [opportunities, customers]);
 
-  const statuses = useMemo(
-    () => [...new Set(opportunities.map((o) => o.status))].sort(),
-    [opportunities],
-  );
-
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const filtered = rows.filter(
-      (row) =>
-        (status === "all" || row.opportunity.status === status) &&
-        (needle === "" ||
-          row.opportunity.title.toLowerCase().includes(needle) ||
-          row.customerName.toLowerCase().includes(needle)),
-    );
-    const factor = sort.direction === "asc" ? 1 : -1;
-    return filtered.sort(
-      (a, b) =>
-        factor *
-        sortValue(a, sort.key).localeCompare(
-          sortValue(b, sort.key),
-          undefined,
-          {
-            sensitivity: "base",
-          },
+  const columns: Column<Row>[] = [
+    {
+      key: "title",
+      header: "Opportunity",
+      sortValue: (r) => r.opportunity.title,
+      cell: (r) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={r.customerName} />
+          <div className="min-w-0">
+            <div className="truncate font-medium text-foreground">
+              {r.opportunity.title}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {r.customerName}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortValue: (r) => r.opportunity.status,
+      cell: (r) => <StatusBadge status={r.opportunity.status} />,
+    },
+    {
+      key: "proposal",
+      header: "Latest proposal",
+      hideBelow: "md",
+      sortValue: (r) => r.opportunity.latest_version?.status ?? "",
+      cell: (r) =>
+        r.opportunity.latest_version ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs tabular-nums text-muted-foreground">
+              v{r.opportunity.latest_version.version_number}
+            </span>
+            <StatusBadge status={r.opportunity.latest_version.status} />
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">None yet</span>
         ),
-    );
-  }, [rows, query, status, sort]);
+    },
+    {
+      key: "value",
+      header: "Monthly estimate",
+      align: "right",
+      hideBelow: "md",
+      sortValue: (r) =>
+        Number(r.opportunity.latest_version?.total_estimate ?? 0),
+      cell: (r) =>
+        r.opportunity.latest_version ? (
+          formatMoney(Number(r.opportunity.latest_version.total_estimate))
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      key: "owner",
+      header: "Owner",
+      hideBelow: "lg",
+      sortValue: (r) => r.opportunity.owner_name ?? "",
+      cell: (r) =>
+        r.opportunity.owner_name ? (
+          <span className="inline-flex items-center gap-2 text-muted-foreground">
+            <Avatar name={r.opportunity.owner_name} size="sm" />
+            {r.opportunity.owner_name}
+          </span>
+        ) : null,
+    },
+    {
+      key: "activity",
+      header: "Last activity",
+      hideBelow: "lg",
+      sortValue: (r) => stamp(r.opportunity),
+      cell: (r) => (
+        <span className="text-muted-foreground">
+          {r.opportunity.last_activity_at
+            ? formatRelativeTime(r.opportunity.last_activity_at)
+            : "-"}
+        </span>
+      ),
+    },
+  ];
 
-  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount - 1);
-  const pageRows = visible.slice(
-    currentPage * PAGE_SIZE,
-    (currentPage + 1) * PAGE_SIZE,
-  );
-
-  function toggleSort(key: SortKey) {
-    setSort((current) => ({
-      key,
-      direction:
-        current.key === key && current.direction === "asc" ? "desc" : "asc",
-    }));
-  }
+  const filters: FilterChip<Row>[] = [
+    {
+      key: "open",
+      label: "Open",
+      color: statusMeta("open").color,
+      test: (r) => r.opportunity.status === "open",
+    },
+    {
+      key: "attention",
+      label: "Needs attention",
+      color: statusMeta("awaiting_approval").color,
+      test: (r) =>
+        r.opportunity.status === "open" &&
+        NEEDS_ATTENTION.has(r.opportunity.latest_version?.status ?? ""),
+    },
+    {
+      key: "won",
+      label: "Won",
+      color: statusMeta("won").color,
+      test: (r) => r.opportunity.status === "won",
+    },
+    {
+      key: "lost",
+      label: "Lost",
+      color: statusMeta("lost").color,
+      test: (r) => r.opportunity.status === "lost",
+    },
+  ];
 
   return (
-    <div className="mt-6 flex flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative sm:max-w-xs sm:flex-1">
-          <Search
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            aria-label="Search opportunities"
-            placeholder="Search title or customer"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(0);
-            }}
-            className="pl-9"
-          />
-        </div>
-        <select
-          aria-label="Filter by status"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
-            setPage(0);
-          }}
-          className={cn(FIELD_CLASSES, "h-10 sm:w-48")}
-        >
-          <option value="all">All statuses</option>
-          {statuses.map((value) => (
-            <option key={value} value={value}>
-              {formatStatus(value)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            {COLUMNS.map((column) => {
-              const isSorted = sort.key === column.key;
-              const Icon = !isSorted
-                ? ArrowUpDown
-                : sort.direction === "asc"
-                  ? ArrowUp
-                  : ArrowDown;
-              return (
-                <TableHead
-                  key={column.key}
-                  className={column.className}
-                  aria-sort={
-                    isSorted
-                      ? sort.direction === "asc"
-                        ? "ascending"
-                        : "descending"
-                      : "none"
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleSort(column.key)}
-                    className={cn(
-                      "-ml-1 inline-flex items-center gap-1 rounded-sm px-1 uppercase hover:text-foreground",
-                      FOCUS_RING,
-                      isSorted && "text-foreground",
-                    )}
-                  >
-                    {column.label}
-                    <Icon aria-hidden="true" className="size-3" />
-                  </button>
-                </TableHead>
-              );
-            })}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pageRows.length === 0 ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={COLUMNS.length}
-                className="py-8 text-center text-muted-foreground"
-              >
-                No opportunities match these filters.
-              </TableCell>
-            </TableRow>
-          ) : (
-            pageRows.map(({ opportunity, customerName }) => (
-              <TableRow key={opportunity.id}>
-                <TableCell className="min-w-0">
-                  <Link
-                    to={`/opportunities/${opportunity.id}`}
-                    className={cn(
-                      "rounded-sm font-medium text-foreground hover:text-primary",
-                      FOCUS_RING,
-                    )}
-                  >
-                    {opportunity.title}
-                  </Link>
-                  <span className="mt-0.5 block text-xs text-muted-foreground sm:hidden">
-                    {customerName}
-                  </span>
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground sm:table-cell">
-                  {customerName}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={opportunity.status} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-
-      <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-        <span aria-live="polite">
-          {visible.length} of {opportunities.length} opportunities
-        </span>
-        {pageCount > 1 && (
-          <div className="flex items-center gap-2">
-            <span>
-              Page {currentPage + 1} of {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(currentPage - 1)}
-              disabled={currentPage === 0}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(currentPage + 1)}
-              disabled={currentPage >= pageCount - 1}
-            >
-              Next
-            </Button>
-          </div>
-        )}
-      </div>
+    <div className="mt-6">
+      <DataTable
+        label="Opportunities"
+        noun="opportunities"
+        rows={rows}
+        columns={columns}
+        rowId={(r) => r.opportunity.id}
+        rowLabel={(r) => r.opportunity.title}
+        onOpen={(r) => onOpen(r.opportunity)}
+        selectedId={selectedId}
+        searchText={(r) =>
+          `${r.opportunity.title} ${r.customerName} ${r.opportunity.owner_name ?? ""}`
+        }
+        searchPlaceholder="Search title, customer or owner"
+        filters={filters}
+        initialSort={{ key: "activity", direction: "desc" }}
+        pageSize={PAGE_SIZE}
+      />
     </div>
   );
 }

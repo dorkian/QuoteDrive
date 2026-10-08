@@ -10,9 +10,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { breadcrumbsForPath } from "./breadcrumbs";
+import { useCrumbLabels } from "./crumb-context";
 
 export function AppBreadcrumbs() {
   const { pathname } = useLocation();
+  const labels = useCrumbLabels();
   const crumbs = breadcrumbsForPath(pathname);
 
   return (
@@ -21,13 +23,17 @@ export function AppBreadcrumbs() {
         {crumbs.map((crumb, index) => (
           <Fragment key={`${crumb.label}-${index}`}>
             {index > 0 && <BreadcrumbSeparator />}
-            <BreadcrumbItem>
+            <BreadcrumbItem className="min-w-0">
               {crumb.to ? (
                 <BreadcrumbLink asChild>
-                  <Link to={crumb.to}>{crumb.label}</Link>
+                  <Link to={crumb.to} className="truncate">
+                    {labels[crumb.to] ?? crumb.label}
+                  </Link>
                 </BreadcrumbLink>
               ) : (
-                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                <BreadcrumbPage className="truncate">
+                  {labels[pathname] ?? crumb.label}
+                </BreadcrumbPage>
               )}
             </BreadcrumbItem>
           </Fragment>

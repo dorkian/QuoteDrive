@@ -1,4 +1,6 @@
 import { CircleCheck } from "lucide-react";
+import { useCrumbLabel } from "../../components/layout/crumb-context";
+import { useOpportunityCrumb } from "../../components/layout/use-opportunity-crumb";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -67,6 +69,13 @@ export function ApprovalDetail() {
   const [decisionSuccess, setDecisionSuccess] = useState<string | null>(null);
 
   const isInvalidId = !Number.isInteger(id) || id <= 0;
+  useOpportunityCrumb(request?.opportunity_id);
+  useCrumbLabel(
+    request ? `/approvals/${request.id}` : null,
+    request
+      ? `${request.opportunity_title} · v${request.version_number}`
+      : null,
+  );
   // Approval requests are Approver/Admin-only on the API; gate before fetching
   // so other roles get an explanation instead of a failed load.
   const isAllowed = me ? canDecideApproval(me.role) : false;

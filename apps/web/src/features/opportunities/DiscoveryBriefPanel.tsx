@@ -86,6 +86,8 @@ interface DiscoveryBriefPanelProps {
   opportunity: Opportunity;
   editable: boolean;
   onSaved: (opportunity: Opportunity) => void;
+  /** Inside a tab or panel: drops the outer top margin. */
+  embedded?: boolean;
 }
 
 export function DiscoveryBriefPanel({
@@ -93,6 +95,7 @@ export function DiscoveryBriefPanel({
   opportunity,
   editable,
   onSaved,
+  embedded = false,
 }: DiscoveryBriefPanelProps) {
   const [notes, setNotes] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -165,7 +168,9 @@ export function DiscoveryBriefPanel({
   const saved = opportunity.brief_json;
 
   return (
-    <section className={cn(CARD_CLASSES, "mt-8 p-4 sm:p-6")}>
+    <section
+      className={cn(CARD_CLASSES, embedded ? "mt-4 p-4" : "mt-8 p-4 sm:p-6")}
+    >
       <div className="mb-4 flex items-center gap-2">
         <h2 className="text-lg font-semibold text-foreground">
           Discovery brief
@@ -179,7 +184,11 @@ export function DiscoveryBriefPanel({
       {saved ? (
         <SavedBrief brief={saved} />
       ) : (
-        <p className="text-sm text-muted-foreground">No brief saved yet.</p>
+        <p className="text-sm text-muted-foreground">
+          {editable
+            ? "No brief saved yet. Paste your call notes below and AI drafts the summary, requirements and open questions. You review and edit before saving."
+            : "No brief saved yet."}
+        </p>
       )}
 
       {error && (
@@ -211,7 +220,7 @@ export function DiscoveryBriefPanel({
             className={cn(AI_BUTTON, "mt-3")}
           >
             <Sparkles aria-hidden="true" />
-            {generating ? "Drafting…" : "Draft brief"}
+            {generating ? "Drafting…" : "Draft brief with AI"}
           </Button>
         </div>
       )}

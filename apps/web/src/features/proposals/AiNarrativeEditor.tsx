@@ -201,7 +201,10 @@ export function AiNarrativeEditor({
     editable && error?.kind === "generate" && canWriteManually && !draft;
 
   return (
-    <section className={cn(CARD_CLASSES, "mt-8 p-4 sm:p-6")}>
+    <section
+      id="ai-narrative"
+      className={cn(CARD_CLASSES, "mt-8 scroll-mt-20 p-4 sm:p-6")}
+    >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-foreground">
@@ -220,10 +223,18 @@ export function AiNarrativeEditor({
             className={AI_BUTTON}
           >
             <Sparkles aria-hidden="true" />
-            {generating ? "Generating…" : "Generate draft"}
+            {generating ? "Drafting…" : "Draft with AI"}
           </Button>
         )}
       </div>
+
+      {editable && !draft && !version.narrative_json && (
+        <p className="-mt-3 mb-6 max-w-prose text-sm text-muted-foreground">
+          {hasLines
+            ? "AI writes the executive summary, approach, scope, assumptions and a client email from the packages above. Nothing is saved until you review, edit and save it."
+            : "Add at least one package above, then AI can draft the narrative for you."}
+        </p>
+      )}
 
       {error && (
         <div

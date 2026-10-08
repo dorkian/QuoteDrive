@@ -9,6 +9,7 @@ import { AppBreadcrumbs } from "./AppBreadcrumbs";
 import { CommandMenu } from "./CommandMenu";
 import { Header } from "./Header";
 import type { NavItem } from "./nav-items";
+import { CrumbLabelProvider } from "./crumb-labels";
 import { Sidebar } from "./Sidebar";
 
 const COLLAPSED_KEY = "quotedrive.sidebarCollapsed";
@@ -53,57 +54,61 @@ export function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <aside
-        className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 motion-reduce:transition-none md:flex",
-          collapsed ? "w-16" : "w-60",
-        )}
-      >
-        <Sidebar active={active} onSelect={onSelect} collapsed={collapsed} />
-      </aside>
+    <CrumbLabelProvider>
+      <div className="flex min-h-screen bg-background text-foreground">
+        <aside
+          className={cn(
+            "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 motion-reduce:transition-none md:flex",
+            collapsed ? "w-16" : "w-60",
+          )}
+        >
+          <Sidebar active={active} onSelect={onSelect} collapsed={collapsed} />
+        </aside>
 
-      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent aria-describedby={undefined}>
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <Sidebar
-            active={active}
-            onSelect={(item) => {
-              onSelect(item);
-              setMobileNavOpen(false);
-            }}
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <SheetContent aria-describedby={undefined}>
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <Sidebar
+              active={active}
+              onSelect={(item) => {
+                onSelect(item);
+                setMobileNavOpen(false);
+              }}
+            />
+            {/* The header hides identity below sm; surface it here instead. */}
+            <div className="border-t border-sidebar-border px-4 py-3">
+              <p className="truncate text-sm font-medium text-foreground">
+                {organizationName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {ROLE_LABELS[role]}
+              </p>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Header
+            organizationName={organizationName}
+            role={role}
+            onLogout={onLogout}
+            breadcrumbs={<AppBreadcrumbs />}
+            onOpenNav={() => setMobileNavOpen(true)}
+            onToggleSidebar={toggleCollapsed}
+            onOpenSearch={() => setSearchOpen(true)}
           />
-          {/* The header hides identity below sm; surface it here instead. */}
-          <div className="border-t border-sidebar-border px-4 py-3">
-            <p className="truncate text-sm font-medium text-foreground">
-              {organizationName}
-            </p>
-            <p className="text-xs text-muted-foreground">{ROLE_LABELS[role]}</p>
-          </div>
-        </SheetContent>
-      </Sheet>
+          <main className="w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+            {children}
+          </main>
+        </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header
-          organizationName={organizationName}
-          role={role}
-          onLogout={onLogout}
-          breadcrumbs={<AppBreadcrumbs />}
-          onOpenNav={() => setMobileNavOpen(true)}
-          onToggleSidebar={toggleCollapsed}
-          onOpenSearch={() => setSearchOpen(true)}
+        <CommandMenu
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          onSelect={onSelect}
         />
-        <main className="w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-          {children}
-        </main>
+        <Toaster />
       </div>
-
-      <CommandMenu
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        onSelect={onSelect}
-      />
-      <Toaster />
-    </div>
+    </CrumbLabelProvider>
   );
 }

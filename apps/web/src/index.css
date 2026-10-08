@@ -75,3 +75,59 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
+
+/* Detail panel: slides in from the right, fades out. Skipped under reduced motion. */
+@keyframes panel-in {
+  from {
+    transform: translateX(1.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes panel-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(1rem);
+    opacity: 0;
+  }
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.panel-content[data-state="open"] {
+  animation: panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.panel-content[data-state="closed"] {
+  animation: panel-out 160ms cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+.panel-overlay[data-state="open"] {
+  animation: overlay-in 200ms ease-out;
+}
+.panel-overlay[data-state="closed"] {
+  animation: overlay-out 160ms ease-in forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-content,
+  .panel-overlay {
+    animation: none !important;
+  }
+}

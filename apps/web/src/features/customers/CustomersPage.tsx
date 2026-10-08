@@ -1,7 +1,14 @@
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { Avatar } from "@/components/Avatar";
+import {
+  DataTable,
+  type Column,
+  type FilterChip,
+} from "@/components/data-table/DataTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   AlertDialog,
@@ -13,15 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { statusMeta } from "@/lib/status-meta";
 import {
   EmptyState,
   ErrorState,
@@ -43,21 +42,92 @@ import {
   type ErrorDescription,
 } from "../../lib/errors";
 import { canEditProposals } from "../../lib/roles";
+import { formatMoney } from "../dashboard/charts/chart-theme";
 import { CustomerFormDialog } from "./CustomerFormDialog";
-
-const SEARCH_DEBOUNCE_MS = 250;
+import { CustomerPanel } from "./CustomerPanel";
 
 type FormState =
   | { mode: "closed" }
   | { mode: "create" }
   | { mode: "edit"; customer: Customer };
 
+const COLUMNS: Column<Customer>[] = [
+  {
+    key: "name",
+    header: "Customer",
+    sortValue: (c) => c.name,
+    cell: (c) => (
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={c.name} />
+        <div className="min-w-0">
+          <div className="truncate font-medium text-foreground">{c.name}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {c.industry ?? "No industry set"}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    sortValue: (c) => c.status,
+    cell: (c) => <StatusBadge status={c.status} />,
+  },
+  {
+    key: "opportunities",
+    header: "Opportunities",
+    align: "right",
+    hideBelow: "sm",
+    sortValue: (c) => c.opportunity_count ?? 0,
+    cell: (c) => (
+      <span>
+        {c.opportunity_count ?? 0}
+        <span className="ml-1 text-xs text-muted-foreground">
+          ({c.open_opportunities ?? 0} open)
+        </span>
+      </span>
+    ),
+  },
+  {
+    key: "pipeline",
+    header: "Open pipeline",
+    align: "right",
+    hideBelow: "md",
+    sortValue: (c) => Number(c.open_pipeline_value ?? 0),
+    cell: (c) => (
+      <span
+        className={
+          Number(c.open_pipeline_value ?? 0) === 0
+            ? "text-muted-foreground"
+            : undefined
+        }
+      >
+        {formatMoney(Number(c.open_pipeline_value ?? 0))}/mo
+      </span>
+    ),
+  },
+];
+
+const FILTERS: FilterChip<Customer>[] = [
+  {
+    key: "active",
+    label: "Active",
+    color: statusMeta("active").color,
+    test: (c) => c.status === "active",
+  },
+  {
+    key: "inactive",
+    label: "Inactive",
+    color: statusMeta("inactive").color,
+    test: (c) => c.status === "inactive",
+  },
+];
+
 export function CustomersPage() {
   const { token, me } = useAuth();
   const editable = !!me && canEditProposals(me.role);
 
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<ErrorDescription | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -65,21 +135,17 @@ export function CustomersPage() {
   const [pendingDelete, setPendingDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // The open customer lives in the URL, so Back closes the panel and a link reopens it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openParam = Number(searchParams.get("open"));
+  const openId =
+    Number.isInteger(openParam) && openParam > 0 ? openParam : null;
+  const openCustomer = customers?.find((c) => c.id === openId) ?? null;
 
   useEffect(() => {
-    const timer = window.setTimeout(
-      () => setDebouncedQuery(query.trim()),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [query]);
-
-  useEffect(() => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
-    fetchCustomers(token, debouncedQuery)
+    fetchCustomers(token)
       .then((fetched) => {
         if (!cancelled) {
           setError(null);
@@ -96,7 +162,7 @@ export function CustomersPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, me?.role, debouncedQuery, attempt]);
+  }, [token, me?.role, attempt]);
 
   function reload(): void {
     setAttempt((n) => n + 1);
@@ -108,16 +174,19 @@ export function CustomersPage() {
     reload();
   }
 
+  function open(id: number | null): void {
+    setSearchParams(id === null ? {} : { open: String(id) });
+  }
+
   async function handleSubmit(input: CustomerInput): Promise<void> {
-    if (!token || form.mode === "closed") {
-      return;
-    }
+    if (!token || form.mode === "closed") return;
     const action =
       form.mode === "create" ? "create this customer" : "save this customer";
     try {
       if (form.mode === "create") {
         const created = await createCustomer(token, input);
         toast.success(`${created.name} created`);
+        open(created.id);
       } else {
         const updated = await updateCustomer(token, form.customer.id, input);
         toast.success(`${updated.name} saved`);
@@ -133,15 +202,14 @@ export function CustomersPage() {
   }
 
   async function handleDelete(): Promise<void> {
-    if (!token || !pendingDelete) {
-      return;
-    }
+    if (!token || !pendingDelete) return;
     setDeleting(true);
     setDeleteError(null);
     try {
       await deleteCustomer(token, pendingDelete.id);
       toast.success(`${pendingDelete.name} deleted`);
       setPendingDelete(null);
+      open(null);
       reload();
     } catch (err) {
       setDeleteError(
@@ -157,8 +225,6 @@ export function CustomersPage() {
       setDeleting(false);
     }
   }
-
-  const isSearching = debouncedQuery !== "";
 
   return (
     <div>
@@ -179,21 +245,6 @@ export function CustomersPage() {
         )}
       </div>
 
-      <div className="relative mt-6 sm:max-w-xs">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          type="search"
-          aria-label="Search customers"
-          placeholder="Search by name"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="pl-9"
-        />
-      </div>
-
       {error ? (
         <ErrorState
           message={error.message}
@@ -210,13 +261,9 @@ export function CustomersPage() {
       ) : customers.length === 0 ? (
         <EmptyState
           className="mt-4"
-          message={
-            isSearching
-              ? `No customers match “${debouncedQuery}”.`
-              : "No customers yet."
-          }
+          message="No customers yet."
           action={
-            editable && !isSearching ? (
+            editable ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -228,69 +275,40 @@ export function CustomersPage() {
           }
         />
       ) : (
-        <div className="mt-4">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Customer</TableHead>
-                <TableHead className="hidden sm:table-cell">Industry</TableHead>
-                <TableHead className="w-28">Status</TableHead>
-                {editable && (
-                  <TableHead className="w-24">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell className="font-medium text-foreground">
-                    {customer.name}
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {customer.industry ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={customer.status} />
-                  </TableCell>
-                  {editable && (
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Edit ${customer.name}`}
-                          onClick={() => setForm({ mode: "edit", customer })}
-                        >
-                          <Pencil aria-hidden="true" className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Delete ${customer.name}`}
-                          onClick={() => {
-                            setDeleteError(null);
-                            setPendingDelete(customer);
-                          }}
-                        >
-                          <Trash2 aria-hidden="true" className="size-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="mt-6">
+          <DataTable
+            label="Customers"
+            noun="customers"
+            rows={customers}
+            columns={COLUMNS}
+            rowId={(c) => c.id}
+            rowLabel={(c) => c.name}
+            onOpen={(c) => open(c.id)}
+            selectedId={openId}
+            searchText={(c) => `${c.name} ${c.industry ?? ""}`}
+            searchPlaceholder="Search name or industry"
+            filters={FILTERS}
+            initialSort={{ key: "pipeline", direction: "desc" }}
+          />
         </div>
       )}
+
+      <CustomerPanel
+        customer={openCustomer}
+        editable={editable}
+        onClose={() => open(null)}
+        onEdit={(customer) => setForm({ mode: "edit", customer })}
+        onDelete={(customer) => {
+          setDeleteError(null);
+          setPendingDelete(customer);
+        }}
+      />
 
       {editable && (
         <CustomerFormDialog
           open={form.mode !== "closed"}
-          onOpenChange={(open) => {
-            if (!open) setForm({ mode: "closed" });
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setForm({ mode: "closed" });
           }}
           customer={form.mode === "edit" ? form.customer : undefined}
           onSubmit={handleSubmit}
@@ -299,8 +317,8 @@ export function CustomersPage() {
 
       <AlertDialog
         open={pendingDelete !== null}
-        onOpenChange={(open) => {
-          if (!open && !deleting) setPendingDelete(null);
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !deleting) setPendingDelete(null);
         }}
       >
         <AlertDialogContent>

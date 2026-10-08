@@ -45,6 +45,17 @@ export interface Customer {
   name: string;
   industry: string | null;
   status: string;
+  /** Summary fields the API adds to every customer response. */
+  opportunity_count?: number;
+  open_opportunities?: number;
+  open_pipeline_value?: string;
+}
+
+export interface LatestVersion {
+  id: number;
+  version_number: number;
+  status: string;
+  total_estimate: string;
 }
 
 export interface Opportunity {
@@ -55,6 +66,12 @@ export interface Opportunity {
   title: string;
   status: string;
   brief_json: Record<string, unknown> | null;
+  /** Summary fields the API adds to every opportunity response. */
+  created_at?: string | null;
+  owner_name?: string | null;
+  version_count?: number;
+  latest_version?: LatestVersion | null;
+  last_activity_at?: string | null;
 }
 
 export interface CatalogueItem {
@@ -266,8 +283,13 @@ export async function fetchAuditEvents(
 
 export async function fetchOpportunities(
   token: string,
+  customerId?: number,
 ): Promise<Opportunity[]> {
-  const res = await fetch(`${API_URL}/opportunities`, {
+  const url = new URL(`${API_URL}/opportunities`);
+  if (customerId !== undefined) {
+    url.searchParams.set("customer_id", String(customerId));
+  }
+  const res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
   await throwIfNotOk(res, "Failed to load opportunities");
