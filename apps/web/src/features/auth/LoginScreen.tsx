@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { SyntheticDataNotice } from "../../components/SyntheticDataNotice";
 import { useAuth } from "../../lib/auth-context";
 
 const DEMO_USERS = [
@@ -60,6 +61,8 @@ export function LoginScreen() {
             </button>
           ))}
         </div>
+
+        <SyntheticDataNotice className="mt-6 text-center text-xs text-muted-foreground" />
 
         {error && (
           <p className="mt-4 text-sm text-destructive-foreground" role="alert">

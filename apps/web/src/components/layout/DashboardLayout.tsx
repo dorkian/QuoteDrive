@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 
+import { SyntheticDataNotice } from "../SyntheticDataNotice";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
@@ -103,6 +104,9 @@ export function DashboardLayout({
           <main className="w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
             {children}
           </main>
+          <footer className="px-4 pb-4 sm:px-6 print:hidden">
+            <SyntheticDataNotice />
+          </footer>
         </div>
 
         <CommandMenu

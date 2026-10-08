@@ -137,6 +137,7 @@ describe("ProposalPreviewPage", () => {
     expect(
       screen.getByText(/Illustrative planning estimate only\./),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Synthetic demo data/)).toBeInTheDocument();
     expect(api.fetchCustomer).toHaveBeenCalledWith("stored-token", 7);
   });
 
