@@ -30,6 +30,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 - **Release documentation**: README, architecture and ER diagrams, reconciled API contract and data model, runbooks and an ADR index (QD-406).
 
 ### Fixed
+- Demo sign-in buttons were exposed to assistive technology as list items; they are now plain buttons (QD-419).
 - Correct AI narratives that stated the proposal total were rejected by the output guard, because the total was missing from the prompt data (QD-406).
 - CI resolved SQLAlchemy 2.1, whose typing broke mypy; SQLAlchemy is now pinned to `<2.1`.
 

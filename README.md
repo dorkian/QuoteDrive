@@ -157,7 +157,7 @@ Known gaps in v1.0.0. Each planned item that isn't built yet has a card; the ful
 - Members can change roles, but there are no invitations: new members come from the seed.
 - **The output guard is heuristic.** It understands simple negation ("no discount is offered" passes), but unusual phrasing can still be rejected or slip through; live evals score it against a 90% release threshold (QD-418).
 - **FakeProvider is the default**, so AI drafting shows an error until a provider is configured.
-- **Demo sign-in only.** No passwords or SSO. For local use only, and never to be exposed publicly. The sign-in buttons also have an accessibility defect (QD-419).
+- **Demo sign-in only.** No passwords or SSO. For local use only, and never to be exposed publicly.
 - **E2E runs manually in CI** until the end of the current sprint (QD-411).
 - **Dark theme only.**
 

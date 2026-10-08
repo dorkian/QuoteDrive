@@ -8,7 +8,7 @@ export const OTHER_TENANT_MANAGER = "manager@harbor.example";
 
 export async function loginViaUi(page: Page, email: string): Promise<void> {
   await page.goto("/");
-  await page.getByRole("listitem").filter({ hasText: email }).click();
+  await page.getByRole("button", { name: new RegExp(email) }).click();
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
 }
 
