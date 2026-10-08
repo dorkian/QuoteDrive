@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { fetchAuditEvents, type AuditEvent } from "../lib/api";
@@ -12,6 +12,22 @@ export interface ActivityTimelineProps {
   entityId?: number;
   emptyMessage?: string;
   limit?: number;
+  /**
+   * Keep the timeline inside a fixed-height panel that scrolls on its own
+   * (hidden scrollbar, soft fade at the edges) instead of growing the page
+   * when more events are loaded.
+   */
+  contained?: boolean;
+}
+
+const FADE = "1.5rem";
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
 function TimelineSkeleton() {
@@ -39,6 +55,7 @@ export function ActivityTimeline({
   entityId,
   emptyMessage = "No activity yet.",
   limit = 20,
+  contained = false,
 }: ActivityTimelineProps) {
   const { token, me } = useAuth();
   const [events, setEvents] = useState<AuditEvent[] | null>(null);
@@ -49,6 +66,11 @@ export function ActivityTimeline({
   const [loadError, setLoadError] = useState<ErrorDescription | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Contained mode: which edges still have content beyond them, and which
+  // freshly loaded event to scroll to once it has rendered.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ top: false, bottom: false });
+  const [revealId, setRevealId] = useState<number | null>(null);
 
   // Fetch one extra row so we can tell "exactly `limit` events, no more" apart
   // from "more than `limit` events exist" without a second round-trip — the
@@ -143,6 +165,7 @@ export function ActivityTimeline({
       const page = more ? nextEvents.slice(0, limit) : nextEvents;
       setEvents((prev) => [...(prev ?? []), ...page]);
       setHasMore(more);
+      if (contained && page.length > 0) setRevealId(page[0].id);
     } catch {
       if (requestIdRef.current === requestId) {
         setError("Couldn't load more activity.");
@@ -153,6 +176,41 @@ export function ActivityTimeline({
       }
     }
   };
+
+  function updateEdges(): void {
+    const el = panelRef.current;
+    if (!el) return;
+    const top = el.scrollTop > 1;
+    const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+    setEdges((prev) =>
+      prev.top === top && prev.bottom === bottom ? prev : { top, bottom },
+    );
+  }
+
+  // After "Load more": glide the panel to the first new event (never the page).
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (revealId === null || !panel) return;
+    const target = panel.querySelector<HTMLElement>(
+      `[data-event-id="${revealId}"]`,
+    );
+    if (target && typeof panel.scrollTo === "function") {
+      const offset =
+        target.getBoundingClientRect().top -
+        panel.getBoundingClientRect().top +
+        panel.scrollTop;
+      panel.scrollTo({
+        top: Math.max(offset - 8, 0),
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+    }
+    setRevealId(null);
+  }, [revealId]);
+
+  // Keep the fade edges in step with the content as it loads.
+  useLayoutEffect(() => {
+    if (contained) updateEdges();
+  }, [contained, events, hasMore, loadingMore]);
 
   if (loadError) {
     return (
@@ -172,7 +230,11 @@ export function ActivityTimeline({
     return <EmptyState className="" message={emptyMessage} />;
   }
 
-  return (
+  const fadeTop = edges.top ? "transparent 0" : "#000 0";
+  const fadeBottom = edges.bottom ? "transparent 100%" : "#000 100%";
+  const mask = `linear-gradient(to bottom, ${fadeTop}, #000 ${FADE}, #000 calc(100% - ${FADE}), ${fadeBottom})`;
+
+  const body = (
     <div className="space-y-4">
       {error && (
         <p className="text-sm text-destructive-foreground" role="alert">
@@ -183,7 +245,11 @@ export function ActivityTimeline({
         {events.map((event) => {
           const { actionDescription, entityReference } = describeEvent(event);
           return (
-            <li key={event.id} className="relative pl-6">
+            <li
+              key={event.id}
+              data-event-id={event.id}
+              className="relative pl-6"
+            >
               <span
                 className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-navy-400 ring-4 ring-card"
                 aria-hidden="true"
@@ -224,6 +290,24 @@ export function ActivityTimeline({
           </Button>
         </div>
       )}
+    </div>
+  );
+
+  if (!contained) return body;
+
+  // Hidden scrollbar: keyboard users still reach the panel (tabIndex), and the
+  // edge fades tell everyone there is more above or below.
+  return (
+    <div
+      ref={panelRef}
+      role="region"
+      aria-label="Activity list"
+      tabIndex={0}
+      onScroll={updateEdges}
+      className="max-h-[26rem] overflow-y-auto scroll-smooth py-1 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
+      style={{ maskImage: mask, WebkitMaskImage: mask }}
+    >
+      {body}
     </div>
   );
 }
