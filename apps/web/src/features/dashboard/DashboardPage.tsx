@@ -155,7 +155,10 @@ export function DashboardPage() {
               {error.message}
             </p>
           )}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div
+            data-tour="kpis"
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+          >
             <KpiTile
               label="Open pipeline"
               value={`${formatCompactMoney(Number(k.open_pipeline_value))}/mo`}

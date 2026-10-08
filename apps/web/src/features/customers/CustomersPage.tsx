@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { TipBanner } from "../onboarding/TipBanner";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -276,6 +277,10 @@ export function CustomersPage() {
         />
       ) : (
         <div className="mt-6">
+          <TipBanner id="customers-panel" className="mb-3">
+            Open a customer to see every opportunity with them and jump straight
+            to one.
+          </TipBanner>
           <DataTable
             label="Customers"
             noun="customers"

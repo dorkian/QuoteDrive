@@ -23,6 +23,14 @@ The first complete release: the full proposal journey, from discovery notes to a
 - **Share and outcome**: mark an approved version as shared, then record Won, Lost or Expired; Won and Lost close the opportunity, and the dashboard counts outcomes (QD-414).
 - **AI retry and fallback** (ADR-005): one retry on a transient provider failure, then an opt-in (Settings › AI) fallback to local Ollama. Drafts and `generation_logs` record the fallback reason; eval cases 8 and 9 run in CI (QD-417).
 - **AI eval scoring** (QD-418): live runs score every check, repeat each scenario 3 times, write a report to `docs/evaluations/reports/` and fail below a 90% pass percentage or on any safety failure. The output guard accepts negated discount wording such as "No discount is offered".
+- **UX overhaul** (design brief confirmed 2026-10-08):
+  - One status colour system with icons and labels for opportunities, proposal versions, approvals and customers, shared by tables, panels and charts.
+  - One `DataTable` for Opportunities, Customers and Approvals: sortable, searchable, filter chips with counts, a visible View button, and click-anywhere rows. Opportunities show stage, latest proposal, monthly estimate, owner and last activity; Customers show open pipeline; Approvals show how long a request has waited and flag overdue ones.
+  - Details open in a side panel instead of a new page (opportunities and customers), kept in the URL so Back closes it and a link reopens it. Opportunities get a "Next step" card that always says what to do next.
+  - Breadcrumbs show real names; the client preview has the full navigation bar (hidden when printing).
+  - AI discoverability: a five-step journey stepper in the proposal builder, "Draft with AI" wording, an explanation next to the AI buttons, and an AI-first empty discovery brief.
+  - First-visit guide: a skippable, role-aware product tour, dismissible tips on the main screens, and a Help menu to replay both. No new dependency.
+  - Additive API fields: owner, value and activity on opportunities, opportunity counts and pipeline on customers.
 - **Client-ready proposal preview** for approved versions, print-friendly (QD-401).
 - **Loading, empty, error and forbidden states** across the app (QD-402).
 - **UI foundation**: shadcn/ui components on Radix, a collapsible sidebar, breadcrumbs, a ⌘K command menu, confirmation dialogs and toasts (QD-409, ADR-008).

@@ -160,7 +160,7 @@ export function OpportunitiesTable({
   ];
 
   return (
-    <div className="mt-6">
+    <div data-tour="opportunities-table" className="mt-3">
       <DataTable
         label="Opportunities"
         noun="opportunities"

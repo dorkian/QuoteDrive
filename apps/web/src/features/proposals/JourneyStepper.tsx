@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { ProposalVersion } from "../../lib/api";
@@ -35,13 +35,18 @@ export function JourneyStepper({ version }: { version: ProposalVersion }) {
           const done = i < current;
           const active = i === current;
           const ai = "ai" in step && step.ai;
+          // Finalized without an AI draft: the step was passed over, not completed.
+          const skipped = ai && done && !version.narrative_json;
           const body = (
             <>
               <span
                 aria-hidden="true"
                 className={cn(
                   "grid size-6 shrink-0 place-items-center rounded-full border text-xs font-semibold",
-                  done && "border-teal-500/50 bg-teal-500/15 text-teal-300",
+                  done &&
+                    !skipped &&
+                    "border-teal-500/50 bg-teal-500/15 text-teal-300",
+                  skipped && "border-border text-muted-foreground",
                   active &&
                     (ai
                       ? "border-cyan-400 bg-cyan-400/15 text-cyan-200"
@@ -49,7 +54,13 @@ export function JourneyStepper({ version }: { version: ProposalVersion }) {
                   !done && !active && "border-border text-muted-foreground",
                 )}
               >
-                {done ? <Check className="size-3.5" /> : i + 1}
+                {skipped ? (
+                  <Minus className="size-3.5" />
+                ) : done ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  i + 1
+                )}
               </span>
               <span
                 className={cn(
@@ -60,6 +71,7 @@ export function JourneyStepper({ version }: { version: ProposalVersion }) {
                 )}
               >
                 {step.label}
+                {skipped && <span className="sr-only"> (skipped)</span>}
               </span>
             </>
           );

@@ -89,10 +89,10 @@ describe("AiNarrativeEditor", () => {
       />,
     );
 
-    const generateBtn = screen.getByText("Generate draft");
+    const generateBtn = screen.getByText("Draft with AI");
     fireEvent.click(generateBtn);
 
-    expect(generateBtn).toHaveTextContent("Generating…");
+    expect(generateBtn).toHaveTextContent("Drafting…");
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Gen Exec Summary")).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe("AiNarrativeEditor", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Generate draft"));
+    fireEvent.click(screen.getByText("Draft with AI"));
 
     expect(
       await screen.findByText("The AI provider took too long to respond."),
@@ -154,7 +154,7 @@ describe("AiNarrativeEditor", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Generate draft"));
+    fireEvent.click(screen.getByText("Draft with AI"));
     fireEvent.click(
       await screen.findByRole("button", { name: "Write it yourself" }),
     );
@@ -193,7 +193,7 @@ describe("AiNarrativeEditor", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Generate draft"));
+    fireEvent.click(screen.getByText("Draft with AI"));
 
     expect(
       await screen.findByText("Your role can't draft proposal narratives."),
@@ -284,7 +284,7 @@ describe("AiNarrativeEditor", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Generate draft"));
+    fireEvent.click(screen.getByText("Draft with AI"));
 
     expect(
       await screen.findByText(
@@ -325,6 +325,6 @@ describe("AiNarrativeEditor", () => {
     );
     expect(screen.getByDisplayValue("Saved Exec Summary")).toBeDisabled();
     expect(screen.queryByText("Save")).not.toBeInTheDocument();
-    expect(screen.queryByText("Generate draft")).not.toBeInTheDocument();
+    expect(screen.queryByText("Draft with AI")).not.toBeInTheDocument();
   });
 });

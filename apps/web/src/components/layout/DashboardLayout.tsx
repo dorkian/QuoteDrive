@@ -28,6 +28,7 @@ interface DashboardLayoutProps {
   organizationName: string;
   role: Role;
   onLogout: () => void;
+  helpMenu?: ReactNode;
   children: ReactNode;
 }
 
@@ -37,6 +38,7 @@ export function DashboardLayout({
   organizationName,
   role,
   onLogout,
+  helpMenu,
   children,
 }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(readCollapsed);
@@ -96,6 +98,7 @@ export function DashboardLayout({
             onOpenNav={() => setMobileNavOpen(true)}
             onToggleSidebar={toggleCollapsed}
             onOpenSearch={() => setSearchOpen(true)}
+            helpMenu={helpMenu}
           />
           <main className="w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
             {children}

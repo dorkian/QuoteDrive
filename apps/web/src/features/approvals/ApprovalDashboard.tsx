@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TipBanner } from "../onboarding/TipBanner";
 import { Hourglass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -195,7 +196,11 @@ export function ApprovalDashboard() {
           </div>
         </LoadingRegion>
       ) : (
-        <div className="mt-6">
+        <div data-tour="approvals-table" className="mt-6">
+          <TipBanner id="approvals-waiting" className="mb-3">
+            Waiting time turns orange after two days, so slow approvals are easy
+            to spot.
+          </TipBanner>
           <DataTable
             label="Pending approvals"
             noun="approvals"

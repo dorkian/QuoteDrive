@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { TipBanner } from "../onboarding/TipBanner";
 import { useCrumbLabel } from "../../components/layout/crumb-context";
 import { useOpportunityCrumb } from "../../components/layout/use-opportunity-crumb";
 import { useEffect, useRef, useState } from "react";
@@ -348,6 +349,13 @@ export function ProposalBuilder() {
       </div>
 
       <JourneyStepper version={version} />
+
+      {editable && (
+        <TipBanner id="builder-ai" ai className="mt-4">
+          AI can draft the narrative for you. Add your packages, then choose
+          Draft with AI. You always review and edit before saving.
+        </TipBanner>
+      )}
 
       {error && (
         <p className="mt-4 text-sm text-destructive-foreground" role="alert">

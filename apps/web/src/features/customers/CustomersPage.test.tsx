@@ -31,6 +31,9 @@ const lombarda: api.Customer = {
   name: "Lombarda Studio Group",
   industry: "Professional Services",
   status: "active",
+  opportunity_count: 3,
+  open_opportunities: 2,
+  open_pipeline_value: "7528.00",
 };
 
 const harbor: api.Customer = {
@@ -39,43 +42,124 @@ const harbor: api.Customer = {
   name: "Harbor Freight Co",
   industry: null,
   status: "active",
+  opportunity_count: 0,
+  open_opportunities: 0,
+  open_pipeline_value: "0",
 };
 
-function renderAuthenticated(me: api.Me = managerMe) {
+const deal: api.Opportunity = {
+  id: 7,
+  organization_id: 1,
+  customer_id: 10,
+  owner_id: 1,
+  title: "2026 Fleet Modernization",
+  status: "open",
+  brief_json: null,
+  last_activity_at: "2026-09-20T10:00:00Z",
+  latest_version: {
+    id: 3,
+    version_number: 1,
+    status: "awaiting_approval",
+    total_estimate: "7528.00",
+  },
+};
+
+function renderAuthenticated(me: api.Me = managerMe, path = "/customers") {
   localStorage.setItem("quotedrive.token", "stored-token");
   vi.mocked(api.fetchMe).mockResolvedValue(me);
   return render(
     <AuthProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <CustomersPage />
       </MemoryRouter>
     </AuthProvider>,
   );
 }
 
+/** Opens a customer's side panel from its row. */
+async function openPanel(name: string) {
+  fireEvent.click(await screen.findByRole("button", { name: `View ${name}` }));
+  return screen.findByRole("dialog", { name });
+}
+
 beforeEach(() => {
   localStorage.clear();
   vi.resetAllMocks();
+  vi.mocked(api.fetchOpportunities).mockResolvedValue([]);
 });
 
 describe("CustomersPage", () => {
-  it("lists customers with edit and delete actions for a manager", async () => {
+  it("lists customers with their pipeline for a manager", async () => {
     vi.mocked(api.fetchCustomers).mockResolvedValue([lombarda, harbor]);
 
     renderAuthenticated();
 
     expect(
-      await screen.findByRole("cell", { name: "Lombarda Studio Group" }),
+      await screen.findByText("Lombarda Studio Group"),
     ).toBeInTheDocument();
+    expect(screen.getByText("Professional Services")).toBeInTheDocument();
+    expect(screen.getByText("No industry set")).toBeInTheDocument();
+    expect(screen.getByText("$7,528/mo")).toBeInTheDocument();
+    expect(screen.getByText("(2 open)")).toBeInTheDocument();
     expect(
-      screen.getByRole("cell", { name: "Professional Services" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "—" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Edit Harbor Freight Co" }),
+      screen.getByRole("button", { name: "View Harbor Freight Co" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "New customer" }),
+    ).toBeInTheDocument();
+  });
+
+  it("searches name and industry, and filters by status, in the browser", async () => {
+    vi.mocked(api.fetchCustomers).mockResolvedValue([
+      lombarda,
+      { ...harbor, status: "inactive" },
+    ]);
+
+    renderAuthenticated();
+    await screen.findByText("Lombarda Studio Group");
+    expect(
+      screen.getByRole("button", { name: /^Inactive 1/ }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search customers" }),
+      { target: { value: "professional" } },
+    );
+    expect(screen.queryByText("Harbor Freight Co")).not.toBeInTheDocument();
+    expect(screen.getByText("Lombarda Studio Group")).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByRole("searchbox", { name: "Search customers" }),
+      { target: { value: "" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^Inactive/ }));
+    expect(screen.queryByText("Lombarda Studio Group")).not.toBeInTheDocument();
+    expect(screen.getByText("Harbor Freight Co")).toBeInTheDocument();
+    expect(api.fetchCustomers).toHaveBeenCalledTimes(1); // no server round-trip per keystroke
+  });
+
+  it("opens a customer panel with their opportunities and links into the opportunity panel", async () => {
+    vi.mocked(api.fetchCustomers).mockResolvedValue([lombarda]);
+    vi.mocked(api.fetchOpportunities).mockResolvedValue([deal]);
+
+    renderAuthenticated();
+
+    const panel = await openPanel("Lombarda Studio Group");
+    expect(api.fetchOpportunities).toHaveBeenCalledWith("stored-token", 10);
+    expect(within(panel).getByText("$7,528/mo")).toBeInTheDocument();
+    const link = await within(panel).findByRole("link", {
+      name: /2026 Fleet Modernization/,
+    });
+    expect(link).toHaveAttribute("href", "/opportunities?open=7");
+  });
+
+  it("reopens the panel from a shared link", async () => {
+    vi.mocked(api.fetchCustomers).mockResolvedValue([lombarda]);
+
+    renderAuthenticated(managerMe, "/customers?open=10");
+
+    expect(
+      await screen.findByRole("dialog", { name: "Lombarda Studio Group" }),
     ).toBeInTheDocument();
   });
 
@@ -84,38 +168,12 @@ describe("CustomersPage", () => {
 
     renderAuthenticated({ ...managerMe, role: "viewer" });
 
-    expect(
-      await screen.findByRole("cell", { name: "Lombarda Studio Group" }),
-    ).toBeInTheDocument();
+    const panel = await openPanel("Lombarda Studio Group");
     expect(
       screen.queryByRole("button", { name: "New customer" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Edit|Delete/ }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("searches on the server after the user stops typing", async () => {
-    vi.mocked(api.fetchCustomers).mockImplementation(async (_token, query) =>
-      query ? [] : [lombarda],
-    );
-
-    renderAuthenticated();
-    await screen.findByRole("cell", { name: "Lombarda Studio Group" });
-
-    fireEvent.change(
-      screen.getByRole("searchbox", { name: "Search customers" }),
-      {
-        target: { value: " zzz " },
-      },
-    );
-
-    expect(
-      await screen.findByText("No customers match “zzz”."),
-    ).toBeInTheDocument();
-    expect(api.fetchCustomers).toHaveBeenLastCalledWith("stored-token", "zzz");
-    expect(
-      screen.queryByRole("button", { name: "Add your first customer" }),
+      within(panel).queryByRole("button", { name: /Edit customer|Delete/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -132,7 +190,7 @@ describe("CustomersPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("creates a customer and refreshes the list", async () => {
+  it("creates a customer and opens it in the panel", async () => {
     vi.mocked(api.fetchCustomers)
       .mockResolvedValueOnce([lombarda])
       .mockResolvedValue([lombarda, harbor]);
@@ -160,16 +218,18 @@ describe("CustomersPage", () => {
     );
 
     expect(
-      await screen.findByRole("cell", { name: "Harbor Freight Co" }),
+      await screen.findByRole("dialog", { name: "Harbor Freight Co" }),
     ).toBeInTheDocument();
     expect(api.createCustomer).toHaveBeenCalledWith("stored-token", {
       name: "Harbor Freight Co",
       industry: null,
     });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "New customer" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("edits a customer starting from its current values", async () => {
+  it("edits a customer from the panel, starting from its current values", async () => {
     vi.mocked(api.fetchCustomers).mockResolvedValue([lombarda]);
     vi.mocked(api.updateCustomer).mockResolvedValue({
       ...lombarda,
@@ -178,8 +238,9 @@ describe("CustomersPage", () => {
 
     renderAuthenticated();
 
+    const panel = await openPanel("Lombarda Studio Group");
     fireEvent.click(
-      await screen.findByRole("button", { name: "Edit Lombarda Studio Group" }),
+      within(panel).getByRole("button", { name: "Edit customer" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Edit customer" });
     expect(within(dialog).getByLabelText("Customer name")).toHaveValue(
@@ -199,7 +260,9 @@ describe("CustomersPage", () => {
       }),
     );
     await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("dialog", { name: "Edit customer" }),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -211,8 +274,9 @@ describe("CustomersPage", () => {
 
     renderAuthenticated();
 
+    const panel = await openPanel("Lombarda Studio Group");
     fireEvent.click(
-      await screen.findByRole("button", { name: "Edit Lombarda Studio Group" }),
+      within(panel).getByRole("button", { name: "Edit customer" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Edit customer" });
     fireEvent.click(
@@ -226,7 +290,7 @@ describe("CustomersPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("deletes a customer after confirmation", async () => {
+  it("deletes a customer from the panel after confirmation", async () => {
     vi.mocked(api.fetchCustomers)
       .mockResolvedValueOnce([lombarda, harbor])
       .mockResolvedValue([lombarda]);
@@ -234,9 +298,8 @@ describe("CustomersPage", () => {
 
     renderAuthenticated();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Delete Harbor Freight Co" }),
-    );
+    const panel = await openPanel("Harbor Freight Co");
+    fireEvent.click(within(panel).getByRole("button", { name: "Delete" }));
     const dialog = screen.getByRole("alertdialog", {
       name: "Delete Harbor Freight Co?",
     });
@@ -245,9 +308,7 @@ describe("CustomersPage", () => {
     );
 
     await waitFor(() =>
-      expect(
-        screen.queryByRole("cell", { name: "Harbor Freight Co" }),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByText("Harbor Freight Co")).not.toBeInTheDocument(),
     );
     expect(api.deleteCustomer).toHaveBeenCalledWith("stored-token", 11);
   });
@@ -264,11 +325,8 @@ describe("CustomersPage", () => {
 
     renderAuthenticated();
 
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Delete Lombarda Studio Group",
-      }),
-    );
+    const panel = await openPanel("Lombarda Studio Group");
+    fireEvent.click(within(panel).getByRole("button", { name: "Delete" }));
     const dialog = screen.getByRole("alertdialog");
     fireEvent.click(
       within(dialog).getByRole("button", { name: "Delete customer" }),
@@ -300,7 +358,7 @@ describe("CustomersPage", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(
-      await screen.findByRole("cell", { name: "Lombarda Studio Group" }),
+      await screen.findByText("Lombarda Studio Group"),
     ).toBeInTheDocument();
   });
 });

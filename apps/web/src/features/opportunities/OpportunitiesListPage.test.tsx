@@ -33,12 +33,40 @@ const customer: api.Customer = {
   status: "active",
 };
 
-function renderAuthenticated(me: api.Me = mockMe) {
+const listRow: api.Opportunity = {
+  id: 1,
+  organization_id: 1,
+  customer_id: 10,
+  owner_id: 1,
+  title: "2026 Fleet Modernization",
+  status: "open",
+  brief_json: null,
+  owner_name: "Manager",
+  version_count: 0,
+  latest_version: null,
+  last_activity_at: "2026-09-20T10:00:00Z",
+};
+
+/** What the panel loads when it opens a record. */
+function mockRecord(
+  opportunity: api.Opportunity,
+  versions: api.ProposalVersion[] = [],
+) {
+  vi.mocked(api.fetchOpportunity).mockResolvedValue(opportunity);
+  vi.mocked(api.fetchProposalVersions).mockResolvedValue(versions);
+  vi.mocked(api.fetchCustomer).mockResolvedValue(customer);
+  vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
+}
+
+function renderAuthenticated(
+  initialPath = "/opportunities",
+  me: api.Me = mockMe,
+) {
   localStorage.setItem("quotedrive.token", "stored-token");
   vi.mocked(api.fetchMe).mockResolvedValue(me);
   return render(
     <AuthProvider>
-      <MemoryRouter initialEntries={["/opportunities"]}>
+      <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/opportunities" element={<OpportunitiesListPage />} />
           <Route
@@ -87,8 +115,67 @@ describe("OpportunitiesListPage", () => {
         screen.getByText("2026 Fleet Modernization & Mobility Services"),
       ).toBeInTheDocument(),
     );
+    expect(screen.getByText("Lombarda Studio Group")).toBeInTheDocument();
+  });
+
+  it("opens an opportunity in a side panel from its row, keeping the list", async () => {
+    vi.mocked(api.fetchOpportunities).mockResolvedValue([listRow]);
+    vi.mocked(api.fetchCustomers).mockResolvedValue([customer]);
+    mockRecord(listRow);
+
+    renderAuthenticated();
+
+    fireEvent.click(await screen.findByText("2026 Fleet Modernization"));
+
+    const panel = await screen.findByRole("dialog", {
+      name: "2026 Fleet Modernization",
+    });
     expect(
-      screen.getByRole("cell", { name: "Lombarda Studio Group" }),
+      within(panel).getByRole("region", { name: "Next step" }),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).getByRole("link", { name: /Open full page/ }),
+    ).toHaveAttribute("href", "/opportunities/1");
+    // The list is still there behind the panel.
+    expect(
+      screen.getByRole("table", { name: "Opportunities", hidden: true }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(panel).getByRole("button", { name: "Close panel" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "2026 Fleet Modernization" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("reopens the panel from a shared link", async () => {
+    vi.mocked(api.fetchOpportunities).mockResolvedValue([listRow]);
+    vi.mocked(api.fetchCustomers).mockResolvedValue([customer]);
+    mockRecord(listRow);
+
+    renderAuthenticated("/opportunities?open=1");
+
+    expect(
+      await screen.findByRole("dialog", { name: "2026 Fleet Modernization" }),
+    ).toBeInTheDocument();
+  });
+
+  it("tells a manager to draft the brief with AI when an opportunity has no proposal yet", async () => {
+    vi.mocked(api.fetchOpportunities).mockResolvedValue([listRow]);
+    vi.mocked(api.fetchCustomers).mockResolvedValue([customer]);
+    mockRecord(listRow);
+
+    renderAuthenticated("/opportunities?open=1");
+
+    const panel = await screen.findByRole("dialog", {
+      name: "2026 Fleet Modernization",
+    });
+    expect(
+      await within(panel).findByText("Start with a discovery brief"),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).getByRole("button", { name: "Draft with AI" }),
     ).toBeInTheDocument();
   });
 
@@ -114,7 +201,7 @@ describe("OpportunitiesListPage", () => {
     vi.mocked(api.fetchOpportunities).mockResolvedValue([]);
     vi.mocked(api.fetchCustomers).mockResolvedValue([customer]);
 
-    renderAuthenticated({ ...mockMe, role: "viewer" });
+    renderAuthenticated("/opportunities", { ...mockMe, role: "viewer" });
 
     expect(
       await screen.findByText("No opportunities yet."),
@@ -127,7 +214,7 @@ describe("OpportunitiesListPage", () => {
   it("creates an opportunity for a customer and opens it", async () => {
     vi.mocked(api.fetchOpportunities).mockResolvedValue([]);
     vi.mocked(api.fetchCustomers).mockResolvedValue([customer]);
-    vi.mocked(api.createOpportunity).mockResolvedValue({
+    const created: api.Opportunity = {
       id: 42,
       organization_id: 1,
       customer_id: 10,
@@ -135,7 +222,9 @@ describe("OpportunitiesListPage", () => {
       title: "2027 Fleet Renewal",
       status: "open",
       brief_json: null,
-    });
+    };
+    vi.mocked(api.createOpportunity).mockResolvedValue(created);
+    mockRecord(created);
 
     renderAuthenticated();
 
@@ -165,8 +254,9 @@ describe("OpportunitiesListPage", () => {
       within(dialog).getByRole("button", { name: "Create opportunity" }),
     );
 
+    // The new opportunity opens in the side panel; no page change.
     expect(
-      await screen.findByText("Opportunity detail route"),
+      await screen.findByRole("dialog", { name: "2027 Fleet Renewal" }),
     ).toBeInTheDocument();
     expect(api.createOpportunity).toHaveBeenCalledWith("stored-token", {
       customer_id: 10,

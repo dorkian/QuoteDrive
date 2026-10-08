@@ -17,7 +17,7 @@ export function useOpportunityCrumb(
     if (!token || !opportunityId) return;
     let cancelled = false;
     // The title is decoration: on failure the generic "Opportunity" label stays.
-    fetchOpportunity(token, opportunityId)
+    Promise.resolve(fetchOpportunity(token, opportunityId))
       .then((o) => !cancelled && setNamed({ id: o.id, title: o.title }))
       .catch(() => {});
     return () => {

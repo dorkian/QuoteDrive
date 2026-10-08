@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { TipBanner } from "../onboarding/TipBanner";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -167,12 +168,18 @@ export function OpportunitiesListPage() {
           }
         />
       ) : (
-        <OpportunitiesTable
-          opportunities={opportunities}
-          customers={customers}
-          selectedId={openId}
-          onOpen={(opportunity) => openOpportunity(opportunity.id)}
-        />
+        <>
+          <TipBanner id="opportunities-row" className="mt-6">
+            Click any row, or its View button, to open the opportunity in a side
+            panel. You keep your place in the list.
+          </TipBanner>
+          <OpportunitiesTable
+            opportunities={opportunities}
+            customers={customers}
+            selectedId={openId}
+            onOpen={(opportunity) => openOpportunity(opportunity.id)}
+          />
+        </>
       )}
 
       <OpportunityPanel

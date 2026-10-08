@@ -4,16 +4,19 @@ import { cn } from "@/lib/utils";
 import { formatStatus } from "@/lib/format";
 import type { StageStat } from "../../../lib/api";
 import { ChartCard, DataTable } from "./ChartCard";
-import { INK, SERIES, STATUS } from "./chart-theme";
+import { statusMeta } from "@/lib/status-meta";
+import { INK } from "./chart-theme";
 import { useElementSize } from "./use-element-size";
 
-// Outcomes are statuses: fixed status colours, always with an icon and a label.
-const OUTCOMES = [
-  { status: "won", color: STATUS.good, icon: "✓" },
-  { status: "lost", color: STATUS.critical, icon: "✕" },
-  { status: "expired", color: STATUS.warning, icon: "◷" },
-  { status: "shared", color: SERIES.blue, icon: "↗" },
-] as const;
+// Outcomes are statuses, so they use the app-wide status colours (lib/status-meta)
+// and the same icons as the status pills. Always an icon and a label, never colour alone.
+const OUTCOMES = (["won", "lost", "expired", "shared"] as const).map(
+  (status) => ({
+    status,
+    color: statusMeta(status).color,
+    icon: { won: "✓", lost: "✕", expired: "◷", shared: "↗" }[status],
+  }),
+);
 
 const GAP = 3;
 
