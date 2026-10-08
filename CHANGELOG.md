@@ -2,9 +2,9 @@
 
 All notable changes to QuoteDrive. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-10-08
 
-The first complete release: the full proposal journey, from discovery notes to an approved, client-ready preview. The date is set at sign-off (QD-408).
+The first complete release: the full proposal journey, from discovery notes to an approved, client-ready preview.
 
 ### Added
 - **Tenancy and access**: demo sign-in with four roles (Admin, Proposal Manager, Approver, Viewer). Every query is scoped to the caller's organization, and cross-tenant access returns 404 (QD-101, QD-102, QD-105).
@@ -31,6 +31,7 @@ The first complete release: the full proposal journey, from discovery notes to a
   - AI discoverability: a five-step journey stepper in the proposal builder, "Draft with AI" wording, an explanation next to the AI buttons, and an AI-first empty discovery brief.
   - First-visit guide: a skippable, role-aware product tour, dismissible tips on the main screens, and a Help menu to replay both. No new dependency.
   - Additive API fields: owner, value and activity on opportunities, opportunity counts and pipeline on customers.
+  - **Finishing touches**: thin dark scrollbars across the app, a customer modal that is wide enough for its numbers and scrolls only its opportunity list, a macOS-style open and close animation for modals (reduced motion respected), and drawn logo marks for the 16 fictional demo customers (`apps/web/scripts/make_logos.py`).
   - **Customer profiles**: a generated logo mark (no uploads, no real brands), website, headquarters, company size, about, industry tags and a primary contact. The customer modal is now a profile page: header with tags, an About and links sidebar, a contact card with Email and Copy, four stat cards, and Opportunities and Activity tabs. The table shows location and size and searches the whole profile. Migration `c9d4e7a1f2b8` adds nine nullable columns. The profile (never the contact's email) also feeds the discovery-brief and narrative prompts, so drafts use the customer's industry, size and contact name; the output guard still rejects invented figures. `seed_demo_history` fills fictional profiles for all 16 demo customers and is safe to re-run.
 - **Synthetic-data notice** in the app footer, on the sign-in screen and on the client preview.
 - **Client-ready proposal preview** for approved versions, print-friendly (QD-401).
