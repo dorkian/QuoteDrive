@@ -138,19 +138,61 @@ describe("CustomersPage", () => {
     expect(api.fetchCustomers).toHaveBeenCalledTimes(1); // no server round-trip per keystroke
   });
 
-  it("opens a customer panel with their opportunities and links into the opportunity panel", async () => {
+  it("opens a customer modal with their opportunities", async () => {
     vi.mocked(api.fetchCustomers).mockResolvedValue([lombarda]);
     vi.mocked(api.fetchOpportunities).mockResolvedValue([deal]);
 
     renderAuthenticated();
 
-    const panel = await openPanel("Lombarda Studio Group");
+    const modal = await openPanel("Lombarda Studio Group");
     expect(api.fetchOpportunities).toHaveBeenCalledWith("stored-token", 10);
-    expect(within(panel).getByText("$7,528/mo")).toBeInTheDocument();
-    const link = await within(panel).findByRole("link", {
-      name: /2026 Fleet Modernization/,
+    expect(within(modal).getByText("$7,528/mo")).toBeInTheDocument();
+    expect(
+      await within(modal).findByRole("button", {
+        name: /2026 Fleet Modernization/,
+      }),
+    ).toBeInTheDocument();
+    // A centred modal, not the side panel used for opportunities.
+    expect(modal).toHaveAttribute("data-slot", "customer-modal");
+  });
+
+  it("opens an opportunity on top of the customer without leaving the page", async () => {
+    vi.mocked(api.fetchCustomers).mockResolvedValue([lombarda]);
+    vi.mocked(api.fetchOpportunities).mockResolvedValue([deal]);
+    vi.mocked(api.fetchOpportunity).mockResolvedValue(deal);
+    vi.mocked(api.fetchProposalVersions).mockResolvedValue([]);
+    vi.mocked(api.fetchCustomer).mockResolvedValue(lombarda);
+    vi.mocked(api.fetchAuditEvents).mockResolvedValue([]);
+
+    renderAuthenticated();
+
+    const modal = await openPanel("Lombarda Studio Group");
+    fireEvent.click(
+      await within(modal).findByRole("button", {
+        name: /2026 Fleet Modernization/,
+      }),
+    );
+
+    const panel = await screen.findByRole("dialog", {
+      name: "2026 Fleet Modernization",
     });
-    expect(link).toHaveAttribute("href", "/opportunities?open=7");
+    expect(panel).toHaveAttribute("data-slot", "entity-panel");
+    // Still the Customers page, and the customer is still open underneath.
+    expect(
+      screen.getByRole("heading", { name: "Customers", hidden: true }),
+    ).toBeInTheDocument();
+    const modalNow = document.querySelector('[data-slot="customer-modal"]');
+    expect(modalNow).toBeInTheDocument();
+
+    fireEvent.click(within(panel).getByRole("button", { name: "Close panel" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "2026 Fleet Modernization" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      await screen.findByRole("dialog", { name: "Lombarda Studio Group" }),
+    ).toBeInTheDocument();
   });
 
   it("reopens the panel from a shared link", async () => {

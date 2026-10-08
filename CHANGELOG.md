@@ -26,7 +26,7 @@ The first complete release: the full proposal journey, from discovery notes to a
 - **UX overhaul** (design brief confirmed 2026-10-08):
   - One status colour system with icons and labels for opportunities, proposal versions, approvals and customers, shared by tables, panels and charts.
   - One `DataTable` for Opportunities, Customers and Approvals: sortable, searchable, filter chips with counts, a visible View button, and click-anywhere rows. Opportunities show stage, latest proposal, monthly estimate, owner and last activity; Customers show open pipeline; Approvals show how long a request has waited and flag overdue ones.
-  - Details open in a side panel instead of a new page (opportunities and customers), kept in the URL so Back closes it and a link reopens it. Opportunities get a "Next step" card that always says what to do next.
+  - Details open without leaving the list, and stay in the URL so Back closes them and a link reopens them. Opportunities open in a side panel with a "Next step" card that always says what to do next; customers open in a centred modal. Opening an opportunity from a customer stacks its panel on top of the modal, on the same page, and Esc peels one layer at a time.
   - Breadcrumbs show real names; the client preview has the full navigation bar (hidden when printing).
   - AI discoverability: a five-step journey stepper in the proposal builder, "Draft with AI" wording, an explanation next to the AI buttons, and an AI-first empty discovery brief.
   - First-visit guide: a skippable, role-aware product tour, dismissible tips on the main screens, and a Help menu to replay both. No new dependency.

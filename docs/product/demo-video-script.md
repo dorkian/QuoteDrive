@@ -24,7 +24,7 @@ Target length 4:50 (hard limit 5:00). One take per segment, cut together. No voi
 | 7 | 2:30–3:00 | **Draft with AI** for the narrative, fix one sentence, **Save**. **Finalize**, then **Submit for approval**, pick the approver | "The draft passes a schema and an output guard before a person sees it. Submitting assigns one approver." |
 | 8 | 3:00–3:30 | Sign in as **Approver**. Approvals table (Waiting column), open the request, version comparison, **Approve** | "The approver sees what changed, then approves or requests changes." |
 | 9 | 3:30–4:00 | Back as **Proposal Manager**: breadcrumb shows the real names, open **Client preview** (note the full menu bar), then **Mark as shared** | "An approved version becomes a client-ready preview. QuoteDrive sends nothing; it records what happened." |
-| 10 | 4:00–4:30 | **Customers**: open a customer panel, jump from it into an opportunity. Sign in as **Viewer** for three seconds (no edit buttons), then **Admin** opens Settings › Members | "Customers, people and permissions: viewers read, admins manage." |
+| 10 | 4:00–4:30 | **Customers**: open a customer modal, click one of its opportunities (the side panel opens on top, same page), press Esc twice. Sign in as **Viewer** for three seconds (no edit buttons), then **Admin** opens Settings › Members | "Customers, people and permissions: viewers read, admins manage." |
 | 11 | 4:30–4:50 | Repo README or the docs map | "React, FastAPI and Postgres. 8 ADRs, tenant-isolation tests, scored AI evals. Code and case study linked below." |
 
 ## Must show on screen (card acceptance)

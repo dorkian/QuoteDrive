@@ -35,6 +35,7 @@ import {
   updateCustomer,
   type Customer,
   type CustomerInput,
+  type Opportunity,
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import {
@@ -45,7 +46,8 @@ import {
 import { canEditProposals } from "../../lib/roles";
 import { formatMoney } from "../dashboard/charts/chart-theme";
 import { CustomerFormDialog } from "./CustomerFormDialog";
-import { CustomerPanel } from "./CustomerPanel";
+import { CustomerModal } from "./CustomerModal";
+import { OpportunityPanel } from "../opportunities/OpportunityPanel";
 
 type FormState =
   | { mode: "closed" }
@@ -142,6 +144,11 @@ export function CustomersPage() {
   const openId =
     Number.isInteger(openParam) && openParam > 0 ? openParam : null;
   const openCustomer = customers?.find((c) => c.id === openId) ?? null;
+  // An opportunity opened from inside a customer sits on top of it, on this page.
+  const oppParam = Number(searchParams.get("opportunity"));
+  const openOpportunityId =
+    Number.isInteger(oppParam) && oppParam > 0 ? oppParam : null;
+  const [oppSeed, setOppSeed] = useState<Opportunity | undefined>(undefined);
 
   useEffect(() => {
     if (!token) return;
@@ -177,6 +184,15 @@ export function CustomersPage() {
 
   function open(id: number | null): void {
     setSearchParams(id === null ? {} : { open: String(id) });
+  }
+
+  function openOpportunity(opportunity: Opportunity | null): void {
+    setOppSeed(opportunity ?? undefined);
+    const base: Record<string, string> =
+      openId === null ? {} : { open: String(openId) };
+    setSearchParams(
+      opportunity ? { ...base, opportunity: String(opportunity.id) } : base,
+    );
   }
 
   async function handleSubmit(input: CustomerInput): Promise<void> {
@@ -298,16 +314,24 @@ export function CustomersPage() {
         </div>
       )}
 
-      <CustomerPanel
+      <CustomerModal
         customer={openCustomer}
         editable={editable}
         onClose={() => open(null)}
+        onOpenOpportunity={openOpportunity}
         onEdit={(customer) => setForm({ mode: "edit", customer })}
         onDelete={(customer) => {
           setDeleteError(null);
           setPendingDelete(customer);
         }}
-      />
+      >
+        <OpportunityPanel
+          opportunityId={openOpportunityId}
+          seed={oppSeed}
+          onClose={() => openOpportunity(null)}
+          onChanged={reload}
+        />
+      </CustomerModal>
 
       {editable && (
         <CustomerFormDialog
