@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,6 +16,37 @@ router = APIRouter(prefix="/customers", tags=["customers"])
 
 _can_edit = require_role(Role.ADMIN, Role.PROPOSAL_MANAGER)
 
+_PROFILE_FIELDS = (
+    "website",
+    "hq_city",
+    "hq_country",
+    "company_size",
+    "about",
+    "industry_tags",
+    "contact_name",
+    "contact_title",
+    "contact_email",
+)
+
+
+def _profile_values(
+    body: CustomerCreate | CustomerUpdate, only_set: bool = False
+) -> dict[str, Any]:
+    """Profile columns from a request; with `only_set`, just the ones the client sent."""
+    names = body.model_fields_set if only_set else set(_PROFILE_FIELDS)
+    return {f: getattr(body, f) for f in _PROFILE_FIELDS if f in names}
+
+
+def _snapshot(customer: Customer) -> dict[str, Any]:
+    """What an audit event records about a customer. Unset profile fields are left out,
+    so a field that was added or cleared shows up as a difference."""
+    return {
+        "name": customer.name,
+        "industry": customer.industry,
+        "status": customer.status,
+        **{f: getattr(customer, f) for f in _PROFILE_FIELDS if getattr(customer, f) is not None},
+    }
+
 
 @router.post("", response_model=CustomerOut, status_code=201)
 def create_customer(
@@ -25,6 +58,7 @@ def create_customer(
         organization_id=current.organization.id,
         name=body.name,
         industry=body.industry,
+        **_profile_values(body),
     )
     db.add(customer)
     db.flush()
@@ -36,11 +70,7 @@ def create_customer(
         entity_type="customer",
         entity_id=customer.id,
         action="create",
-        after={
-            "name": customer.name,
-            "industry": customer.industry,
-            "status": customer.status,
-        },
+        after=_snapshot(customer),
     )
     db.commit()
     db.refresh(customer)
@@ -81,17 +111,16 @@ def update_customer(
     db: Session = Depends(get_db),
 ) -> CustomerOut:
     customer = get_tenant_scoped_or_404(db, Customer, customer_id, current.organization.id)
-    before = {
-        "name": customer.name,
-        "industry": customer.industry,
-        "status": customer.status,
-    }
+    before = _snapshot(customer)
     if body.name is not None:
         customer.name = body.name
     if body.industry is not None:
         customer.industry = body.industry
     if body.status is not None:
         customer.status = body.status
+    # Profile fields: anything the client sent changes, and null clears it.
+    for field, value in _profile_values(body, only_set=True).items():
+        setattr(customer, field, value)
     record_audit_event(
         db,
         organization_id=current.organization.id,
@@ -101,11 +130,7 @@ def update_customer(
         entity_id=customer.id,
         action="update",
         before=before,
-        after={
-            "name": customer.name,
-            "industry": customer.industry,
-            "status": customer.status,
-        },
+        after=_snapshot(customer),
     )
     db.commit()
     db.refresh(customer)
