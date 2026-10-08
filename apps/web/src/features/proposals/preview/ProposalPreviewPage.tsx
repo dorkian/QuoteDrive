@@ -15,6 +15,7 @@ import { useAuth } from "../../../lib/auth-context";
 import { describeError } from "../../../lib/errors";
 import { PreviewNav } from "./PreviewNav";
 import { LoginScreen } from "../../auth/LoginScreen";
+import { SyntheticDataNotice } from "../../../components/SyntheticDataNotice";
 
 const PRINT_PAGE_CSS = "@page { size: A4; margin: 18mm 16mm; }";
 
@@ -399,6 +400,9 @@ function PackageTable({
         Illustrative planning estimate only. Figures are indicative and are not
         a binding quote or commercial offer.
       </p>
+      <SyntheticDataNotice
+        className={`mt-1 text-right text-xs print:break-before-avoid ${MUTED}`}
+      />
     </div>
   );
 }

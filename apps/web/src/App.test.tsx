@@ -20,6 +20,7 @@ describe("App", () => {
         screen.getByText("Sign in as a demo user to continue"),
       ).toBeInTheDocument(),
     );
+    expect(screen.getByText(/Synthetic demo data/)).toBeInTheDocument();
   });
 
   it("exposes each demo user as a button, not a list item (QD-419)", async () => {

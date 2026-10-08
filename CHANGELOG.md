@@ -32,6 +32,7 @@ The first complete release: the full proposal journey, from discovery notes to a
   - First-visit guide: a skippable, role-aware product tour, dismissible tips on the main screens, and a Help menu to replay both. No new dependency.
   - Additive API fields: owner, value and activity on opportunities, opportunity counts and pipeline on customers.
   - **Customer profiles**: a generated logo mark (no uploads, no real brands), website, headquarters, company size, about, industry tags and a primary contact. The customer modal is now a profile page: header with tags, an About and links sidebar, a contact card with Email and Copy, four stat cards, and Opportunities and Activity tabs. The table shows location and size and searches the whole profile. Migration `c9d4e7a1f2b8` adds nine nullable columns. The profile (never the contact's email) also feeds the discovery-brief and narrative prompts, so drafts use the customer's industry, size and contact name; the output guard still rejects invented figures. `seed_demo_history` fills fictional profiles for all 16 demo customers and is safe to re-run.
+- **Synthetic-data notice** in the app footer, on the sign-in screen and on the client preview.
 - **Client-ready proposal preview** for approved versions, print-friendly (QD-401).
 - **Loading, empty, error and forbidden states** across the app (QD-402).
 - **UI foundation**: shadcn/ui components on Radix, a collapsible sidebar, breadcrumbs, a ⌘K command menu, confirmation dialogs and toasts (QD-409, ADR-008).
