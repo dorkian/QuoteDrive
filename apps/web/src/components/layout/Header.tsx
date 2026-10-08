@@ -54,11 +54,11 @@ export function Header({
           variant="outline"
           onClick={onOpenSearch}
           aria-label="Search pages"
-          className="px-3 text-muted-foreground"
+          className="shrink-0 px-3 text-muted-foreground lg:w-56 lg:justify-start xl:w-72 2xl:w-96"
         >
           <Search />
           <span className="hidden lg:inline">Go to…</span>
-          <kbd className="hidden rounded border border-border px-1 font-sans text-[10px] lg:inline">
+          <kbd className="ml-auto hidden rounded border border-border px-1 font-sans text-[10px] lg:inline">
             ⌘K
           </kbd>
         </Button>
