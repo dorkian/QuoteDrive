@@ -13,15 +13,19 @@ import { CompanyLogo } from "./CompanyLogo";
 import { TagInput } from "./TagInput";
 
 describe("CompanyLogo", () => {
+  it("uses the drawn mark for a known demo customer", () => {
+    const { container } = render(<CompanyLogo name="Quarry & Co" />);
+    const img = container.querySelector("img[data-logo=drawn]")!;
+    expect(img.getAttribute("src")).toContain("logos/quarry-co.svg");
+  });
+
   it("shows initials and keeps the same look for the same company", () => {
-    const first = render(<CompanyLogo name="Orchard Retail Collective" />);
+    const first = render(<CompanyLogo name="Orchard Retail Group" />);
     expect(first.container).toHaveTextContent("OR");
     const look = first.container
       .querySelector("[data-logo]")!
       .getAttribute("style");
-    const again = render(
-      <CompanyLogo name="orchard retail collective" size="xl" />,
-    );
+    const again = render(<CompanyLogo name="orchard retail group" size="xl" />);
     expect(
       again.container.querySelector("[data-logo]")!.getAttribute("style"),
     ).toBe(look);

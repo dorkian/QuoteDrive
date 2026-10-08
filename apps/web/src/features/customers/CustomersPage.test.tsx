@@ -159,7 +159,7 @@ describe("CustomersPage", () => {
 
     const modal = await openPanel("Lombarda Studio Group");
     expect(api.fetchOpportunities).toHaveBeenCalledWith("stored-token", 10);
-    expect(within(modal).getByText("$7,528/mo")).toBeInTheDocument();
+    expect(within(modal).getByText("$7,528")).toBeInTheDocument();
     expect(
       await within(modal).findByRole("button", {
         name: /2026 Fleet Modernization/,

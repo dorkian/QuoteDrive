@@ -58,7 +58,7 @@ function Stat({
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+      <dd className="mt-0.5 whitespace-nowrap text-lg font-semibold tabular-nums text-foreground">
         {value}
       </dd>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -209,7 +209,7 @@ export function CustomerModal({
         <DialogPrimitive.Overlay className="modal-overlay fixed inset-0 z-50 bg-black/60" />
         <DialogPrimitive.Content
           data-slot="customer-modal"
-          className="modal-content fixed left-1/2 top-1/2 z-50 flex max-h-[min(46rem,calc(100dvh-2rem))] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl outline-none"
+          className="modal-content fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-5xl md:h-[min(42rem,calc(100dvh-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl outline-none"
         >
           <header className="border-b border-border bg-card/60 px-6 py-5">
             <div className="flex items-start gap-4">
@@ -259,10 +259,13 @@ export function CustomerModal({
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-5 md:overflow-hidden">
             {shown && (
-              <div className="grid gap-6 md:grid-cols-[16rem_minmax(0,1fr)]">
-                <aside className="space-y-5" aria-label="Profile">
+              <div className="grid gap-6 md:h-full md:grid-cols-[17rem_minmax(0,1fr)]">
+                <aside
+                  className="space-y-5 md:min-h-0 md:overflow-y-auto md:pr-2"
+                  aria-label="Profile"
+                >
                   {shown.about ? (
                     <section>
                       <h3 className="text-sm font-medium text-foreground">
@@ -359,11 +362,18 @@ export function CustomerModal({
                   )}
                 </aside>
 
-                <div className="min-w-0 space-y-5">
-                  <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="flex min-w-0 flex-col gap-5 md:min-h-0">
+                  <dl className="grid shrink-0 grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-3">
                     <Stat
                       label="Open pipeline"
-                      value={`${formatMoney(Number(shown.open_pipeline_value ?? 0))}/mo`}
+                      value={
+                        <>
+                          {formatMoney(Number(shown.open_pipeline_value ?? 0))}
+                          <span className="text-xs font-normal text-muted-foreground">
+                            /mo
+                          </span>
+                        </>
+                      }
                     />
                     <Stat
                       label="Opportunities"
@@ -386,15 +396,21 @@ export function CustomerModal({
                     />
                   </dl>
 
-                  <Tabs defaultValue="opportunities">
-                    <TabsList>
+                  <Tabs
+                    defaultValue="opportunities"
+                    className="flex min-h-0 flex-1 flex-col"
+                  >
+                    <TabsList className="shrink-0">
                       <TabsTrigger value="opportunities">
                         Opportunities{items ? ` (${items.length})` : ""}
                       </TabsTrigger>
                       <TabsTrigger value="activity">Activity</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="opportunities" className="mt-4">
+                    <TabsContent
+                      value="opportunities"
+                      className="mt-4 min-h-0 flex-1 md:overflow-y-auto md:pr-2"
+                    >
                       {error ? (
                         <ErrorState
                           message={error.message}
@@ -457,7 +473,10 @@ export function CustomerModal({
                       )}
                     </TabsContent>
 
-                    <TabsContent value="activity" className="mt-4">
+                    <TabsContent
+                      value="activity"
+                      className="mt-4 min-h-0 flex-1 md:overflow-y-auto md:pr-2"
+                    >
                       <ActivityTimeline
                         entityType="customer"
                         entityId={shown.id}

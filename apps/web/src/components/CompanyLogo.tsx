@@ -9,6 +9,33 @@ const TINTS = [
   "#e87ba4",
 ];
 
+/** Drawn marks for the fictional demo customers (public/logos, made by scripts/make_logos.py). */
+const DRAWN_LOGOS = new Set([
+  "alder-health-network",
+  "brightwater-utilities",
+  "cedar-pine-logistics",
+  "fernhill-council-services",
+  "harbor-freight-cooperative",
+  "kestrel-biotech-campus",
+  "lombarda-studio-group",
+  "meridian-law-partners",
+  "northgate-university",
+  "orchard-retail-collective",
+  "peregrine-outdoor-co",
+  "quarry-co",
+  "skyline-aviation-services",
+  "solace-hospitality-group",
+  "tidewater-insurance-services",
+  "vantage-media-studios",
+]);
+
+function logoSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function hashOf(name: string): number {
   let hash = 7;
   for (const ch of name.toLowerCase())
@@ -109,6 +136,18 @@ export function CompanyLogo({
 }) {
   const hash = hashOf(name);
   const tint = TINTS[hash % TINTS.length];
+  const slug = logoSlug(name);
+  if (DRAWN_LOGOS.has(slug)) {
+    return (
+      <img
+        src={`${import.meta.env.BASE_URL}logos/${slug}.svg`}
+        alt=""
+        aria-hidden="true"
+        data-logo="drawn"
+        className={cn("shrink-0 select-none", SIZES[size], className)}
+      />
+    );
+  }
   return (
     <span
       aria-hidden="true"
