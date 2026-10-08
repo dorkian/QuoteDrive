@@ -2,9 +2,9 @@
 
 All notable changes to QuoteDrive. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [1.0.0] - Unreleased
+## [1.0.0] - 2026-10-08
 
-The first complete release: the full proposal journey, from discovery notes to an approved, client-ready preview. The date is set at sign-off (QD-408).
+The first complete release: the full proposal journey, from discovery notes to an approved, client-ready preview.
 
 ### Added
 - **Tenancy and access**: demo sign-in with four roles (Admin, Proposal Manager, Approver, Viewer). Every query is scoped to the caller's organization, and cross-tenant access returns 404 (QD-101, QD-102, QD-105).
