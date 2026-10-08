@@ -35,12 +35,11 @@ export function LoginScreen() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2" role="list">
+        <div className="flex flex-col gap-2">
           {DEMO_USERS.map(({ email, role }) => (
             <button
               key={email}
               type="button"
-              role="listitem"
               onClick={() => void handleSelect(email)}
               disabled={pending !== null}
               className="group flex items-center justify-between rounded-lg border border-navy-700 bg-card px-4 py-3 text-left transition-colors duration-150 hover:border-navy-400 hover:bg-navy-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"

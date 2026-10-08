@@ -37,7 +37,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | Provider failure doesn't change proposal state | ✅ | QD-306, QD-403 |
 | Unit, API and UI tests; CI format/lint/typecheck/tests/build | ✅ | QD-005, QD-405 |
 | Playwright smoke of the demo journey | 🟡 Built; runs manually in CI | ⏳ QD-411 |
-| Keyboard access, labels, focus, semantic structure | 🟡 One defect: sign-in buttons exposed as list items | ⏳ QD-419 |
+| Keyboard access, labels, focus, semantic structure | ✅ Sign-in buttons are real buttons | ✅ QD-419 |
 | Responsive; mobile supports reading and basic review | ✅ | QD-402, QD-409 |
 
 ## Product vision and journeys ([product-vision.md](product-vision.md), [personas-and-user-journeys.md](personas-and-user-journeys.md))

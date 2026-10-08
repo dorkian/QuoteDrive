@@ -22,6 +22,16 @@ describe("App", () => {
     );
   });
 
+  it("exposes each demo user as a button, not a list item (QD-419)", async () => {
+    render(<App />);
+
+    const buttons = await screen.findAllByRole("button", {
+      name: /@northstar\.example/,
+    });
+    expect(buttons).toHaveLength(4);
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
   it("shows the dashboard with the organization and role once authenticated", async () => {
     localStorage.setItem("quotedrive.token", "stored-token");
     vi.mocked(api.fetchMe).mockResolvedValue({
