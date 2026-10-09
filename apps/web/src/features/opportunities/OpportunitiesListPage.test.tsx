@@ -262,6 +262,10 @@ describe("OpportunitiesListPage", () => {
       customer_id: 10,
       title: "2027 Fleet Renewal",
     });
+    // The form must not stay open underneath the panel.
+    expect(
+      screen.queryByRole("heading", { name: "New opportunity", hidden: true }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a role error inside the dialog when creation is forbidden", async () => {

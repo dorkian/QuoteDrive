@@ -105,6 +105,8 @@ export function OpportunitiesListPage() {
     }
     toast.success(`${created.title} created`);
     setOpportunities((prev) => (prev ? [created, ...prev] : [created]));
+    // Close the form before the new opportunity's panel opens, or it stays open underneath.
+    setCreating(false);
     setSearchParams({ open: String(created.id) });
   }
 
