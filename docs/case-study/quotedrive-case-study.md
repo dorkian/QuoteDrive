@@ -2,7 +2,7 @@
 
 _A case study by Ash Dorkian. Everything in QuoteDrive is synthetic: fictional companies, packages and prices. Nothing here is a real quote._
 
-**Repo:** github.com/dorkian/QuoteDrive · **Demo video:** `<link>` · **Built:** 2026-09-18 to 2026-10-09 (109 commits)
+**Repo:** github.com/dorkian/QuoteDrive · **Demo video:** https://youtu.be/moJ5Xb1Y_3g · **Built:** 2026-09-18 to 2026-10-09 (109 commits)
 
 ## The short version
 
