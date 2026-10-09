@@ -5,6 +5,8 @@ A proposal manager turns discovery notes into a structured brief, configures ser
 
 QuoteDrive is an educational portfolio case study. It demonstrates product thinking, SaaS architecture, controlled generative AI, tenant isolation, approval workflows and delivery discipline. **All companies, people, vehicles and figures are fictional** (see [Synthetic data](#synthetic-data)).
 
+**Demo video (4 min, silent with subtitles):** [https://youtu.be/moJ5Xb1Y_3g](https://youtu.be/moJ5Xb1Y_3g) · **[Case study](docs/case-study/quotedrive-case-study.md)**
+
 ![Proposal builder with three packages and a live illustrative total](docs/screenshots/v1/builder.png)
 
 ## Contents

@@ -53,7 +53,7 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 |---|---|---|
 | Weekends 1–3 scope | ✅, except the items above | see above |
 | Weekend 4: preview, states, test hardening, diagrams, README/runbooks | ✅ | QD-401, QD-402, QD-405, QD-406 |
-| Weekend 4: demo video and first case-study article | ⏳ | ⏳ QD-407 |
+| Weekend 4: demo video and first case-study article | ✅ Video published (https://youtu.be/moJ5Xb1Y_3g); case study in `docs/case-study` | QD-407 |
 | Release sign-off and human E2E pass | ⏳ | ⏳ QD-408 |
 | AI eval plan cases 1–7 and 10 | ✅ | QD-403, QD-404, QD-410 |
 | AI eval plan cases 8–9 (fallback / no fallback) | ✅ Run in CI with fakes | QD-417 |
