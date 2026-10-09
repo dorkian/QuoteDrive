@@ -186,4 +186,4 @@ Trello is the delivery cockpit, and this repository is the technical source of t
 
 ## License
 
-No license has been chosen yet, so all rights are reserved for now. Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+MIT. See [LICENSE](LICENSE). Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

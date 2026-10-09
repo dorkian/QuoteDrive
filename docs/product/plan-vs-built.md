@@ -59,6 +59,6 @@ Legend: ✅ built · 🟡 partly built · ⏳ not built, has a card.
 | AI eval plan cases 8–9 (fallback / no fallback) | ✅ Run in CI with fakes | QD-417 |
 | Scenario scoring and pass-percentage approval (PO request during QD-403) | ✅ Live runs score every check, write a report to `docs/evaluations/reports/` and fail below 90% or on any safety failure | QD-418 |
 | ADR-005 fallback | ✅ | QD-417 |
-| ADR-008 approval | Proposed | PO decision |
+| ADR-008 approval | ✅ Accepted 2026-10-09 | PO decision |
 
 Deliberately out of scope (not gaps): billing, email sending, PDF rendering, SSO, third-party integrations, real marketplace data, public deployment, and autonomous agents.
