@@ -31,3 +31,19 @@ editor, or speed those spans up.
 
 Edit the segment blocks in the script; each one is numbered like the table in the demo script. Helpers:
 `click`, `typeInto`, `glide` (human-paced mouse), `caption`, `login`, `logout`.
+
+## Background music (optional)
+
+`apps/web/demo/make_music.py` synthesises an original ambient track with the Python standard library: no
+samples and no downloaded audio, so there is nothing to license and nothing for YouTube's Content ID to match.
+
+```bash
+python3 apps/web/demo/make_music.py 262 apps/web/demo/out/music-dry.wav   # seconds = video length, about 1 minute
+```
+
+Then soften and level it (about -23 LUFS, quiet enough not to compete with the subtitles) and add it to the video:
+
+```bash
+ffmpeg -i music-dry.wav -af "pan=stereo|c0=c0|c1=c0,lowpass=f=5500,aecho=0.8:0.75:70|140|230:0.3|0.22|0.15,adelay=0|14,loudnorm=I=-24:TP=-3:LRA=6,afade=t=in:d=3" -ar 48000 music.wav
+ffmpeg -i video.mp4 -i music.wav -c:v copy -c:a aac -b:a 192k -map 0:v -map 1:a -shortest video-music.mp4
+```
