@@ -130,8 +130,9 @@ describe("OpportunitiesListPage", () => {
     const panel = await screen.findByRole("dialog", {
       name: "2026 Fleet Modernization",
     });
+    // The panel opens at once from the row; its record (and Next step card) loads a moment later.
     expect(
-      within(panel).getByRole("region", { name: "Next step" }),
+      await within(panel).findByRole("region", { name: "Next step" }),
     ).toBeInTheDocument();
     expect(
       within(panel).getByRole("link", { name: /Open full page/ }),
