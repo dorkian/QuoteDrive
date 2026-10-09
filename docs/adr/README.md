@@ -11,7 +11,7 @@ Decisions are proposed by the implementer and approved by the Product Owner. The
 | [ADR-005](ADR-005-provider-abstraction.md) | Provider interface: OpenRouter primary, Ollama optional fallback, FakeProvider for tests | Accepted | **Yes.** Real providers retry one transient failure; with `AI_FALLBACK_PROVIDER=ollama` and the tenant's opt-in (Settings › AI), a second failure falls back to Ollama and the draft shows the reason (QD-417). |
 | [ADR-006](ADR-006-proposal-versioning.md) | Immutable proposal version snapshots; edits fork a new version | Accepted | Yes |
 | [ADR-007](ADR-007-schema-validated-drafting.md) | Drafts gated by schema validation, not an evaluator service | Accepted | Yes, plus a deterministic output guard (QD-410). |
-| [ADR-008](ADR-008-ui-foundation-shadcn.md) | In-repo shadcn/ui components on Radix; react-router retained | **Proposed**, awaiting PO approval | Yes (QD-409) |
+| [ADR-008](ADR-008-ui-foundation-shadcn.md) | In-repo shadcn/ui components on Radix; react-router retained | Accepted | Yes (QD-409) |
 
 ## Adding an ADR
 Copy the format of an existing file (Decision, Rationale or Context, Consequence), number it sequentially, add it to this table with status **Proposed**, and link it from the card that needs it. Only the Product Owner changes the status to Accepted.

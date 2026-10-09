@@ -1,6 +1,6 @@
 # ADR-008: UI foundation on in-repo shadcn/ui components, react-router retained
 
-**Status:** Proposed. Needs PO approval; Claude may not approve ADRs.
+**Status:** Accepted by the Product Owner on 2026-10-09.
 
 ## Decision
 The web app's visual layer is built on shadcn/ui-style components kept in the repo (`apps/web/src/components/ui/`), on Radix primitives, class-variance-authority and Tailwind v4 semantic tokens. The Shadcn Admin template (satnaing/shadcn-admin, MIT) was the reference for the shell pattern: collapsible sidebar, breadcrumbs and a ⌘K command palette. The template was not forked, and its TanStack Router, Clerk auth and demo features were not adopted. Routing stays on `react-router-dom`, and `components/layout/nav-items.ts` stays the single source for navigation.
