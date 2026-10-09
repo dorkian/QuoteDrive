@@ -1,4 +1,4 @@
-import { Sparkles, X } from "lucide-react";
+import { Loader2, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -222,7 +222,11 @@ export function AiNarrativeEditor({
             disabled={!hasLines || generating}
             className={AI_BUTTON}
           >
-            <Sparkles aria-hidden="true" />
+            {generating ? (
+              <Loader2 aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Sparkles aria-hidden="true" />
+            )}
             {generating ? "Drafting…" : "Draft with AI"}
           </Button>
         )}
@@ -233,6 +237,13 @@ export function AiNarrativeEditor({
           {hasLines
             ? "AI writes the executive summary, approach, scope, assumptions and a client email from the packages above. Nothing is saved until you review, edit and save it."
             : "Add at least one package above, then AI can draft the narrative for you."}
+        </p>
+      )}
+
+      {generating && (
+        <p role="status" className="-mt-3 mb-6 text-sm text-muted-foreground">
+          The AI is writing the narrative from your packages. A local model can
+          take up to a minute.
         </p>
       )}
 

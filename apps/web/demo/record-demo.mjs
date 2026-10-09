@@ -157,6 +157,26 @@ async function caption(text, minMs = 2200) {
   const reading = text.split(/\s+/).length * 330 + 900;
   await sleep(Math.max(minMs, spoken / k + 500, VOICE ? 0 : reading));
 }
+// Real model waits are long. They are recorded for real, then played back faster (silent takes only),
+// with a subtitle saying so, so nobody thinks the AI is instant.
+const SPEEDUP = 8;
+const spans = [];
+async function aiWait(label, wait) {
+  await page.evaluate((t) => {
+    sessionStorage.setItem("qd-cap", t);
+    const el = document.getElementById("qd-cap");
+    if (el) el.textContent = t;
+  }, `${label} (sped up ${SPEEDUP}x)`);
+  const a = Date.now() - t0;
+  await wait();
+  const b = Date.now() - t0;
+  if (b - a > 4000) spans.push([a + 1200, b]);
+  await page.evaluate(() => {
+    sessionStorage.removeItem("qd-cap");
+    const el = document.getElementById("qd-cap");
+    if (el) el.textContent = "";
+  });
+}
 const clearCaption = () =>
   page.evaluate(() => {
     sessionStorage.removeItem("qd-cap");
@@ -317,9 +337,11 @@ await typeInto(
   12,
 );
 await click(panel.getByRole("button", { name: /Draft brief with AI/ }));
-await panel
-  .getByRole("button", { name: "Save brief" })
-  .waitFor({ timeout: 90_000 });
+await aiWait("The local AI is reading the call notes", () =>
+  panel
+    .getByRole("button", { name: "Save brief" })
+    .waitFor({ timeout: 90_000 }),
+);
 await sleep(2600);
 await click(panel.getByRole("button", { name: "Save brief" }));
 await sleep(1600);
@@ -367,7 +389,9 @@ await caption(
 const narrative = page.locator("#ai-narrative");
 await click(narrative.getByRole("button", { name: "Draft with AI" }));
 const summary = page.locator("#narrative-executive-summary");
-await summary.waitFor({ timeout: 90_000 });
+await aiWait("The local AI is writing the narrative", () =>
+  summary.waitFor({ timeout: 90_000 }),
+);
 await sleep(2400);
 await click(summary);
 await page.keyboard.press("ControlOrMeta+End");
@@ -572,12 +596,31 @@ if (VOICE && clips.length) {
     { stdio: "ignore" },
   );
 } else {
+  // Silent take: play each recorded AI wait faster, everything else at normal speed.
+  const fast = spans.filter(([a, b]) => b > a);
+  const cuts = [];
+  let from = 0;
+  for (const [a, b] of fast) {
+    cuts.push({ a: from / 1000, b: a / 1000, speed: 1 });
+    cuts.push({ a: a / 1000, b: b / 1000, speed: SPEEDUP });
+    from = b;
+  }
+  cuts.push({ a: from / 1000, b: null, speed: 1 });
+  const parts = cuts.map((c, i) => {
+    const trim = c.b === null ? `start=${c.a}` : `start=${c.a}:end=${c.b}`;
+    return `[0:v]trim=${trim},setpts=(PTS-STARTPTS)/${c.speed}[v${i}]`;
+  });
+  const filter = `${parts.join(";")};${cuts.map((_, i) => `[v${i}]`).join("")}concat=n=${cuts.length}:v=1:a=0[out]`;
   execFileSync(
     "ffmpeg",
     [
       "-y",
       "-i",
       webm,
+      "-filter_complex",
+      filter,
+      "-map",
+      "[out]",
       "-c:v",
       "libx264",
       "-pix_fmt",

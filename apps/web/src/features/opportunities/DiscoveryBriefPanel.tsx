@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -219,9 +219,19 @@ export function DiscoveryBriefPanel({
             disabled={!notes.trim() || generating}
             className={cn(AI_BUTTON, "mt-3")}
           >
-            <Sparkles aria-hidden="true" />
+            {generating ? (
+              <Loader2 aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Sparkles aria-hidden="true" />
+            )}
             {generating ? "Drafting…" : "Draft brief with AI"}
           </Button>
+          {generating && (
+            <p role="status" className="mt-2 text-sm text-muted-foreground">
+              The AI is reading your notes. A local model can take up to a
+              minute.
+            </p>
+          )}
         </div>
       )}
 
