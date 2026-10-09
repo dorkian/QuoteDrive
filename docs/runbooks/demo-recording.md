@@ -34,16 +34,18 @@ Edit the segment blocks in the script; each one is numbered like the table in th
 
 ## Background music (optional)
 
-`apps/web/demo/make_music.py` synthesises an original ambient track with the Python standard library: no
-samples and no downloaded audio, so there is nothing to license and nothing for YouTube's Content ID to match.
+`apps/web/demo/make_music.py` synthesises an original electronic track (112 BPM, F minor) with the Python
+standard library: no samples and no downloaded audio, so there is nothing to license and nothing for
+YouTube's Content ID to match. It has an arc, with a sparse intro, a groove, a breakdown, two driving sections
+with a riser into each, a calm middle and an outro, so it rises and falls like a working day.
 
 ```bash
-python3 apps/web/demo/make_music.py 262 apps/web/demo/out/music-dry.wav   # seconds = video length, about 1 minute
+python3 apps/web/demo/make_music.py 262 apps/web/demo/out/music-dry.wav   # seconds = video length, about 25 s to render
 ```
 
-Then soften and level it (about -23 LUFS, quiet enough not to compete with the subtitles) and add it to the video:
+Then widen and level it (about -20 LUFS, under the subtitles) and add it to the video:
 
 ```bash
-ffmpeg -i music-dry.wav -af "pan=stereo|c0=c0|c1=c0,lowpass=f=5500,aecho=0.8:0.75:70|140|230:0.3|0.22|0.15,adelay=0|14,loudnorm=I=-24:TP=-3:LRA=6,afade=t=in:d=3" -ar 48000 music.wav
+ffmpeg -i music-dry.wav -af "pan=stereo|c0=c0|c1=c0,lowpass=f=9000,aecho=0.8:0.6:45|90:0.22|0.14,adelay=0|11,alimiter=limit=0.9,loudnorm=I=-21:TP=-2:LRA=9,afade=t=in:d=2" -ar 48000 music.wav
 ffmpeg -i video.mp4 -i music.wav -c:v copy -c:a aac -b:a 192k -map 0:v -map 1:a -shortest video-music.mp4
 ```
